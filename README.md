@@ -1,11 +1,4 @@
-# @voicethread/\* plugins
-
-```
-npm run setup
-npm start
-```
-
-- @voicethread
+- [@voicethread/nativescript-custom-rotors](packages/nativescript-custom-rotors/README.md)
 
 # How to use?
 

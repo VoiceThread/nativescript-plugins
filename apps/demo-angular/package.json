@@ -1,7 +1,8 @@
 {
   "main": "./src/main.ts",
   "dependencies": {
-    "@nativescript/core": "file:../../node_modules/@nativescript/core"
+    "@nativescript/core": "file:../../node_modules/@nativescript/core",
+    "@voicethread/nativescript-custom-rotors": "file:../../dist/packages/nativescript-custom-rotors"
   },
   "devDependencies": {
     "@nativescript/android": "~8.4.0",

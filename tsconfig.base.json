@@ -21,7 +21,8 @@
     ],
     "paths": {
       "@demo/shared": ["tools/demo/index.ts"],
-      "@voicethread/*": ["packages/*"]
+      "@voicethread/*": ["packages/*"],
+      "@voicethread/nativescript-custom-rotors": ["packages/nativescript-custom-rotors/index.d.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]
