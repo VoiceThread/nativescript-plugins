@@ -9,5 +9,8 @@ export class HomeComponent {
     {
       name: 'nativescript-custom-rotors',
     },
+    {
+      name: 'nativescript-filepicker',
+    },
   ];
 }

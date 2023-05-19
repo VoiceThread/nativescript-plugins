@@ -4,8 +4,11 @@
   "license": "SEE LICENSE IN <your-license-filename>",
   "repository": "<fill-your-repository-here>",
   "dependencies": {
+    "@nativescript-community/perms": "^2.3.0",
     "@nativescript/core": "file:../../node_modules/@nativescript/core",
-    "@voicethread/nativescript-custom-rotors": "file:../../packages/nativescript-custom-rotors"
+    "@nstudio/nativescript-checkbox": "^2.0.5",
+    "@voicethread/nativescript-custom-rotors": "file:../../packages/nativescript-custom-rotors",
+    "@voicethread/nativescript-filepicker": "file:../../packages/nativescript-filepicker"
   },
   "devDependencies": {
     "@nativescript/android": "~8.4.0",

@@ -68,6 +68,13 @@ module.exports = {
           description: '@voicethread/nativescript-custom-rotors: Build',
         },
       },
+      // @voicethread/nativescript-filepicker
+      'nativescript-filepicker': {
+        build: {
+          script: 'nx run nativescript-filepicker:build.all',
+          description: '@voicethread/nativescript-filepicker: Build',
+        },
+      },
       'build-all': {
         script: 'nx run-many --target=build.all --all',
         description: 'Build all packages',
@@ -81,6 +88,10 @@ module.exports = {
       'nativescript-custom-rotors': {
         script: 'nx run nativescript-custom-rotors:focus',
         description: 'Focus on @voicethread/nativescript-custom-rotors',
+      },
+      'nativescript-filepicker': {
+        script: 'nx run nativescript-filepicker:focus',
+        description: 'Focus on @voicethread/nativescript-filepicker',
       },
       reset: {
         script: 'nx g @voicethread/plugin-tools:focus-packages',

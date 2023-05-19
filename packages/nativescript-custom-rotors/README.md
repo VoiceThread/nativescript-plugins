@@ -1,4 +1,4 @@
-# NativeScript Custom Roters
+# NativeScript Custom Roters ![apple](https://cdn3.iconfinder.com/data/icons/picons-social/57/16-apple-32.png)
 
 > @voicethread/nativescript-custom-rotors
 
@@ -8,7 +8,7 @@ The `nativescript-custom-rotors` adds easy to use properties to common {N} views
 
 ## Contents
 
-- [NativeScript Custom Roters](#nativescript-custom-roters)
+- [NativeScript Custom Roters ](#nativescript-custom-roters-)
   - [Contents](#contents)
   - [Installation](#installation)
   - [Expanded Classes](#expanded-classes)

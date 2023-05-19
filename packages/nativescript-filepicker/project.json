@@ -1,0 +1,65 @@
+{
+  "name": "nativescript-filepicker",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "packages/nativescript-filepicker",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/js:tsc",
+      "options": {
+        "outputPath": "dist/packages/nativescript-filepicker",
+        "tsConfig": "packages/nativescript-filepicker/tsconfig.json",
+        "packageJson": "packages/nativescript-filepicker/package.json",
+        "main": "packages/nativescript-filepicker/index.d.ts",
+        "assets": [
+          "packages/nativescript-filepicker/*.md",
+          "packages/nativescript-filepicker/index.d.ts",
+          "LICENSE",
+          {
+            "glob": "**/*",
+            "input": "packages/nativescript-filepicker/platforms/",
+            "output": "./platforms/"
+          }
+        ],
+        "dependsOn": [
+          {
+            "target": "build.all",
+            "projects": "dependencies"
+          }
+        ]
+      }
+    },
+    "build.all": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": ["node tools/scripts/build-finish.ts nativescript-filepicker"],
+        "parallel": false
+      },
+      "outputs": ["dist/packages/nativescript-filepicker"],
+      "dependsOn": [
+        {
+          "target": "build.all",
+          "projects": "dependencies"
+        },
+        {
+          "target": "build",
+          "projects": "self"
+        }
+      ]
+    },
+    "focus": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": ["nx g @nativescript/plugin-tools:focus-packages nativescript-filepicker"],
+        "parallel": false
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "options": {
+        "lintFilePatterns": ["packages/nativescript-filepicker/**/*.ts"]
+      }
+    }
+  },
+  "tags": []
+}

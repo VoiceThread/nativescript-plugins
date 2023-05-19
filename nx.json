@@ -1,5 +1,5 @@
 {
-  "npmScope": "@voicethread",
+  "npmScope": "voicethread",
   "affected": {
     "defaultBase": "master"
   },

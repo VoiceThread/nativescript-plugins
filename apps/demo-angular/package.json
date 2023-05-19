@@ -2,7 +2,8 @@
   "main": "./src/main.ts",
   "dependencies": {
     "@nativescript/core": "file:../../node_modules/@nativescript/core",
-    "@voicethread/nativescript-custom-rotors": "file:../../dist/packages/nativescript-custom-rotors"
+    "@voicethread/nativescript-custom-rotors": "file:../../dist/packages/nativescript-custom-rotors",
+    "@voicethread/nativescript-filepicker": "file:../../dist/packages/nativescript-filepicker"
   },
   "devDependencies": {
     "@nativescript/android": "~8.4.0",
