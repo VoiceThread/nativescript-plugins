@@ -75,6 +75,13 @@ module.exports = {
           description: '@voicethread/nativescript-filepicker: Build',
         },
       },
+      // @voicethread/nativescript-downloader
+      'nativescript-downloader': {
+        build: {
+          script: 'nx run nativescript-downloader:build.all',
+          description: '@voicethread/nativescript-downloader: Build',
+        },
+      },
       'build-all': {
         script: 'nx run-many --target=build.all --all',
         description: 'Build all packages',
@@ -92,6 +99,10 @@ module.exports = {
       'nativescript-filepicker': {
         script: 'nx run nativescript-filepicker:focus',
         description: 'Focus on @voicethread/nativescript-filepicker',
+      },
+      'nativescript-downloader': {
+        script: 'nx run nativescript-downloader:focus',
+        description: 'Focus on @voicethread/nativescript-downloader',
       },
       reset: {
         script: 'nx g @voicethread/plugin-tools:focus-packages',

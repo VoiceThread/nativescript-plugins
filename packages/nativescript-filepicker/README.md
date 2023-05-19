@@ -10,10 +10,10 @@ iOS also has access to the _galleryPicker()_ function which selects from the iOS
 
 For **Android**, _filePicker()_ uses Intents to open the stock file picker. For Android 6 (API 23) and above the permissions to read file storage should be explicitly required in AndroidManifest. See demo for implementation details. Note: _galleryPicker()_ will just call _filePicker()_ internally.
 
-## Content
+## Contents
 
 - [NativeScript Filepicker  ](#nativescript-filepicker--)
-  - [Content](#content)
+  - [Contents](#contents)
   - [Installation](#installation)
   - [Usage](#usage)
     - [Android Permissions](#android-permissions)

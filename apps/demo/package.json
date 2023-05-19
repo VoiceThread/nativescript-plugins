@@ -7,7 +7,10 @@
     "@nativescript-community/perms": "^2.3.0",
     "@nativescript/core": "file:../../node_modules/@nativescript/core",
     "@nstudio/nativescript-checkbox": "^2.0.5",
+    "@nstudio/nativescript-loading-indicator": "^4.2.0",
+    "@valor/nativescript-feedback": "^2.0.2",
     "@voicethread/nativescript-custom-rotors": "file:../../packages/nativescript-custom-rotors",
+    "@voicethread/nativescript-downloader": "file:../../packages/nativescript-downloader",
     "@voicethread/nativescript-filepicker": "file:../../packages/nativescript-filepicker"
   },
   "devDependencies": {

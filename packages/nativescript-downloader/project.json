@@ -1,0 +1,65 @@
+{
+  "name": "nativescript-downloader",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "packages/nativescript-downloader",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/js:tsc",
+      "options": {
+        "outputPath": "dist/packages/nativescript-downloader",
+        "tsConfig": "packages/nativescript-downloader/tsconfig.json",
+        "packageJson": "packages/nativescript-downloader/package.json",
+        "main": "packages/nativescript-downloader/index.d.ts",
+        "assets": [
+          "packages/nativescript-downloader/*.md",
+          "packages/nativescript-downloader/index.d.ts",
+          "LICENSE",
+          {
+            "glob": "**/*",
+            "input": "packages/nativescript-downloader/platforms/",
+            "output": "./platforms/"
+          }
+        ],
+        "dependsOn": [
+          {
+            "target": "build.all",
+            "projects": "dependencies"
+          }
+        ]
+      }
+    },
+    "build.all": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": ["node tools/scripts/build-finish.ts nativescript-downloader"],
+        "parallel": false
+      },
+      "outputs": ["dist/packages/nativescript-downloader"],
+      "dependsOn": [
+        {
+          "target": "build.all",
+          "projects": "dependencies"
+        },
+        {
+          "target": "build",
+          "projects": "self"
+        }
+      ]
+    },
+    "focus": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": ["nx g @nativescript/plugin-tools:focus-packages nativescript-downloader"],
+        "parallel": false
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "options": {
+        "lintFilePatterns": ["packages/nativescript-downloader/**/*.ts"]
+      }
+    }
+  },
+  "tags": []
+}
