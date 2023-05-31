@@ -2,13 +2,15 @@
 
 > @voicethread/nativescript-filepicker
 
-This file picker plugin exports function _filePicker()_ that supports both single and multiple selection (for iOS, multiple selection feature depends on OS version) using only native picker approaches.
+This file picker plugin exports function `filePicker()` that supports both single and multiple selection (for iOS, multiple selection feature depends on OS version) using only native picker approaches.
 
-For **iOS**, _filePicker()_ uses UIDocumentPicker to allow selection from publicly available files that can be accessed via iOS Files app. When selecting from Files, UIDocumentPicker supports multiple selections.
+For **iOS**, `filePicker()` uses `UIDocumentPicker` to allow selection from publicly available files that can be accessed via iOS Files app. When selecting from Files, `UIDocumentPicker` supports multiple selections.
 
-iOS also has access to the _galleryPicker()_ function which selects from the iOS Photos Gallery. This picker uses UIImagePicker for iOS 13 and below, which only supports single selections. PHPicker is used for iOS 14+ which does support multiple selections from the Photos Gallery. This picker does require user permission before allowing access to media on iOS.
+iOS also has access to the `galleryPicker()` function which selects from the iOS Photos Gallery. This picker uses `UIImagePicker` for iOS 13 and below, which only supports single selections. PHPicker is used for iOS 14+ which does support multiple selections from the Photos Gallery. This picker does require user permission before allowing access to media on iOS.
 
-For **Android**, _filePicker()_ uses Intents to open the stock file picker. For Android 6 (API 23) and above the permissions to read file storage should be explicitly required in AndroidManifest. See demo for implementation details. Note: _galleryPicker()_ will just call _filePicker()_ internally.
+For **Android**, `filePicker()` uses `Intents` to open the stock file picker. For Android 6 (API 23) and above the permissions to read file storage should be explicitly required in AndroidManifest. See demo for implementation details. Note: `galleryPicker()` will just call `filePicker()` internally.
+
+https://github.com/VoiceThread/nativescript-plugins/assets/20136906/ba6dcba1-bfd6-4a9d-a02e-f5351c252cdb
 
 ## Contents
 
@@ -134,7 +136,7 @@ This plugin also exports a function `getFreeMBs` which a dev can use to check fr
 
 ## Acknowledgements
 
-This plugin was based on code from https://github.com/jibon57/nativescript-mediafilepicker and https://github.com/nativescript-community/ui-document-picker
+This plugin was based on code from [nativescript-mediafilepicker](https://github.com/jibon57/nativescript-mediafilepicker) and [ui-document-picker](https://github.com/nativescript-community/ui-document-picker)
 
 ## License
 
