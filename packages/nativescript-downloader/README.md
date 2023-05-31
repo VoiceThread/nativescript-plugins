@@ -2,11 +2,13 @@
 
 > @voicethread/nativescript-downloader
 
-This downloader plugin exports class _Downloader_ that has a single function _download()_
+This downloader plugin exports class _Downloader_ that has a single function `download()`.
 
-For **iOS**, _Downloader_ uses NSURLSession to initiate a download from a valid URL.
+For **iOS**, _Downloader_ uses `NSURLSession` to initiate a download from a valid URL.
 
-For **Android**, _Downloader_ uses DownloadManager to initiate a download from a valid URL.
+For **Android**, _Downloader_ uses `DownloadManager` to initiate a download from a valid URL.
+
+https://github.com/VoiceThread/nativescript-plugins/assets/20136906/80d40e3f-2c42-4d61-8213-52b84e965ac9
 
 ## Contents
 
