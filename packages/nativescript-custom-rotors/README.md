@@ -1,5 +1,7 @@
 # NativeScript Custom Roters ![apple](https://cdn3.iconfinder.com/data/icons/picons-social/57/16-apple-32.png)
 
+[![npm](https://img.shields.io/npm/v/@voicethread/nativescript-custom-rotors?style=flat-square)](https://www.npmjs.com/package/@voicethread/nativescript-custom-rotors)
+
 > @voicethread/nativescript-custom-rotors
 
 The `nativescript-custom-rotors` adds easy to use properties to common {N} views to make them accessible to iOS Accessibility Custom Rotors. Accessibility Custom Rotors provide an elegant solution for screen-reader assisted navigation by associating views from various containers and geographies into a common a11y accessible group. Please see [this video from Apple WWDC2020](https://developer.apple.com/videos/play/wwdc2020/10116/) for more information on iOS Accessibility Custom Rotors
