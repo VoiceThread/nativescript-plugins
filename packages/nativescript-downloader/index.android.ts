@@ -55,7 +55,7 @@ export class Downloader extends DownloaderCommon {
         //   https://developer.android.com/reference/android/app/DownloadManager.Request#VISIBILITY_VISIBLE
         //   Disabling this notification will also require the following permission in AndroidManifest and explanation why:
         //       android.permission.DOWNLOAD_WITHOUT_NOTIFICATION
-        req.setNotificationVisibility(notification ? 1 : 2);
+        req.setNotificationVisibility(notification ? android.app.DownloadManager.Request.VISIBILITY_VISIBLE : android.app.DownloadManager.Request.VISIBILITY_HIDDEN);
 
         // req.allowScanningByMediaScanner();//deprecated, files saved outside app directory will be scanned automatically
 
@@ -326,7 +326,9 @@ function getReason(cursor: android.database.Cursor): string {
 
 // This method is safer than Application.getApplicationContext()
 const getAndroidContext = (): android.app.Application => {
-  const ctx = java.lang.Class.forName('android.app.AppGlobals').getMethod('getInitialApplication', null).invoke(null, null) || java.lang.Class.forName('android.app.ActivityThread').getMethod('currentApplication', null).invoke(null, null);
+  const ctx =
+    java.lang.Class.forName('android.app.AppGlobals').getMethod('getInitialApplication', null).invoke(null, null) ||
+    java.lang.Class.forName('android.app.ActivityThread').getMethod('currentApplication', null).invoke(null, null);
   return ctx || Utils.android.getApplicationContext();
 };
 
