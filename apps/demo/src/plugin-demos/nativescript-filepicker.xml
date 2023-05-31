@@ -1,23 +1,30 @@
 <Page xmlns="http://schemas.nativescript.org/tns.xsd"
-  xmlns:CheckBox="@nstudio/nativescript-checkbox" navigatingTo="navigatingTo" class="page">
+  xmlns:CheckBox="@nstudio/nativescript-checkbox" navigatingTo="navigatingTo">
   <Page.actionBar>
-    <ActionBar title="filepicker" icon="" class="action-bar">
+    <ActionBar title="Filepicker" icon="">
     </ActionBar>
   </Page.actionBar>
-  <StackLayout class="p-20">
-    <ScrollView class="h-full">
-      <StackLayout>
-        <CheckBox:CheckBox color="black" text="Multiple items?" id="demoCheckbox" checked="true" />
-        <Label text="The following use filePicker with different media types requested:" color="black" textWrap="true"/>
-        <Button text="Pick Documents" tap="{{ pickDocs }}" class="btn btn-primary"/>
-        <Button text="Pick Images" tap="{{ pickImages }}" class="btn btn-primary"/>
-        <Button text="Pick Video" tap="{{ pickVideos }}" class="btn btn-primary"/>
-        <Button text="Pick Audio" tap="{{ pickAudio }}" class="btn btn-primary"/>
-        <Button text="Pick Archives" tap="{{ pickArchives }}" class="btn btn-primary"/>
-        <Button text="Pick All" tap="{{ pickAll }}" class="btn btn-primary" />
-        <Label text="iOS Gallery Picker - requests permission first (Android will just use filePicker internally)" color="black" textWrap="true"/>
-        <Button text="Pick Images/Videos from Photos Gallery" tap="{{ pickImageVideo }}"  textWrap="true" class="btn btn-primary"/>
-        <Label text="Picked files:" color="black" textWrap="true"/>
+  <StackLayout>
+  <ScrollView class="h-full">
+      <StackLayout class="p-20">
+        <FlexboxLayout flexDirection="row" justifyContent="space-between" height="50" paddingLeft="20" class="button">
+          <Label text="Multiple items?" margin="0" color="#fff"/>
+          <CheckBox:CheckBox id="demoCheckbox" checked="true" margin="15 0 0 0"/>
+        </FlexboxLayout>
+        <Label text="The following use filePicker with different media types requested:" textWrap="true" marginTop="15"/>
+        <Button text="Pick Documents" tap="{{ pickDocs }}"/>
+        <Button text="Pick Images" tap="{{ pickImages }}"/>
+        <Button text="Pick Video" tap="{{ pickVideos }}"/>
+        <Button text="Pick Audio" tap="{{ pickAudio }}"/>
+        <Button text="Pick Archives" tap="{{ pickArchives }}"/>
+        <Button text="Pick All" tap="{{ pickAll }}" />
+        <Label text="iOS Gallery Picker - requests permission first (Android will just use filePicker internally)" textWrap="true" marginTop="15"/>
+        <Button text="Pick Images/Videos from Photos Gallery" tap="{{ pickImageVideo }}"  textWrap="true"/>
+        
+        <Label class="divider"/>
+
+        <!-- results -->
+        <Label text="Picked files:" class="h2" marginTop="20"/>
         <StackLayout id="pickedFiles"/>
       </StackLayout>
     </ScrollView>

@@ -1,0 +1,75 @@
+name: 🐞 Bug report
+description: Create a bug report to help us improve our plugins
+labels: [bug-pending-triage]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report an issue.
+
+        > ## Important! :warning:
+        > 
+        > The issue list is reserved exclusively for bug reports and feature requests. That means we do not accept usage questions. If you open an issue that does not conform to the requirements, it will be closed.
+
+  - type: textarea
+    validations:
+      required: true
+    attributes:
+      label: Issue Description
+      description: |
+        A clear and concise description of what the bug is.
+        Please, explain whether it's a build-time error or a runtime error.
+
+        If you intend to submit a PR for this issue, tell us in the description.
+      placeholder: |
+        When I do <X>, <Y> happens and I see the following error message:
+
+        ```
+        <error message>
+        ```
+
+        Expected behavior:
+
+        When I do <X>, <Z> should happen instead.
+
+  - type: textarea
+    attributes:
+      label: Reproduction
+      description: |
+        Add commands used or steps taken to reproduce the behaviour.
+        Include links, references or anything else that will give us more context about the issue you are encountering.
+      placeholder: |
+        e.g: 
+        https://github.com/NativeScript/Nativescript
+
+        1. clone, and run with `ns run ios`
+        2. Click on '...'
+        3. See error
+
+  - type: textarea
+    attributes:
+      label: Relevant log output (if applicable)
+      description: |
+        Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
+
+        Using the `--log trace` flag will usuall print more verbose logs that will help identify the issue quicker.
+
+        When pasting verbose logs, please make sure you remove any sensitive information.
+      render: shell
+
+  - type: textarea
+    attributes:
+      label: Environment
+      description: |
+        Provide information about your environment. Run
+
+        ```shell
+        echo 'y' | npx nativescript-envinfo
+        ```
+
+        inside the project and paste the output directly without manual formatting.
+      placeholder: |
+        Paste the result of
+
+          echo 'y' | npx nativescript-envinfo

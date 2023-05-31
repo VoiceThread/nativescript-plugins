@@ -54,5 +54,28 @@
 		<key>NSAllowsArbitraryLoadsInWebContent</key>
 		<true/>
 	</dict>
+	<key>NSPhotoLibraryUsageDescription</key>
+		<string>Requires access to photo library to load and save media.</string>
+		<key>NSUbiquitousContainers</key>
+		<dict>
+			<key>iCloud.org.nativescript.plugindemo</key>
+			<dict>
+				<key>NSUbiquitousContainerIsDocumentScopePublic</key>
+				<true />
+				<key>NSUbiquitousContainerSupportedFolderLevels</key>
+				<string>Any</string>
+				<key>NSUbiquitousContainerName</key>
+				<string>PluginsDemo</string>
+			</dict>
+		</dict>
+		<key>iCloudContainerEnvironment</key>
+		<array>
+			<string>Production</string>
+			<string>Development</string>
+		</array>
+		<key>LSSupportsOpeningDocumentsInPlace</key>
+		<true />
+		<key>UISupportsDocumentBrowser</key>
+		<true />
 </dict>
 </plist>

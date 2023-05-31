@@ -1,10 +1,9 @@
-// import { Observable, EventData, Page } from '@nativescript/core';
-import { EventData, Page, File, Frame, StackLayout, GridLayout, Color, Label, Image, alert, isAndroid, Device, isIOS } from '@nativescript/core';
+import { EventData, Page, File, Frame, StackLayout, Color, Label, Image, alert, isAndroid, Device, isIOS } from '@nativescript/core';
 import { DemoSharedNativescriptDownloader } from '@demo/shared';
 import { DownloadDestination, Downloader, DownloadOptions, MessageData } from '@voicethread/nativescript-downloader';
 import { LoadingIndicator, Mode, OptionsCommon } from '@nstudio/nativescript-loading-indicator';
 import { Feedback, FeedbackType, FeedbackPosition } from '@valor/nativescript-feedback';
-import { Result, checkMultiple, check as checkPermission, request, request as requestPermission } from '@nativescript-community/perms';
+import { Result, check as checkPermission, request as requestPermission } from '@nativescript-community/perms';
 
 export function navigatingTo(args: EventData) {
   const page = <Page>args.object;
@@ -189,11 +188,11 @@ export class DemoModel extends DemoSharedNativescriptDownloader {
       title: title?.toUpperCase(),
       type: FeedbackType.Custom,
       messageSize: 18,
-      messageColor: status === ToastStatus.normal ? new Color('white') : new Color('black'),
-      backgroundColor: status === ToastStatus.success ? new Color('lightblue') : status === ToastStatus.warning ? new Color('yellow') : status === ToastStatus.error ? new Color('orange') : new Color('blue') /* normal */,
+      messageColor: new Color('white'),
+      backgroundColor: status === ToastStatus.success ? new Color('#1194B6') : status === ToastStatus.warning ? new Color('#FA923C') : status === ToastStatus.error ? new Color('#F17577') : new Color('#2AD3BE') /* normal */,
       position: position === ToastPosition.TOP ? FeedbackPosition.Top : FeedbackPosition.Bottom,
       duration: status === ToastStatus.error || status === ToastStatus.warning ? 2500 : 1500,
-      titleColor: status === ToastStatus.normal ? new Color('white') : new Color('black'),
+      titleColor: new Color('white'),
     };
     feedback.show(options);
   }
@@ -202,46 +201,32 @@ export class DemoModel extends DemoSharedNativescriptDownloader {
     const itemList: StackLayout = Frame.topmost().getViewById('downloadedFiles');
     itemList.removeChildren();
     if (result) {
-      const fileContainer = new GridLayout();
-      fileContainer['rows'] = 'auto';
-      fileContainer['columns'] = 'auto, 8, *';
-      fileContainer['padding'] = 5;
-      fileContainer['margin'] = '1 5';
-      fileContainer['borderBottomColor'] = new Color('black');
-      fileContainer['borderBottomWidth'] = 1;
+      const fileContainer = new StackLayout();
 
-      const textContainer = new StackLayout();
-      textContainer['row'] = 0;
-      textContainer['col'] = 2;
+      const previewImage = new Image();
+      previewImage.width = 'auto';
+      previewImage.height = 150;
+      previewImage.src = result.path;
+      previewImage.backgroundColor = new Color('#0E1729');
+      previewImage.borderRadius = 5;
+      previewImage.stretch = 'aspectFit';
+      previewImage.marginTop = 10;
+      previewImage.marginBottom = 10;
+      fileContainer.addChild(previewImage);
+
       const fileLabel = new Label();
       fileLabel.text = result.name;
       fileLabel.textWrap = true;
-      fileLabel.color = new Color('black');
-      fileLabel.row = 0;
-      fileLabel.col = 2;
-      textContainer.addChild(fileLabel);
+      fileLabel.fontSize = 14;
+      fileLabel.color = new Color('#ffffff');
+      fileContainer.addChild(fileLabel);
 
       const pathLabel = new Label();
       pathLabel.text = `Path: ${result.path}`;
       pathLabel.textWrap = true;
-      pathLabel.color = new Color('black');
-      pathLabel.verticalAlignment = 'top';
-      pathLabel.row = 1;
-      pathLabel.col = 2;
-      textContainer.addChild(pathLabel);
-      fileContainer.addChild(textContainer);
-
-      const previewImage = new Image();
-      previewImage.width = 100;
-      previewImage.height = 100;
-      previewImage.src = result.path;
-      previewImage.backgroundColor = new Color('white');
-      previewImage.borderRadius = 5;
-      previewImage.stretch = 'aspectFit';
-      previewImage.row = 0;
-      previewImage.rowSpan = 2;
-      previewImage.col = 0;
-      fileContainer.addChild(previewImage);
+      pathLabel.fontSize = 12;
+      pathLabel.marginTop = 5;
+      fileContainer.addChild(pathLabel);
       itemList.addChild(fileContainer);
     }
   }

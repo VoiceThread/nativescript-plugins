@@ -1,4 +1,4 @@
-import { Observable, EventData, Page } from '@nativescript/core';
+import { EventData, Page } from '@nativescript/core';
 import { DemoSharedNativescriptCustomRotors } from '@demo/shared';
 import {} from '@voicethread/nativescript-custom-rotors';
 

@@ -156,46 +156,33 @@ export class DemoModel extends DemoSharedNativescriptFilepicker {
     itemList.removeChildren();
     if (results)
       results.forEach((file: File) => {
-        const fileContainer = new GridLayout();
-        fileContainer['rows'] = 'auto';
-        fileContainer['columns'] = 'auto, 8, *';
-        fileContainer['padding'] = 5;
-        fileContainer['margin'] = '1 5';
-        fileContainer['borderBottomColor'] = new Color('black');
-        fileContainer['borderBottomWidth'] = 1;
+        const fileContainer = new StackLayout();
 
-        const textContainer = new StackLayout();
-        textContainer['row'] = 0;
-        textContainer['col'] = 2;
+        const previewImage = new Image();
+        previewImage.width = 'auto';
+        previewImage.height = 150;
+        previewImage.src = file.path;
+        previewImage.backgroundColor = new Color('#0E1729');
+        previewImage.borderRadius = 5;
+        previewImage.stretch = 'aspectFit';
+        previewImage.marginTop = 10;
+        previewImage.marginBottom = 10;
+        fileContainer.addChild(previewImage);
+
         const fileLabel = new Label();
         fileLabel.text = file['originalFilename'];
         fileLabel.textWrap = true;
-        fileLabel.color = new Color('black');
-        fileLabel.row = 0;
-        fileLabel.col = 2;
-        textContainer.addChild(fileLabel);
+        fileLabel.fontSize = 14;
+        fileLabel.color = new Color('#ffffff');
+        fileContainer.addChild(fileLabel);
 
         const pathLabel = new Label();
         pathLabel.text = `Path: ${file.path}`;
         pathLabel.textWrap = true;
-        pathLabel.color = new Color('black');
-        pathLabel.verticalAlignment = 'top';
-        pathLabel.row = 1;
-        pathLabel.col = 2;
-        textContainer.addChild(pathLabel);
-        fileContainer.addChild(textContainer);
+        pathLabel.fontSize = 12;
+        pathLabel.marginTop = 5;
+        fileContainer.addChild(pathLabel);
 
-        const previewImage = new Image();
-        previewImage.width = 100;
-        previewImage.height = 100;
-        previewImage.src = file.path;
-        previewImage.backgroundColor = new Color('yellow');
-        previewImage.borderRadius = 5;
-        previewImage.stretch = 'aspectFit';
-        previewImage.row = 0;
-        previewImage.rowSpan = 2;
-        previewImage.col = 0;
-        fileContainer.addChild(previewImage);
         itemList.addChild(fileContainer);
       });
   }

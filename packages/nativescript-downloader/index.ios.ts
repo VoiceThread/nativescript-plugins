@@ -103,7 +103,9 @@ export class Downloader extends DownloaderCommon {
           }
 
           public URLSessionTaskDidCompleteWithError(_session: NSURLSession, task: NSURLSessionTask, error: NSError) {
-            this.handle.closeAndReturnError();
+            if (this.handle) {
+              this.handle.closeAndReturnError();
+            }
             if (error) {
               console.error('URLSessionTaskDidCompleteWithError error with description:');
               console.error(error.localizedDescription);
