@@ -4,3 +4,4 @@
 /coverage
 native-src
 /.vscode
+*.json
