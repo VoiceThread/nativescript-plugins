@@ -37,7 +37,7 @@ The best way to understand how to use the plugin is to study the demo app includ
 1. Import the plugin.
 
 ```javascript
-import { DownloadDestination, Downloader, DownloadOptions, MessageData } from '@angelengineering/downloader';
+import { DownloadDestination, Downloader, DownloadOptions, MessageData } from '@voicethread/nativescript-downloader';
 ```
 
 2. Create a downloader instance.

@@ -87,7 +87,7 @@ initialize the custom-rotors plugin in
 
 ```javascript
 ...
-import {initCustomRotors} from 'nativescript-custom-rotors'
+import {initCustomRotors} from '@voicethread/nativescript-custom-rotors'
 initCustomRotors();
 ...
 Application.run(...);
