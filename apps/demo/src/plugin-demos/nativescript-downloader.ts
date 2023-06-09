@@ -48,23 +48,23 @@ export class DemoModel extends DemoSharedNativescriptDownloader {
       alert('Picker destination only available on iOS 13+ ');
       return;
     }
-    this.downloadFile({ url: imageUri, destinationFilename: 'rose.png', destinationSpecial: DownloadDestination.picker });
+    this.downloadFile({ url: imageUri, destinationFilename: 'rose.png', copyPicker: true });
   }
 
   downloadValidDestDL() {
     //As long as permissions are in Manifest for API <29 no permission needed for legacy approach
     //newer APIs use MediaStore which also doesn't need any additional permissions
     if (isAndroid) {
-      this.downloadFile({ url: imageUri, destinationFilename: 'rose.png', destinationSpecial: DownloadDestination.downloads, notification: true });
+      this.downloadFile({ url: imageUri, destinationFilename: 'rose.png', copyDownloads: true, notification: true });
     } else if (isIOS) {
       //iOS needs user permission before saving a copy to Photos Gallery
       checkPermission('photo').then(async (permres: Result) => {
         console.log('storage perm?', permres);
-        await requestPermission('photo').then(async (result) => {
+        await requestPermission('photo').then(async result => {
           console.log('requested perm?', result);
           if (result[0] == 'authorized' && result[1]) {
             try {
-              this.downloadFile({ url: imageUri, destinationFilename: 'rose.png', destinationSpecial: DownloadDestination.gallery });
+              this.downloadFile({ url: imageUri, destinationFilename: 'rose.png', copyGallery: true });
             } catch (err) {
               if (err) alert(err?.message);
             }
@@ -83,21 +83,21 @@ export class DemoModel extends DemoSharedNativescriptDownloader {
   downloadValidMovieDest() {
     //Android can do this if we let user select the destination directory which grants permission, otherwise need SAF storage approach to save to default Downloads directory
     //iOS also will grant permission since user is involved in selecting destination
-    this.downloadFile({ url: movieUri, destinationSpecial: DownloadDestination.picker });
+    this.downloadFile({ url: movieUri, copyPicker: true });
   }
 
   downloadValidMovieDestDL() {
     if (isAndroid) {
-      this.downloadFile({ url: movieUri, destinationSpecial: DownloadDestination.downloads, notification: true });
+      this.downloadFile({ url: movieUri, copyDownloads: true, notification: true });
     } else if (isIOS)
       //iOS needs user permission before saving a copy to Photos Gallery
       checkPermission('photo').then(async (permres: Result) => {
         console.log('storage perm?', permres);
-        await requestPermission('photo').then(async (result) => {
+        await requestPermission('photo').then(async result => {
           console.log('requested perm?', result);
           if (isIOS && result[0] == 'authorized' && result[1]) {
             try {
-              this.downloadFile({ url: movieUri, destinationSpecial: DownloadDestination.gallery });
+              this.downloadFile({ url: movieUri, copyGallery: true });
             } catch (err) {
               if (err) alert(err?.message);
             }
@@ -189,7 +189,14 @@ export class DemoModel extends DemoSharedNativescriptDownloader {
       type: FeedbackType.Custom,
       messageSize: 18,
       messageColor: new Color('white'),
-      backgroundColor: status === ToastStatus.success ? new Color('#1194B6') : status === ToastStatus.warning ? new Color('#FA923C') : status === ToastStatus.error ? new Color('#F17577') : new Color('#2AD3BE') /* normal */,
+      backgroundColor:
+        status === ToastStatus.success
+          ? new Color('#1194B6')
+          : status === ToastStatus.warning
+          ? new Color('#FA923C')
+          : status === ToastStatus.error
+          ? new Color('#F17577')
+          : new Color('#2AD3BE') /* normal */,
       position: position === ToastPosition.TOP ? FeedbackPosition.Top : FeedbackPosition.Bottom,
       duration: status === ToastStatus.error || status === ToastStatus.warning ? 2500 : 1500,
       titleColor: new Color('white'),

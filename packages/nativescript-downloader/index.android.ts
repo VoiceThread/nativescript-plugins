@@ -1,14 +1,13 @@
 /* eslint-disable no-inner-declarations */
-import { DownloaderCommon, DownloadOptions, DownloadDestination } from './common';
+import { DownloaderCommon, DownloadOptions } from './common';
 import { Application, File, path, Utils, AndroidApplication, AndroidActivityResultEventData, Device } from '@nativescript/core';
-export { DownloadDestination };
 
 const DOWNLOADER_CODE = 26041;
 
 export class Downloader extends DownloaderCommon {
   public download(options: DownloadOptions): Promise<File> {
     return new Promise<File>((resolve, reject) => {
-      let { url, request, destinationFilename, destinationPath, destinationSpecial, notification } = options;
+      let { url, request, destinationFilename, destinationPath, copyPicker, copyDownloads, notification } = options;
       const emit = (event: string, data: any) => {
         this.notify({ eventName: event, object: this, data });
       };
@@ -147,7 +146,7 @@ export class Downloader extends DownloaderCommon {
             }
 
             //add a copy to directory of user's choice using a picker
-            if (destinationSpecial == DownloadDestination.picker) {
+            if (copyPicker) {
               try {
                 // add the results listener to the android app
                 AndroidApplication.on(AndroidApplication.activityResultEvent, onResult);
@@ -165,7 +164,7 @@ export class Downloader extends DownloaderCommon {
             }
 
             //add a copy to the Android Download directory
-            if (destinationSpecial == DownloadDestination.downloads) {
+            if (copyDownloads) {
               if (fileSuffix.includes('.')) fileSuffix = fileSuffix.replace('.', '');
               function getMimeType(uri) {
                 let mimeType = null;
