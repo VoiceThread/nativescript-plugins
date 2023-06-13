@@ -1,6 +1,6 @@
 {
   "name": "@voicethread/nativescript-downloader",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "Add a plugin description",
   "main": "index",
   "typings": "index.d.ts",
