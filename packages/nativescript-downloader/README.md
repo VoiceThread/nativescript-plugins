@@ -77,18 +77,13 @@ interface DownloadOptions {
   request?: RequestOptions; //request header strings to be passed to the https connection
   destinationPath?: string; //must be a valid path for app to create a new file (existing directory with valid filename)
   destinationFilename?: string; //must be a string like XXXX[].[YYYYYY] without any path preceding
-  destinationSpecial?: DownloadDestination; //Special destination options discussed below
+  copyPicker?: boolean; //present user with UI to choose destination directory
+  copyGallery?: boolean; //iOS only, if download has a recognized image/video file name extension, saved to iOS Photos, ignored on Android
+  copyDownloads?: boolean; //Android only, uses legacy DIRECTORY_DOWNLOADS, or MediaStore for 29+
   notification?: boolean; //Android-only. Show system notification for download success/failure. defaults to false
 }
 ```
 
-```javascript
-const enum DownloadDestination {
-  picker = 'show-picker', //present user with UI to choose destination directory to save a copy
-  gallery = 'photos-gallery', //iOS only, saves a copy of image/video files (matched by file extension) to iOS Photos Gallery, requires user permission.
-  downloads = 'downloads-directory', //Android only, uses MediaStore or legacy approach to save a copy in Android Download directory
-}
-```
 
 For both platforms, the plugin will attempt to download the file with the filename/path supplied by the user in options, or try to find a filename to use from the url. In either case, if a file already exists at any of the output paths where a copy is being saved, it will instead append a '-#' to the filename before saving to ensure there is no conflict.
 
@@ -105,8 +100,8 @@ By default, the plugin disabled Android system notifications of downloads, which
 
 You can choose to enable these notifications which will show the user progress and completion/failure notifications.
 
-Android version of plugin supports two special destination approaches. First, `destinationSpecial: DownloadDestination.picker` will first download the file to the default cache directory, and then present the user with a picker UI so that they select where they'd like a copy saved. This approach avoids permission requirements since the user is involved in the destination choice.
-Second, `destinationSpecial: DownloadDestination.downloads` will save a copy to the device's Download directory in case the user wants to use that file in another application from an easy to find location. API versions > 28 use MediaStore, and no extra permissions are necessary. For API versions 28 and below, you'll need to ensure you have Android Manifest permissions defined using:
+Android version of the plugin supports two destination copy approaches. First, `copyPicker` will first download the file to the default cache directory, and then present the user with a picker UI so that they select where they'd like a copy saved. This approach avoids permission requirements since the user is involved in the destination choice.
+Second, `copyDownloads` will save a copy to the device's Download directory in case the user wants to use that file in another application from an easy to find location. API versions > 28 use MediaStore, and no extra permissions are necessary. For API versions 28 and below, you'll need to ensure you have Android Manifest permissions defined using:
 
 ```xml
 <manifest ... >
@@ -118,9 +113,9 @@ Second, `destinationSpecial: DownloadDestination.downloads` will save a copy to 
 
 iOS applications will download files by default to the application's documents directory, which is defined in Nativescript as `knownFolders.documents()` and does not require any extra permissions from the user. This also has the advantage of being the location where an application can make downloaded files visible to other apps once it has been configured as a document provider.
 
-The iOS version of the plugin supports two special destination approaches. First, `destinationSpecial: DownloadDestination.picker` will first download the file to the application documents directory, and then present the user with a picker UI so that they can select where they'd like a copy saved. This approach avoids permission requirements since the user is involved in the destination choice. Note: This is only available on iOS 13+
+The iOS version of the plugin supports two destination copy approaches. First, `copyPicker` will first download the file to the application documents directory, and then present the user with a picker UI so that they can select where they'd like a copy saved. This approach avoids permission requirements since the user is involved in the destination choice. Note: This is only available on iOS 13+
 
-Second, `destinationSpecial: DownloadDestination.gallery` will save a copy to the device's Photos Gallery in case the user wants to use that file in another application from an easy to find location. This approach requires the user to grant photo library permission first in order to save the downloaded file. Your app might be rejected from the Apple App Store if you do not provide a description about why you need this permission. The default message "Requires access to photo library." might not be enough for the App Store reviewers. You can customize it by editing the `app/App_Resources/iOS/Info.plist` file in your app and adding something like the following:
+Second, `copyGallery` will save a copy to the device's Photos Gallery in case the user wants to use that file in another application from an easy to find location. This approach requires the user to grant photo library permission first in order to save the downloaded file. Your app might be rejected from the Apple App Store if you do not provide a description about why you need this permission. The default message "Requires access to photo library." might not be enough for the App Store reviewers. You can customize it by editing the `app/App_Resources/iOS/Info.plist` file in your app and adding something like the following:
 
 ```xml
 <key>NSPhotoLibraryUsageDescription</key>
