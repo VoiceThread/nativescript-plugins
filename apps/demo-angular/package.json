@@ -4,7 +4,9 @@
     "@nativescript/core": "file:../../node_modules/@nativescript/core",
     "@voicethread/nativescript-custom-rotors": "file:../../dist/packages/nativescript-custom-rotors",
     "@voicethread/nativescript-filepicker": "file:../../dist/packages/nativescript-filepicker",
-    "@voicethread/nativescript-downloader": "file:../../dist/packages/nativescript-downloader"
+    "@voicethread/nativescript-downloader": "file:../../dist/packages/nativescript-downloader",
+    "@voicethread/nativescript-audio-player": "file:../../dist/packages/nativescript-audio-player",
+    "@voicethread/nativescript-audio-recorder": "file:../../dist/packages/nativescript-audio-recorder"
   },
   "devDependencies": {
     "@nativescript/android": "~8.4.0",

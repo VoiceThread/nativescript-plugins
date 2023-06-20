@@ -1,0 +1,73 @@
+{
+  "name": "nativescript-audio-player",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "packages/nativescript-audio-player",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/js:tsc",
+      "options": {
+        "outputPath": "dist/packages/nativescript-audio-player",
+        "tsConfig": "packages/nativescript-audio-player/tsconfig.json",
+        "packageJson": "packages/nativescript-audio-player/package.json",
+        "main": "packages/nativescript-audio-player/index.d.ts",
+        "assets": [
+          "packages/nativescript-audio-player/*.md",
+          "packages/nativescript-audio-player/index.d.ts",
+          "LICENSE",
+          {
+            "glob": "**/*",
+            "input": "packages/nativescript-audio-player/platforms/",
+            "output": "./platforms/"
+          }
+        ],
+        "dependsOn": [
+          {
+            "target": "build.all",
+            "projects": "dependencies"
+          }
+        ]
+      }
+    },
+    "build.all": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "node tools/scripts/build-finish.ts nativescript-audio-player"
+        ],
+        "parallel": false
+      },
+      "outputs": [
+        "dist/packages/nativescript-audio-player"
+      ],
+      "dependsOn": [
+        {
+          "target": "build.all",
+          "projects": "dependencies"
+        },
+        {
+          "target": "build",
+          "projects": "self"
+        }
+      ]
+    },
+    "focus": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "nx g @nativescript/plugin-tools:focus-packages nativescript-audio-player"
+        ],
+        "parallel": false
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "options": {
+        "lintFilePatterns": [
+          "packages/nativescript-audio-player/**/*.ts"
+        ]
+      }
+    }
+  },
+  "tags": []
+}

@@ -18,4 +18,15 @@ export class MainViewModel extends Observable {
       moduleName: 'plugin-demos/nativescript-downloader',
     });
   }
+  viewAudioPlayer() {
+    Frame.topmost().navigate({
+      moduleName: 'plugin-demos/nativescript-audio-player',
+    });
+  }
+
+  viewAudioRecorder() {
+    Frame.topmost().navigate({
+      moduleName: 'plugin-demos/nativescript-audio-recorder',
+    });
+  }
 }
