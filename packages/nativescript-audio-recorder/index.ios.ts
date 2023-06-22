@@ -111,6 +111,32 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
             console.log(`setting channels: ${channels}`);
             recordSetting.setValueForKey(NSNumber.numberWithInt(channels), 'AVNumberOfChannelsKey');
 
+            AVAudioSession.sharedInstance().setCategoryWithOptionsError(
+              AVAudioSessionCategoryPlayAndRecord,
+              // AVAudioSessionCategoryOptions.AllowBluetoothA2DP | //this is only for high-quality audio playback, can't record
+              AVAudioSessionCategoryOptions.AllowBluetooth | //this allows playback and recording
+                AVAudioSessionCategoryOptions.AllowAirPlay |
+                AVAudioSessionCategoryOptions.DefaultToSpeaker
+            );
+            let inputs = AVAudioSession.sharedInstance().availableInputs;
+            if (inputs.count > 1) {
+              let bluetooth = null,
+                headset = null,
+                wired = null,
+                builtin = null;
+              //if we have multiple inputs, try to select a connected bluetooth or airpod device first
+              //otherwise a headset and finally the device mic
+              for (let i = 0; i < inputs.count; i++) {
+                console.log('Available mic port #', i, ' type:', inputs.objectAtIndex(i).portType);
+                if (inputs.objectAtIndex(i).portType.includes('Bluetooth')) bluetooth = i;
+                else if (inputs.objectAtIndex(i).portType.includes('BuiltIn')) builtin = i;
+                else if (inputs.objectAtIndex(i).portType.includes('Headset')) headset = i;
+                else if (inputs.objectAtIndex(i).portType.includes('Wired')) wired = i;
+              }
+              console.log('Using mic port: ', bluetooth || wired || headset || builtin || 0);
+              AVAudioSession.sharedInstance().setPreferredInputError(inputs.objectAtIndex(bluetooth || wired || headset || builtin || 0));
+            } else if (inputs.count == 1) AVAudioSession.sharedInstance().setPreferredInputError(inputs.objectAtIndex(0));
+            else console.warn('AVAudioSession unable to find available microphone!');
             errorRef = new interop.Reference();
 
             const url = NSURL.fileURLWithPath(options.filename);

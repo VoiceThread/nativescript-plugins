@@ -8,7 +8,7 @@ This plugin provides an audio player for Android and iOS that supports playback 
 npm install @voicethread/nativescript-audio-player
 ```
 
-NOTE: If you try to play an HTTP URL, you'll also need to make some adjustments to your application to allow unsecure connections or audio URL loading will fail. 
+NOTE: If you want to play an HTTP URL, you'll also need to make some adjustments to your application to allow unsecure connections or URL access will fail silently. 
 For iOS, add the following to your app's Info.plist:
 ```
 <key>NSAppTransportSecurity</key>  

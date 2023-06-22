@@ -107,9 +107,22 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
 
             const audioSession = AVAudioSession.sharedInstance();
             if (options.audioMixing) {
-              audioSession.setCategoryWithOptionsError(AVAudioSessionCategoryAmbient, AVAudioSessionCategoryOptions.MixWithOthers);
+              audioSession.setCategoryWithOptionsError(
+                AVAudioSessionCategoryPlayAndRecord, //use this mode to ignore the mute toggle on an ios device
+                //otherwise use AVAudioSessionCategoryAmbient if you want to respect it
+                AVAudioSessionCategoryOptions.MixWithOthers |
+                  AVAudioSessionCategoryOptions.AllowBluetoothA2DP | //this is only for high-quality audio playback, can't record
+                  AVAudioSessionCategoryOptions.AllowAirPlay |
+                  AVAudioSessionCategoryOptions.DefaultToSpeaker
+              );
             } else {
-              audioSession.setCategoryWithOptionsError(AVAudioSessionCategoryAmbient, AVAudioSessionCategoryOptions.DuckOthers);
+              audioSession.setCategoryWithOptionsError(
+                AVAudioSessionCategoryPlayAndRecord, //use this mode to ignore the mute toggle on an ios device
+                AVAudioSessionCategoryOptions.DuckOthers |
+                  AVAudioSessionCategoryOptions.AllowBluetoothA2DP | //this is only for high-quality audio playback, can't record
+                  AVAudioSessionCategoryOptions.AllowAirPlay |
+                  AVAudioSessionCategoryOptions.DefaultToSpeaker
+              );
             }
 
             const output = audioSession.currentRoute.outputs.lastObject.portType;
