@@ -1,4 +1,4 @@
-import { knownFolders, Observable, path as nsFilePath, Utils } from '@nativescript/core';
+import { knownFolders, Observable, path as nsFilePath, Utils, File } from '@nativescript/core';
 import { IAudioPlayer, resolveAudioFilePath } from './common';
 import { AudioPlayerOptions } from './options';
 
@@ -95,6 +95,11 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
         if (Utils.isFileOrResourcePath(audioPath)) {
           //if it's a local file, prepare should be almost instant
           console.log('playing a local audio file');
+          if (!File.exists(audioPath)) {
+            console.error("Audio file doesn't exist on device file system");
+            reject('File not found! ' + audioPath);
+            return;
+          }
           try {
             let fileName = Utils.isString(options.audioFile) ? options.audioFile.trim() : '';
             if (fileName.indexOf('~/') === 0) {
@@ -158,6 +163,7 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
               }
 
               this._readyToPlay = true;
+              console.log('prepared to play');
               resolve(true);
             } else {
               reject(false);
@@ -170,72 +176,88 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
             reject(ex);
           }
         } else {
-          console.log('playing remote audio file from URL');
-          //for url, need to wait for urlsession to load and return
-          try {
-            this.completeCallback = options.completeCallback;
-            this.errorCallback = options.errorCallback;
-            this.infoCallback = options.infoCallback;
-            this._task = NSURLSession.sharedSession.dataTaskWithURLCompletionHandler(NSURL.URLWithString(options.audioFile), (data, response, error) => {
-              if (error !== null) {
-                if (this.errorCallback) {
-                  this.errorCallback({ error });
+          let cachefilename: string = audioPath.replaceAll('://', '_').replaceAll('.', '_').replaceAll('/', '-');
+          cachefilename =
+            knownFolders.temp().path + '/' + cachefilename.substring(0, cachefilename.lastIndexOf('_')) + '.' + cachefilename.substring(cachefilename.lastIndexOf('_') + 1, cachefilename.length);
+          console.log('Looking for cached file', cachefilename);
+          const localFile = File.fromPath(cachefilename);
+          if (File.exists(cachefilename) && localFile.size > 100) {
+            console.log('Found a non-zero cached file named', cachefilename);
+            this._data = localFile.readSync();
+            resolve(true);
+          } else {
+            console.log('no cached file found, playing remote audio file from URL');
+            //for url, need to wait for urlsession to load and return
+            try {
+              this.completeCallback = options.completeCallback;
+              this.errorCallback = options.errorCallback;
+              this.infoCallback = options.infoCallback;
+              this._task = NSURLSession.sharedSession.dataTaskWithURLCompletionHandler(NSURL.URLWithString(options.audioFile), (data, response, error) => {
+                if (error !== null) {
+                  if (this.errorCallback) {
+                    this.errorCallback({ error });
+                  }
+                  this._readyToPlay = false;
+                  reject(false);
+                  return false;
                 }
-                this._readyToPlay = false;
-                reject(false);
-                return false;
-              }
-              console.log('remote urlsession prepared with response', response);
-              this._data = data;
-              resolve(true);
-
-              const audioSession = AVAudioSession.sharedInstance();
-              if (options.audioMixing) {
-                audioSession.setCategoryWithOptionsError(AVAudioSessionCategoryAmbient, AVAudioSessionCategoryOptions.MixWithOthers);
-              } else {
-                audioSession.setCategoryWithOptionsError(AVAudioSessionCategoryAmbient, AVAudioSessionCategoryOptions.DuckOthers);
-              }
-              const output = audioSession.currentRoute.outputs.lastObject.portType;
-
-              if (output.match(/Receiver/)) {
-                try {
-                  audioSession.setCategoryError(AVAudioSessionCategoryPlayAndRecord);
-                  audioSession.overrideOutputAudioPortError(AVAudioSessionPortOverride.Speaker);
-                  audioSession.setActiveError(true);
-                } catch (err) {
-                  console.error('Setting audioSession category failed.', err);
+                // console.log('remote urlsession prepared with response', response);
+                this._data = data;
+                console.log('saving as filename ', cachefilename);
+                const f = File.fromPath(cachefilename);
+                f.writeSync(NSData.dataWithData(data), (e: any) => {
+                  console.error('Failed to write data: ' + e.toString());
+                });
+                let cacheFile = File.fromPath(cachefilename);
+                // console.log('Size:', cacheFile.size);
+                if (cacheFile.size < 100) {
+                  console.error('Downloaded file too small, failed?', cacheFile.size);
+                  reject('Remote url file invalid! ' + audioPath);
+                  return;
                 }
-              }
-
-              const errorRef = new interop.Reference();
-              this._player = AVAudioPlayer.alloc().initWithDataError(data, errorRef);
-              if (errorRef && errorRef.value) {
-                reject(errorRef.value);
-                return;
-              } else if (this._player) {
-                this._player.delegate = TNSPlayerDelegate.initWithOwner(this);
-
-                // enableRate to change playback speed
-                this._player.enableRate = true;
-
-                this._player.numberOfLoops = options.loop ? -1 : 0;
-
-                if (options.metering) {
-                  this._player.meteringEnabled = true;
+                const audioSession = AVAudioSession.sharedInstance();
+                if (options.audioMixing) {
+                  audioSession.setCategoryWithOptionsError(AVAudioSessionCategoryAmbient, AVAudioSessionCategoryOptions.MixWithOthers);
+                } else {
+                  audioSession.setCategoryWithOptionsError(AVAudioSessionCategoryAmbient, AVAudioSessionCategoryOptions.DuckOthers);
                 }
+                const output = audioSession.currentRoute.outputs.lastObject.portType;
+                if (output.match(/Receiver/)) {
+                  try {
+                    audioSession.setCategoryError(AVAudioSessionCategoryPlayAndRecord);
+                    audioSession.overrideOutputAudioPortError(AVAudioSessionPortOverride.Speaker);
+                    audioSession.setActiveError(true);
+                  } catch (err) {
+                    console.error('Setting audioSession category failed.', err);
+                  }
+                }
+                const errorRef = new interop.Reference();
+                this._player = AVAudioPlayer.alloc().initWithDataError(data, errorRef);
+                if (errorRef && errorRef.value) {
+                  reject(errorRef.value);
+                  return;
+                } else if (this._player) {
+                  this._player.delegate = TNSPlayerDelegate.initWithOwner(this);
+                  // enableRate to change playback speed
+                  this._player.enableRate = true;
+                  this._player.numberOfLoops = options.loop ? -1 : 0;
+                  if (options.metering) {
+                    this._player.meteringEnabled = true;
+                  }
+                  resolve(true);
+                } else {
+                  reject();
+                }
+              });
 
-                resolve(true);
-              } else {
-                reject();
+              this._task.resume();
+            } catch (ex) {
+              console.error(ex);
+              if (this.errorCallback) {
+                this.errorCallback({ ex });
               }
-            });
-
-            this._task.resume();
-          } catch (ex) {
-            if (this.errorCallback) {
-              this.errorCallback({ ex });
+              reject(ex);
             }
-            reject(ex);
           }
         }
 

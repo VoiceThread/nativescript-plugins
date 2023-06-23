@@ -41,11 +41,13 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
   playLocalCafAudio() {
     this._playOptions.audioFile = knownFolders.currentApp().path + '/audio/example.caf';
     this.player.prepareAudio(this._playOptions).then(status => {
+      console.log('done preparing');
       if (status) {
-        this.player.play();
         const file = File.fromPath(this._playOptions.audioFile);
-        console.log('playing file ', file.path, ' with size', file.size);
+        console.log('loaded file ', file.path, ' with size', file.size);
         this.showInfo(file);
+        this.player.play();
+        console.log('playing');
       } else {
         console.log('ERROR! Unable to prepare audio!');
       }
@@ -55,6 +57,7 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
   playLocalM4aAudio() {
     this._playOptions.audioFile = knownFolders.currentApp().path + '/audio/example.m4a';
     this.player.prepareAudio(this._playOptions).then(status => {
+      console.log('done preparing');
       if (status) {
         this.player.play();
         const file = File.fromPath(this._playOptions.audioFile);
@@ -69,6 +72,7 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
   playLocalMp3Audio() {
     this._playOptions.audioFile = knownFolders.currentApp().path + '/audio/example.mp3';
     this.player.prepareAudio(this._playOptions).then(status => {
+      console.log('done preparing');
       if (status) {
         this.player.play();
         const file = File.fromPath(this._playOptions.audioFile);
@@ -83,6 +87,7 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
   playLocalWavAudio() {
     this._playOptions.audioFile = knownFolders.currentApp().path + '/audio/example.wav';
     this.player.prepareAudio(this._playOptions).then(status => {
+      console.log('done preparing');
       if (status) {
         this.player.play();
         const file = File.fromPath(this._playOptions.audioFile);
@@ -98,6 +103,7 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
     this._playOptions.audioFile = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
     // await this.player.play().then(res=>{console.log("returned ",res)}).catch(err=>{console.error("error:",err)})
     this.player.prepareAudio(this._playOptions).then(status => {
+      console.log('done preparing');
       if (status) {
         this.player.play();
         console.log('playing remote url ', this._playOptions.audioFile);
