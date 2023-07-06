@@ -89,10 +89,20 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
         await requestPermission('microphone').then(async result => {
           if (result[0] == 'authorized') {
             try {
-              console.log('starting recording of an audio file');
+              const pauseBtn: Button = Frame.topmost().getViewById('pauseBtn');
               const recordBtn: Button = Frame.topmost().getViewById('recordBtn');
-              recordBtn.visibility = 'collapsed';
               const stopBtn: Button = Frame.topmost().getViewById('stopBtn');
+              if (recordBtn.visibility == 'visible') {
+                console.log('paused, so just resuming recording');
+                this.recorder.resume();
+                recordBtn.visibility = 'collapsed';
+                stopBtn.visibility = 'visible';
+                pauseBtn.visibility = 'visible';
+                return;
+              }
+              console.log('starting recording of an audio file');
+              recordBtn.visibility = 'collapsed';
+              pauseBtn.visibility = 'visible';
               stopBtn.visibility = 'visible';
 
               //set record options and record
@@ -103,12 +113,12 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
                 File.fromPath(tempPath).removeSync();
               }
               //   this._playOptions.audioFile = tempPath;
-              console.log('starting recording with options', this._recordOptions);
+              console.log('recording with options', this._recordOptions);
               this._isRecording = true;
               this.recorder
                 .record(this._recordOptions)
                 .then(() => {
-                  console.log('recording audio');
+                  console.log('recording audio started');
                 })
                 .catch(err => {
                   console.error(err);
@@ -124,12 +134,16 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
 
   stopRecording() {
     const recordBtn: Button = Frame.topmost().getViewById('recordBtn');
+    recordBtn.text = 'Record audio';
     recordBtn.visibility = 'visible';
     const stopBtn: Button = Frame.topmost().getViewById('stopBtn');
     stopBtn.visibility = 'collapsed';
+    const pauseBtn: Button = Frame.topmost().getViewById('pauseBtn');
+    pauseBtn.visibility = 'collapsed';
     // this.handleRecording();
     this.recorder.stop();
     //check if file exists
+    console.log('stopRecording(): recording file', this._recordOptions.filename);
     const file = File.fromPath(this._recordOptions.filename);
     console.log(file);
     if (file.size) {
@@ -142,8 +156,29 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
     }
   }
 
+  pauseRecording() {
+    const recordBtn: Button = Frame.topmost().getViewById('recordBtn');
+    recordBtn.text = 'Record more audio';
+    recordBtn.visibility = 'visible';
+    const pauseBtn: Button = Frame.topmost().getViewById('pauseBtn');
+    pauseBtn.visibility = 'collapsed';
+    // this.handleRecording();
+    console.log('pausing recording for file', this._recordOptions.filename);
+    this.recorder.pause();
+    //check if file exists
+    const file = File.fromPath(this._recordOptions.filename);
+    console.log(file);
+    if (file.size) {
+      console.log('YaY! have a non-zero output file with name', this._recordOptions.filename);
+      const playBtn: Button = Frame.topmost().getViewById('playBtn');
+      playBtn.visibility = 'visible';
+      this.handleRecording(file);
+    } else {
+      console.error('No file found for audio recording with name', this._recordOptions.filename);
+    }
+  }
   playRecording() {
-    console.log('playing audio that was last recorded');
+    console.log('playRecording(): playing audio that was last recorded');
     this.player.prepareAudio(this._playOptions).then(() => {
       this.player.play();
     });
@@ -154,6 +189,7 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
   }
 
   stopPlayback() {
+    console.log('stopPlayback()');
     this.player.pause();
     const playBtn: Button = Frame.topmost().getViewById('playBtn');
     playBtn.visibility = 'visible';
@@ -162,32 +198,33 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
   }
 
   handleRecording(result: File): void {
-    console.log('finished recording, output file:', result);
+    console.log('handleRecording(): finished recording, result:', result);
     const outputStack: StackLayout = Frame.topmost().getViewById('outputStack');
+    outputStack.removeChildren();
     const fileContainer = new GridLayout();
     fileContainer['rows'] = 'auto';
     fileContainer['columns'] = 'auto, 8, *, auto';
     fileContainer['padding'] = 5;
     fileContainer['margin'] = '1 5';
-    fileContainer['borderBottomColor'] = new Color('black');
+    fileContainer['borderBottomColor'] = new Color('white');
     fileContainer['borderBottomWidth'] = 1;
 
     const textContainer = new StackLayout();
     textContainer['row'] = 0;
     textContainer['col'] = 2;
     const fileLabel = new Label();
-    let fileParts = result.path.split('/');
+    let fileParts = result?.path?.split('/');
     fileLabel.text = fileParts[fileParts.length - 1];
     fileLabel.textWrap = true;
-    fileLabel.color = new Color('black');
+    fileLabel.color = new Color('white');
     fileLabel.row = 0;
     fileLabel.col = 2;
     textContainer.addChild(fileLabel);
 
     const pathLabel = new Label();
-    pathLabel.text = `Path: ${result.path}`;
+    pathLabel.text = `Path: ${result?.path}`;
     pathLabel.textWrap = true;
-    pathLabel.color = new Color('black');
+    pathLabel.color = new Color('white');
     pathLabel.verticalAlignment = 'top';
     pathLabel.row = 1;
     pathLabel.col = 2;
@@ -195,9 +232,9 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
 
     const sizeLabel = new Label();
 
-    sizeLabel.text = 'Size: ' + result.size;
+    sizeLabel.text = 'Size: ' + result?.size;
     sizeLabel.textWrap = true;
-    sizeLabel.color = new Color('black');
+    sizeLabel.color = new Color('white');
     sizeLabel.row = 0;
     sizeLabel.col = 3;
     textContainer.addChild(sizeLabel);
@@ -206,7 +243,5 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
 
     outputStack.addChild(fileContainer);
     outputStack.visibility = 'visible';
-    const outputLabel: Label = Frame.topmost().getViewById('outputLabel');
-    outputLabel.visibility = 'visible';
   }
 }
