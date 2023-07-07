@@ -102,7 +102,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
         this._recordingSession.requestRecordPermission((allowed: boolean) => {
           if (allowed) {
             const recordSetting = NSMutableDictionary.alloc().init();
-            let format = options.format ? options.format : kAudioFormatAppleLossless;
+            let format = options.format ? options.format : kAudioFormatMPEG4AAC;
             console.log(`setting format: ${format}`);
             recordSetting.setValueForKey(NSNumber.numberWithInt(format), 'AVFormatIDKey');
 
@@ -120,7 +120,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
                 avAudioQualityValue = AVAudioQuality.Max;
               }
             }
-            console.log(`setting format: ${avAudioQualityValue}`); // https://developer.apple.com/documentation/avfaudio/avaudioquality;
+            console.log(`setting audio quality: ${avAudioQualityValue}`); // https://developer.apple.com/documentation/avfaudio/avaudioquality;
             recordSetting.setValueForKey(NSNumber.numberWithInt(avAudioQualityValue), 'AVEncoderAudioQualityKey');
 
             let sampleRate = 44100.0;

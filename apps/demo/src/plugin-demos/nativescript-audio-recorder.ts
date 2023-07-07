@@ -112,7 +112,8 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
               stopBtn.visibility = 'visible';
 
               //set record options and record
-              let tempPath = TempFile.getPath('audio', isAndroid ? '.m4a' : '.caf');
+              // let tempPath = TempFile.getPath('audio', isAndroid ? '.m4a' : '.caf');
+              let tempPath = TempFile.getPath('audio', '.mp4');
               this._playOptions.audioFile = this._recordOptions.filename = tempPath;
               if (File.exists(tempPath)) {
                 // remove file if it exists
