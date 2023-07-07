@@ -1,5 +1,5 @@
 // import { AudioRecorderCommon } from './common';
-import { Observable } from '@nativescript/core';
+import { Observable, File } from '@nativescript/core';
 import { IAudioRecorder } from './common';
 import { AudioRecorderOptions } from './options';
 
@@ -27,8 +27,11 @@ class TNSRecorderDelegate extends NSObject implements AVAudioRecorderDelegate {
   }
 
   audioRecorderDidFinishRecordingSuccessfully(recorder: AVAudioRecorder, flag) {
-    console.log(`audioRecorderDidFinishRecordingSuccessfully: ${flag}`);
     const owner = this._owner.get();
+    console.log(`audioRecorderDidFinishRecordingSuccessfully: ${flag}`, owner._recorderOptions);
+    const file = File.fromPath(owner._recorderOptions.filename);
+    console.log(file, file.size, recorder);
+
     if (owner) {
       owner.notify({
         eventName: 'RecorderFinishedSuccessfully',
@@ -43,8 +46,15 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   private _recorder: AVAudioRecorder;
   private _recordingSession: any;
   private _recording: boolean = false;
+  private _delegate: any;
 
-  private _recorderOptions: AudioRecorderOptions;
+  protected getDelegate(): any {
+    if (!this._delegate) {
+      this._delegate = TNSRecorderDelegate.initWithOwner(this);
+    }
+    return this._delegate;
+  }
+  public _recorderOptions: AudioRecorderOptions;
 
   static CAN_RECORD(): boolean {
     //all iOS devices have a microphone
@@ -73,7 +83,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
     return new Promise((resolve, reject) => {
       if (this._recording) {
         //appending to an existing recorder
-        console.log('Appending to existing recording');
+        console.log('Appending to existing recording', this._recorder);
 
         this._recorder.record();
         return resolve(null);
@@ -156,7 +166,8 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
             if (errorRef && errorRef.value) {
               console.error(`initWithURLSettingsError errorRef: ${errorRef.value}, ${errorRef}`);
             } else {
-              this._recorder.delegate = TNSRecorderDelegate.initWithOwner(this);
+              // this._recorder.delegate = TNSRecorderDelegate.initWithOwner(this);
+              this._recorder.delegate = this.getDelegate();
               if (options.metering) {
                 this._recorder.meteringEnabled = true;
               }
@@ -165,6 +176,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
               } else {
                 this._recorder.prepareToRecord(); //creates audio file and readies recorder
                 this._recorder.record();
+                console.log('recorder', this._recorder);
               }
               this._recording = true;
 
@@ -212,10 +224,16 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
       try {
         if (this._recorder) {
           this.dispose();
-        } else return reject('No native recorder instance, was this cleared by mistake!?');
+          // this._recorder.stop();
+          // this._delegate = null;
+        } else {
+          console.error('No native recorder instance, was this cleared by mistake!?');
+          return reject('No native recorder instance, was this cleared by mistake!?');
+        }
         // may need this in future
-        // this._recordingSession.setActiveError(false, null);
+        this._recordingSession.setActiveError(false, null);
         this._recorder.meteringEnabled = false;
+
         resolve(null);
       } catch (ex) {
         reject(ex);
@@ -230,9 +248,10 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
           this._recorder.stop();
           this._recording = false;
           this._recorder.meteringEnabled = false;
-          this._recordingSession.setActiveError(false, null);
+          // this._recordingSession.setActiveError(false, null);
           // this._recorder.release();
           this._recorder = undefined;
+          this._delegate = null;
         } else return reject('No native recorder instance, was this cleared by mistake!?');
         resolve(null);
       } catch (ex) {
@@ -243,6 +262,10 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
 
   isRecording() {
     return this._recorder && this._recorder.recording;
+  }
+
+  isPaused() {
+    return this._recorder && this._recorder.recording && this._recording;
   }
 
   getMeters(channel?: number) {

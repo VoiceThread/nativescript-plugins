@@ -1,3 +1,5 @@
+import { Observable } from '@nativescript/core';
+
 /* eslint-disable @typescript-eslint/ban-types */
 export interface AudioRecorderOptions {
   /**
@@ -52,7 +54,7 @@ export interface IAudioRecorder {
   dispose(): Promise<any>;
 }
 
-export declare class AudioRecorder {
+export class AudioRecorder extends Observable implements IAudioRecorder {
   static ObjCProtocols: any[];
   private _recorder;
   private _recordingSession;
@@ -118,5 +120,12 @@ export declare class AudioRecorder {
    * Returns value indicating the recorder is currently recording.
    */
   isRecording(): any;
+
+  /**
+   * iOS Only
+   * Returns value indicating the recorder has paused a recording in progress.
+   */
+  isPaused(): any;
+
   audioRecorderDidFinishRecording(recorder: any, success: boolean): void;
 }

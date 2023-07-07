@@ -14,6 +14,12 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
   constructor() {
     super();
     this.recorder = new AudioRecorder();
+    this.recorder.on('RecorderFinished', () => {
+      console.log('RecorderFinished');
+    });
+    this.recorder.on('RecorderFinishedSuccessfully', () => {
+      console.log('RecorderFinishedSuccessfully');
+    });
     this.player = new AudioPlayer();
   }
 
@@ -92,7 +98,7 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
               const pauseBtn: Button = Frame.topmost().getViewById('pauseBtn');
               const recordBtn: Button = Frame.topmost().getViewById('recordBtn');
               const stopBtn: Button = Frame.topmost().getViewById('stopBtn');
-              if (recordBtn.visibility == 'visible') {
+              if (this.recorder.isPaused()) {
                 console.log('paused, so just resuming recording');
                 this.recorder.resume();
                 recordBtn.visibility = 'collapsed';
@@ -115,6 +121,7 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
               //   this._playOptions.audioFile = tempPath;
               console.log('recording with options', this._recordOptions);
               this._isRecording = true;
+
               this.recorder
                 .record(this._recordOptions)
                 .then(() => {
@@ -166,16 +173,16 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
     console.log('pausing recording for file', this._recordOptions.filename);
     this.recorder.pause();
     //check if file exists
-    const file = File.fromPath(this._recordOptions.filename);
-    console.log(file);
-    if (file.size) {
-      console.log('YaY! have a non-zero output file with name', this._recordOptions.filename);
-      const playBtn: Button = Frame.topmost().getViewById('playBtn');
-      playBtn.visibility = 'visible';
-      this.handleRecording(file);
-    } else {
-      console.error('No file found for audio recording with name', this._recordOptions.filename);
-    }
+    // const file = File.fromPath(this._recordOptions.filename);
+    // console.log(file);
+    // if (file.size) {
+    //   console.log('YaY! have a non-zero output file with name', this._recordOptions.filename);
+    //   const playBtn: Button = Frame.topmost().getViewById('playBtn');
+    //   playBtn.visibility = 'visible';
+    //   this.handleRecording(file);
+    // } else {
+    //   console.error('No file found for audio recording with name', this._recordOptions.filename);
+    // }
   }
   playRecording() {
     console.log('playRecording(): playing audio that was last recorded');
