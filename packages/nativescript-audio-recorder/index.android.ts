@@ -1,10 +1,13 @@
 /* eslint-disable no-async-promise-executor */
-import { Application, Observable } from '@nativescript/core';
+import { Application, Observable, File } from '@nativescript/core';
 import { IAudioRecorder } from './common';
 import { AudioRecorderOptions } from './options';
 
 export class AudioRecorder extends Observable implements IAudioRecorder {
   private _recorder: any;
+  private _options: AudioRecorderOptions;
+  private _isPaused: boolean = false;
+  private _isRecording: boolean = false;
 
   get android() {
     return this._recorder;
@@ -32,7 +35,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
           this._recorder = new android.media.MediaRecorder();
           console.log('initializing Android recorder instance');
         }
-
+        this._options = options;
         const audioSource = options.source ? options.source : android.media.MediaRecorder.AudioSource.DEFAULT; // https://developer.android.com/reference/android/media/MediaRecorder.AudioSource
         // const audioSource = android.media.MediaRecorder.AudioSource.MIC; // https://developer.android.com/reference/android/media/MediaRecorder.AudioSource
         // this._recorder.setAudioSource(android.media.MediaRecorder.AudioSource.MIC);
@@ -82,7 +85,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
 
         this._recorder.prepare();
         this._recorder.start();
-
+        this._isRecording = true;
         resolve(null);
       } catch (ex) {
         reject(ex);
@@ -100,6 +103,8 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
       try {
         if (this._recorder) {
           this._recorder.pause();
+          this._isPaused = true;
+          this._isRecording = false;
         }
         resolve(null);
       } catch (ex) {
@@ -113,6 +118,8 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
       try {
         if (this._recorder) {
           this._recorder.resume();
+          this._isPaused = false;
+          this._isRecording = true;
         }
         resolve(null);
       } catch (ex) {
@@ -126,22 +133,22 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
       try {
         if (this._recorder) {
           this._recorder.stop();
-        }
-        resolve(null);
+          this._isRecording = this._isPaused = false;
+          resolve(File.fromPath(this._options.filename));
+        } else resolve(null);
       } catch (ex) {
         reject(ex);
       }
     });
   }
 
-  //TODO: handle this properly
   public isPaused() {
-    return false;
+    return this._isPaused;
   }
 
   //TODO: handle this properly
   public isRecording() {
-    return false;
+    return this._isRecording;
   }
 
   public dispose(): Promise<any> {
@@ -149,6 +156,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
       try {
         if (this._recorder) {
           this._recorder.release();
+          this._isRecording = this._isPaused = false;
         }
         this._recorder = undefined;
         resolve(null);
