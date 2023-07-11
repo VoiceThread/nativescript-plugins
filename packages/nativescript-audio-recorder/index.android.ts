@@ -139,6 +139,11 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
     return false;
   }
 
+  //TODO: handle this properly
+  public isRecording() {
+    return false;
+  }
+
   public dispose(): Promise<any> {
     return new Promise((resolve, reject) => {
       try {

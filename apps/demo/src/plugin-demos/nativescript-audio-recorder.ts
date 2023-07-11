@@ -1,4 +1,4 @@
-import { EventData, Page, File, Frame, StackLayout, GridLayout, Color, Label, Image, alert, Button, isAndroid } from '@nativescript/core';
+import { EventData, Page, File, Frame, StackLayout, GridLayout, Color, Label, Image, alert, Button, isAndroid, path, knownFolders } from '@nativescript/core';
 import { DemoSharedNativescriptAudioRecorder } from '@demo/shared';
 import { AudioRecorder, AudioRecorderOptions } from '@voicethread/nativescript-audio-recorder';
 import { TempFile } from '@voicethread/nativescript-filepicker/files';
@@ -113,12 +113,18 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
 
               //set record options and record
               // let tempPath = TempFile.getPath('audio', isAndroid ? '.m4a' : '.caf');
-              let tempPath = TempFile.getPath('audio', '.mp4');
-              this._playOptions.audioFile = this._recordOptions.filename = tempPath;
-              if (File.exists(tempPath)) {
-                // remove file if it exists
-                File.fromPath(tempPath).removeSync();
+              // let tempPath = TempFile.getPath('audio', '.mp4');
+              let tempFileName: string, outputPath: string;
+              for (let i = 1; i < 999999999; i++) {
+                tempFileName = 'audiorecording-' + i + '.mp4';
+                outputPath = path.join(knownFolders.documents().path, tempFileName);
+                if (!File.exists(outputPath)) break;
               }
+              this._playOptions.audioFile = this._recordOptions.filename = outputPath;
+              // if (File.exists(outputPath)) {
+              //   // remove file if it exists
+              //   File.fromPath(outputPath).removeSync();
+              // }
               //   this._playOptions.audioFile = tempPath;
               console.log('recording with options', this._recordOptions);
               this._isRecording = true;
@@ -140,7 +146,7 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
     });
   }
 
-  stopRecording() {
+  async stopRecording() {
     const recordBtn: Button = Frame.topmost().getViewById('recordBtn');
     recordBtn.text = 'Record audio';
     recordBtn.visibility = 'visible';
@@ -148,8 +154,9 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
     stopBtn.visibility = 'collapsed';
     const pauseBtn: Button = Frame.topmost().getViewById('pauseBtn');
     pauseBtn.visibility = 'collapsed';
-    // this.handleRecording();
-    this.recorder.stop();
+
+    let output: File = await this.recorder.stop();
+    console.log('returned file', output, output.path, output.size);
     //check if file exists
     console.log('stopRecording(): recording file', this._recordOptions.filename);
     const file = File.fromPath(this._recordOptions.filename);

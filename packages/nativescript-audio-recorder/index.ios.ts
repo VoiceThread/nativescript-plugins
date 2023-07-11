@@ -1,5 +1,5 @@
 // import { AudioRecorderCommon } from './common';
-import { Observable, File } from '@nativescript/core';
+import { Observable, File, path, knownFolders } from '@nativescript/core';
 import { IAudioRecorder } from './common';
 import { AudioRecorderOptions } from './options';
 
@@ -9,10 +9,13 @@ declare const kAudioFormatAppleLossless, kAudioFormatMPEG4AAC;
 class TNSRecorderDelegate extends NSObject implements AVAudioRecorderDelegate {
   static ObjCProtocols = [AVAudioRecorderDelegate];
   private _owner: WeakRef<AudioRecorder>;
-
-  static initWithOwner(owner: AudioRecorder) {
+  private _resolve;
+  private _reject;
+  static initWithOwner(owner: AudioRecorder, resolve, reject) {
     const delegate = <TNSRecorderDelegate>TNSRecorderDelegate.new();
     delegate._owner = new WeakRef(owner);
+    delegate._resolve = resolve;
+    delegate._reject = reject;
     return delegate;
   }
 
@@ -24,9 +27,10 @@ class TNSRecorderDelegate extends NSObject implements AVAudioRecorderDelegate {
         eventName: 'RecorderFinished',
       });
     }
+    this._reject('Failed to record audio file!');
   }
 
-  audioRecorderDidFinishRecordingSuccessfully(recorder: AVAudioRecorder, flag) {
+  async audioRecorderDidFinishRecordingSuccessfully(recorder: AVAudioRecorder, flag) {
     const owner = this._owner.get();
     console.log(`audioRecorderDidFinishRecordingSuccessfully: ${flag}`, owner._recorderOptions);
     const file = File.fromPath(owner._recorderOptions.filename);
@@ -37,6 +41,37 @@ class TNSRecorderDelegate extends NSObject implements AVAudioRecorderDelegate {
         eventName: 'RecorderFinishedSuccessfully',
       });
     }
+    if (owner._recording) {
+      //if we're still recording more, just return last recorded file
+      this._resolve(file);
+      return;
+    }
+    console.log('Done recording, handling temp files');
+    //if we only have a single file, rename the file to the main recording filename and done
+    if (owner._audioFiles.length === 1) {
+      if (!File.exists(owner._audioFiles[0])) {
+        return this._reject('Audio recording not found! path: ' + owner._audioFiles[0]);
+      }
+      console.log('Renaming file from ', owner._audioFiles[0], ' to ', owner._recorderOptions.filename);
+      File.fromPath(owner._audioFiles[0]).renameSync(owner._recorderOptions.filename);
+      if (!File.exists(owner._recorderOptions.filename)) {
+        console.error('Failed to rename file!');
+      }
+      owner._audioFiles = null;
+      File.fromPath(owner._audioFiles[0]).removeSync();
+      return this._resolve(file);
+    } else if (owner._audioFiles.length > 1) {
+      //if we have more than one file recorded and merge if so
+      console.log('Have files to merge, #:', owner._audioFiles.length);
+      // var mergeAudioURL = NSURL.fileURLWithPath(this._recorderOptions.filename);
+      let outputfile = await mergeAudioFiles(owner._audioFiles, owner._recorderOptions.filename);
+      owner._audioFiles = null;
+      return this._resolve(outputfile);
+    } else {
+      //something went wrong
+      console.error('No audio files in array');
+      return this._reject('No audio recordings generated');
+    }
   }
 }
 
@@ -45,12 +80,13 @@ export { TNSRecorderDelegate };
 export class AudioRecorder extends Observable implements IAudioRecorder {
   private _recorder: AVAudioRecorder;
   private _recordingSession: any;
-  private _recording: boolean = false;
+  public _recording: boolean = false;
   private _delegate: any;
+  public _audioFiles: [string] = null;
 
-  protected getDelegate(): any {
+  protected getDelegate(resolve, reject): any {
     if (!this._delegate) {
-      this._delegate = TNSRecorderDelegate.initWithOwner(this);
+      this._delegate = TNSRecorderDelegate.initWithOwner(this, resolve, reject);
     }
     return this._delegate;
   }
@@ -81,13 +117,6 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
     console.log('record() Recording?', this._recording, options);
     this._recorderOptions = options;
     return new Promise((resolve, reject) => {
-      if (this._recording) {
-        //appending to an existing recorder
-        console.log('Appending to existing recording', this._recorder);
-
-        this._recorder.record();
-        return resolve(null);
-      }
       console.log('Starting a new recording');
       //starting a new recording
       try {
@@ -159,15 +188,24 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
             } else if (inputs.count == 1) AVAudioSession.sharedInstance().setPreferredInputError(inputs.objectAtIndex(0));
             else console.warn('AVAudioSession unable to find available microphone!');
             errorRef = new interop.Reference();
+            let tempFileName: string, outputPath: string;
 
-            const url = NSURL.fileURLWithPath(options.filename);
-
+            for (let i = 1; i < 999999999; i++) {
+              tempFileName = 'tempaudio-' + i + '.mp4';
+              outputPath = path.join(knownFolders.documents().path, tempFileName);
+              if (!File.exists(outputPath)) break;
+            }
+            console.log('Starting recording session with filename', outputPath);
+            if (!this._audioFiles) this._audioFiles = [outputPath];
+            else this._audioFiles.push(outputPath);
+            // const url = NSURL.fileURLWithPath(options.filename);
+            const url = NSURL.fileURLWithPath(outputPath);
             this._recorder = (<any>AVAudioRecorder.alloc()).initWithURLSettingsError(url, recordSetting, errorRef);
             if (errorRef && errorRef.value) {
               console.error(`initWithURLSettingsError errorRef: ${errorRef.value}, ${errorRef}`);
             } else {
               // this._recorder.delegate = TNSRecorderDelegate.initWithOwner(this);
-              this._recorder.delegate = this.getDelegate();
+              this._recorder.delegate = this.getDelegate(resolve, reject);
               if (options.metering) {
                 this._recorder.meteringEnabled = true;
               }
@@ -195,7 +233,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
     return new Promise((resolve, reject) => {
       try {
         if (this._recorder) {
-          this._recorder.pause();
+          this._recorder.stop();
         } else return reject('No native recorder instance, was this cleared by mistake!?');
         resolve(null);
       } catch (ex) {
@@ -209,7 +247,8 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
     return new Promise((resolve, reject) => {
       try {
         if (this._recorder) {
-          this._recorder.record();
+          // this._recorder.record();
+          this.record(this._recorderOptions);
         } else return reject('No native recorder instance, was this cleared by mistake!?');
         resolve(null);
       } catch (ex) {
@@ -223,9 +262,11 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
     return new Promise((resolve, reject) => {
       try {
         if (this._recorder) {
-          this.dispose();
-          // this._recorder.stop();
-          // this._delegate = null;
+          this._delegate._resolve = resolve;
+          this._delegate._reject = reject;
+          this._recording = false; //done recording
+          this._recorder.stop();
+          //the delegate will handle the file produced if any
         } else {
           console.error('No native recorder instance, was this cleared by mistake!?');
           return reject('No native recorder instance, was this cleared by mistake!?');
@@ -233,8 +274,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
         // may need this in future
         this._recordingSession.setActiveError(false, null);
         this._recorder.meteringEnabled = false;
-
-        resolve(null);
+        // resolve(null);
       } catch (ex) {
         reject(ex);
       }
@@ -248,10 +288,10 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
           this._recorder.stop();
           this._recording = false;
           this._recorder.meteringEnabled = false;
-          // this._recordingSession.setActiveError(false, null);
-          // this._recorder.release();
+          this._recordingSession.setActiveError(false, null);
           this._recorder = undefined;
           this._delegate = null;
+          this._audioFiles = null;
         } else return reject('No native recorder instance, was this cleared by mistake!?');
         resolve(null);
       } catch (ex) {
@@ -277,4 +317,58 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
       return this._recorder.averagePowerForChannel(channel);
     }
   }
+}
+
+function mergeAudioFiles(audioFileUrls: [string], outputPath: string) {
+  return new Promise((resolve, reject) => {
+    let composition = AVMutableComposition.new();
+    console.log('merging into output file ', outputPath);
+    if (File.exists(outputPath)) {
+      // remove file if it exists
+      File.fromPath(outputPath).removeSync();
+    }
+    for (let i = 0; i < audioFileUrls.length; i++) {
+      let compositionAudioTrack: AVMutableCompositionTrack = composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeAudio, 0);
+      console.log('Loading AVURLAsset with path', audioFileUrls[i]);
+      let asset = AVURLAsset.assetWithURL(NSURL.fileURLWithPath(audioFileUrls[i]));
+      let track = asset.tracksWithMediaType(AVMediaTypeAudio)[0];
+      let timeRange = CMTimeRangeMake(CMTimeMake(0, 600), track.timeRange.duration);
+      compositionAudioTrack.insertTimeRangeOfTrackAtTimeError(timeRange, track, composition.duration);
+    }
+    let mergeAudioUrl = NSURL.fileURLWithPath(outputPath);
+    let assetExport = new AVAssetExportSession({ asset: composition, presetName: AVAssetExportPresetAppleM4A });
+    assetExport.outputFileType = AVFileTypeAppleM4A;
+    assetExport.outputURL = mergeAudioUrl;
+    assetExport.exportAsynchronouslyWithCompletionHandler(() => {
+      switch (assetExport.status) {
+        case AVAssetExportSessionStatus.Failed:
+          console.log('failed (assetExport?.error)', assetExport.error);
+          reject(assetExport.error);
+          break;
+        case AVAssetExportSessionStatus.Cancelled:
+          console.log('cancelled (assetExport?.error)');
+          break;
+        case AVAssetExportSessionStatus.Unknown:
+          console.log('unknown(assetExport?.error)');
+          break;
+        case AVAssetExportSessionStatus.Waiting:
+          console.log('waiting(assetExport?.error)');
+          break;
+        case AVAssetExportSessionStatus.Exporting:
+          console.log('exporting(assetExport?.error)');
+          break;
+        case AVAssetExportSessionStatus.Completed:
+          console.log('Audio Concatenation Complete');
+          for (let i = 0; i < audioFileUrls.length; i++) {
+            if (File.exists(audioFileUrls[i])) {
+              // remove file if it exists
+              File.fromPath(audioFileUrls[i]).removeSync();
+            }
+            resolve(File.fromPath(outputPath));
+          }
+          console.log('Done cleaning out temp files merged');
+          break;
+      }
+    });
+  });
 }
