@@ -1,0 +1,9 @@
+repositories {
+  mavenCentral()
+  google()
+}
+
+dependencies {
+  implementation 'org.mp4parser:isoparser:1.9.56'
+  implementation 'org.mp4parser:muxer:1.9.56'
+}

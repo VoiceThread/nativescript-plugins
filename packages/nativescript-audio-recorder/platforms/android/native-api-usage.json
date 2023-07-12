@@ -1,0 +1,6 @@
+{
+  "uses": [
+    "com.voicethread.audio:*",
+    "org.mp4parser:*"    
+  ]
+}
