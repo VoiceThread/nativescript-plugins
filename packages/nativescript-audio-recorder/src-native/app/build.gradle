@@ -1,0 +1,37 @@
+apply plugin: 'com.android.library'
+
+android {
+  compileSdkVersion 31
+  defaultConfig {
+    minSdkVersion 24
+    targetSdkVersion 31
+  }
+  buildTypes {
+    release {
+      minifyEnabled false
+      proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+    }
+  }
+}
+
+dependencies {
+  implementation fileTree(dir: 'libs', include: ['*.jar'])
+  implementation 'org.mp4parser:isoparser:1.9.56'
+  implementation 'org.mp4parser:muxer:1.9.56'
+}
+
+// task to delete the old jar
+task deleteOldJar(type: Delete) {
+  delete 'release/AudioMerge.jar'
+}
+
+// task to export contents as jar
+task exportJar(type: Copy) {
+  from('build/intermediates/intermediate-jars/release/')
+  into('release')
+  include('classes.jar')
+  // name the plugin
+  rename('classes.jar','AudioMerge.jar')
+}
+
+exportJar.dependsOn(deleteOldJar, build)
