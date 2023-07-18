@@ -1,5 +1,5 @@
 /* eslint-disable no-async-promise-executor */
-import { Application, Observable, File, path, knownFolders } from '@nativescript/core';
+import { Application, Observable, File, path, knownFolders, Device } from '@nativescript/core';
 import { IAudioRecorder } from './common';
 import { AudioRecorderOptions } from './options';
 
@@ -46,7 +46,8 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
         // console.log('android.media.MediaRecorder.AudioSource.MIC ', android.media.MediaRecorder.AudioSource.MIC);
         this._recorder.setAudioSource(audioSource);
 
-        const outFormat = options.format ? options.format : android.media.AudioFormat.ENCODING_PCM_16BIT; // https://developer.android.com/reference/android/media/AudioFormat#ENCODING_PCM_16BIT
+        // const outFormat = options.format ? options.format : android.media.AudioFormat.ENCODING_PCM_16BIT; // https://developer.android.com/reference/android/media/AudioFormat#ENCODING_PCM_16BIT
+        const outFormat = options.format ? options.format : android.media.AudioFormat.ENCODING_AAC_LC; // https://developer.android.com/reference/android/media/AudioFormat#ENCODING_AAC_LC
         this._recorder.setOutputFormat(outFormat);
 
         const encoder = options.encoder ? options.encoder : android.media.MediaRecorder.AudioEncoder.AAC; // https://developer.android.com/reference/android/media/MediaRecorder.AudioEncoder#AAC
@@ -184,13 +185,15 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
               let file = File.fromPath(this._audioFiles[i]);
               console.log('file', file.path, file.size);
             }
-            let testobj = new com.voicethread.audio.AudioMerge();
-            let outputfilename = testobj.concatenateFiles(this._audioFiles, this._recorderOptions.filename);
+            let outputfilename = this.mergeMP4Files(this._audioFiles, this._recorderOptions.filename);
+            // let testobj = new com.voicethread.audio.AudioMerge();
+            // let outputfilename = testobj.concatenateFiles(this._audioFiles, this._recorderOptions.filename);
             console.log('done merging files, result:', outputfilename);
             if (!outputfilename) {
               console.error('Failed to merge files!');
               return reject('Failed to merge files!');
             }
+
             let outputfile = File.fromPath(this._recorderOptions.filename);
             console.log(outputfile, outputfile.size);
             // let outputfile = await mergeAudioFiles(this._audioFiles, this._recorderOptions.filename);
@@ -236,5 +239,91 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
         reject(ex);
       }
     });
+  }
+
+  private mergeMP4Files(audioFiles: [string], outputfilename: string): string {
+    //Note: This will only merge audio tracks from  mp4 files, and only succeed if all input have same format/encoding
+    //MediaMuxer support for multiple audio/video tracks only on API 26+ only
+    if (+Device.sdkVersion < 26) {
+      console.error('This is only supported on API 26+');
+      return null;
+    }
+    if (!audioFiles || audioFiles.length <= 1) return null;
+
+    // Create the MediaMuxer and specify the output file
+    const muxer = new android.media.MediaMuxer(outputfilename, android.media.MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+    const MAX_SAMPLE_SIZE = 256 * 1024;
+    const APPEND_DELAY = 200; //we add a little delay between segments to make segmentation a little more obvious
+    var totalDuration = 0;
+    var audioFormat: android.media.MediaFormat = null;
+    var audioTrackIndex = -1;
+    try {
+      let muxerStarted: Boolean = false;
+      for (let i = 0; i < audioFiles.length; i++) {
+        let mediadata = new android.media.MediaMetadataRetriever();
+        mediadata.setDataSource(audioFiles[i]);
+        var trackDuration = 0;
+        try {
+          trackDuration = +mediadata.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION);
+          // console.log('trackDuration ', trackDuration); //returned in milliseconds
+        } catch (err) {
+          console.error('Unable to extract trackDuration from metadata!');
+        }
+        let audioExtractor: android.media.MediaExtractor = new android.media.MediaExtractor();
+        audioExtractor.setDataSource(audioFiles[i]);
+        let tracks = audioExtractor.getTrackCount();
+        if (!audioFormat)
+          for (let j = 0; j < audioExtractor.getTrackCount(); j++) {
+            let mf = audioExtractor.getTrackFormat(j);
+            let mime = mf.getString(android.media.MediaFormat.KEY_MIME);
+            if (mime.startsWith('audio/')) {
+              audioExtractor.selectTrack(j);
+              audioFormat = audioExtractor.getTrackFormat(j);
+              break;
+            }
+          }
+        if (audioTrackIndex == -1) {
+          audioTrackIndex = muxer.addTrack(audioFormat);
+        }
+        var sawAudioEOS = false;
+        var bufferSize = MAX_SAMPLE_SIZE;
+        let audioBuf = java.nio.ByteBuffer.allocate(bufferSize);
+        var offset = 0;
+        var bufferInfo: android.media.MediaCodec.BufferInfo = new android.media.MediaCodec.BufferInfo();
+
+        // start muxer if not started yet
+        if (!muxerStarted) {
+          muxer.start();
+          muxerStarted = true;
+        }
+        //add file data
+        while (!sawAudioEOS) {
+          bufferInfo.offset = offset;
+          bufferInfo.size = audioExtractor.readSampleData(audioBuf, offset);
+          if (bufferInfo.size < 0) {
+            sawAudioEOS = true;
+            bufferInfo.size = 0;
+            totalDuration += trackDuration;
+            audioFormat = null;
+          } else {
+            bufferInfo.presentationTimeUs = audioExtractor.getSampleTime() + totalDuration + APPEND_DELAY;
+            bufferInfo.flags = android.media.MediaCodec.BUFFER_FLAG_KEY_FRAME;
+            muxer.writeSampleData(audioTrackIndex, audioBuf, bufferInfo);
+            audioExtractor.advance();
+          }
+        }
+        mediadata.release();
+        mediadata = null;
+        audioExtractor.release();
+        audioExtractor = null;
+      }
+      muxer.stop();
+      // console.log('totalDuration (ms) => ', totalDuration);
+    } catch (err) {
+      console.error(err, err.message);
+      return null;
+    }
+
+    return outputfilename;
   }
 }
