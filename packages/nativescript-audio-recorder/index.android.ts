@@ -1,13 +1,14 @@
 /* eslint-disable no-async-promise-executor */
-import { Application, Observable, File } from '@nativescript/core';
+import { Application, Observable, File, path, knownFolders } from '@nativescript/core';
 import { IAudioRecorder } from './common';
 import { AudioRecorderOptions } from './options';
 
 export class AudioRecorder extends Observable implements IAudioRecorder {
-  private _recorder: any;
-  private _options: AudioRecorderOptions;
+  private _recorder: android.media.MediaRecorder;
   private _isPaused: boolean = false;
   private _isRecording: boolean = false;
+  public _audioFiles: [string] = null;
+  public _recorderOptions: AudioRecorderOptions;
 
   get android() {
     return this._recorder;
@@ -15,6 +16,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
 
   public static CAN_RECORD(): boolean {
     //this only checks if device has a microphone present
+    //TODO: should it also check microphone permissions?
     const pManager = Application.android.context.getPackageManager();
     const canRecord = pManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_MICROPHONE);
     if (canRecord) {
@@ -25,6 +27,8 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   }
 
   public record(options: AudioRecorderOptions): Promise<any> {
+    console.log('Starting a new recording');
+    this._recorderOptions = options;
     return new Promise(async (resolve, reject) => {
       try {
         if (this._recorder) {
@@ -35,7 +39,6 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
           this._recorder = new android.media.MediaRecorder();
           console.log('initializing Android recorder instance');
         }
-        this._options = options;
         const audioSource = options.source ? options.source : android.media.MediaRecorder.AudioSource.DEFAULT; // https://developer.android.com/reference/android/media/MediaRecorder.AudioSource
         // const audioSource = android.media.MediaRecorder.AudioSource.MIC; // https://developer.android.com/reference/android/media/MediaRecorder.AudioSource
         // this._recorder.setAudioSource(android.media.MediaRecorder.AudioSource.MIC);
@@ -63,7 +66,19 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
           this._recorder.setMaxDuration(options.maxDuration);
         }
 
-        this._recorder.setOutputFile(options.filename);
+        let tempFileName: string, outputPath: string;
+
+        for (let i = 1; i < 999999999; i++) {
+          tempFileName = 'tempaudio-' + i + '.mp4';
+          outputPath = path.join(knownFolders.documents().path, tempFileName);
+          if (!File.exists(outputPath)) break;
+        }
+        console.log('Starting a new recording session with filename', outputPath);
+        if (!this._audioFiles) this._audioFiles = [outputPath];
+        else this._audioFiles.push(outputPath);
+
+        //this._recorder.setOutputFile(options.filename);
+        this._recorder.setOutputFile(outputPath);
 
         // On Error
         this._recorder.setOnErrorListener(
@@ -99,13 +114,20 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   }
 
   public pause(): Promise<any> {
+    console.log('pause() Recording?', this._isRecording);
     return new Promise((resolve, reject) => {
       try {
         if (this._recorder) {
-          this._recorder.pause();
+          if (!this.isRecording) {
+            console.warn('Not currently recording, record/resume before calling pause');
+            return reject('Not currently recording, record/resume before calling pause');
+          }
+          //Android supports pausing and resuming a recording but we want individual recordings so user can preview
+          // this._recorder.pause();
+          this._recorder.stop();
           this._isPaused = true;
           this._isRecording = false;
-        }
+        } else return reject('No native recorder instance, was this cleared by mistake!?');
         resolve(null);
       } catch (ex) {
         reject(ex);
@@ -114,13 +136,16 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   }
 
   public resume(): Promise<any> {
+    console.log('resume() Recording?', this._isRecording);
     return new Promise((resolve, reject) => {
       try {
         if (this._recorder) {
-          this._recorder.resume();
+          //Android supports pausing and resuming a recording but we want individual recordings so user can preview
+          // this._recorder.resume();
+          this.record(this._recorderOptions);
           this._isPaused = false;
           this._isRecording = true;
-        }
+        } else return reject('No native recorder instance, was this cleared by mistake!?');
         resolve(null);
       } catch (ex) {
         reject(ex);
@@ -134,8 +159,50 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
         if (this._recorder) {
           this._recorder.stop();
           this._isRecording = this._isPaused = false;
-          resolve(File.fromPath(this._options.filename));
-        } else resolve(null);
+          //combine audio files recorded so far
+          console.log('Done recording, handling temp files', this._audioFiles);
+          //if we only have a single file, rename the file to the main recording filename and done
+          if (this._audioFiles.length === 1) {
+            if (!File.exists(this._audioFiles[0])) {
+              return reject('Audio recording not found! path: ' + this._audioFiles[0]);
+            }
+            console.log('Renaming file from ', this._audioFiles[0], ' to ', this._recorderOptions.filename);
+            File.fromPath(this._audioFiles[0]).renameSync(this._recorderOptions.filename);
+            if (!File.exists(this._recorderOptions.filename)) {
+              console.error('Failed to rename file!');
+            }
+            File.fromPath(this._audioFiles[0]).removeSync();
+            this._audioFiles = null;
+            const file = File.fromPath(this._recorderOptions.filename);
+            console.log(file, file.size);
+            return resolve(file);
+          } else if (this._audioFiles.length > 1) {
+            //if we have more than one file recorded and merge if so
+            console.log('Have files to merge, #:', this._audioFiles.length);
+
+            for (let i = 0; i < this._audioFiles.length; i++) {
+              let file = File.fromPath(this._audioFiles[i]);
+              console.log('file', file.path, file.size);
+            }
+            let testobj = new com.voicethread.audio.AudioMerge();
+            let outputfilename = testobj.concatenateFiles(this._audioFiles, this._recorderOptions.filename);
+            console.log('done merging files, result:', outputfilename);
+            if (!outputfilename) {
+              console.error('Failed to merge files!');
+              return reject('Failed to merge files!');
+            }
+            let outputfile = File.fromPath(this._recorderOptions.filename);
+            console.log(outputfile, outputfile.size);
+            // let outputfile = await mergeAudioFiles(this._audioFiles, this._recorderOptions.filename);
+            this._audioFiles = null;
+            return resolve(outputfile);
+          } else {
+            //something went wrong
+            console.error('No audio files in array');
+            return reject('No audio recordings generated');
+          }
+          // resolve(File.fromPath(this._options.filename));
+        } else return reject('No native recorder instance, was this cleared by mistake!?');
       } catch (ex) {
         reject(ex);
       }
@@ -143,12 +210,16 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   }
 
   public isPaused() {
-    return this._isPaused;
+    return this._recorder && this._isPaused;
   }
 
-  //TODO: handle this properly
   public isRecording() {
-    return this._isRecording;
+    return this._recorder && this._isRecording;
+  }
+  private cleanup() {
+    //TODO: delete all temporary recording and preview files created during this session
+
+    this._audioFiles = null;
   }
 
   public dispose(): Promise<any> {
@@ -156,8 +227,9 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
       try {
         if (this._recorder) {
           this._recorder.release();
-          this._isRecording = this._isPaused = false;
         }
+        this._isRecording = this._isPaused = false;
+        this.cleanup();
         this._recorder = undefined;
         resolve(null);
       } catch (ex) {
@@ -166,5 +238,3 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
     });
   }
 }
-
-// export class AudioRecorder extends AudioRecorderCommon {}

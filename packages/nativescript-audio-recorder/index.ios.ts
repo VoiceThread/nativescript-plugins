@@ -41,7 +41,7 @@ class TNSRecorderDelegate extends NSObject implements AVAudioRecorderDelegate {
         eventName: 'RecorderFinishedSuccessfully',
       });
     }
-    if (owner._recording) {
+    if (owner._isRecording) {
       //if we're still recording more, just return last recorded file
       this._resolve(file);
       return;
@@ -80,9 +80,11 @@ export { TNSRecorderDelegate };
 export class AudioRecorder extends Observable implements IAudioRecorder {
   private _recorder: AVAudioRecorder;
   private _recordingSession: any;
-  public _recording: boolean = false;
+  public _isRecording: boolean = false;
+  public _isPaused: boolean = false;
   private _delegate: any;
   public _audioFiles: [string] = null;
+  public _recorderOptions: AudioRecorderOptions;
 
   protected getDelegate(resolve, reject): any {
     if (!this._delegate) {
@@ -90,7 +92,6 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
     }
     return this._delegate;
   }
-  public _recorderOptions: AudioRecorderOptions;
 
   static CAN_RECORD(): boolean {
     //all iOS devices have a microphone
@@ -114,7 +115,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   }
 
   record(options: AudioRecorderOptions): Promise<any> {
-    console.log('record() Recording?', this._recording, options);
+    console.log('record() Recording?', this._isRecording, options);
     this._recorderOptions = options;
     return new Promise((resolve, reject) => {
       console.log('Starting a new recording');
@@ -216,7 +217,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
                 this._recorder.record();
                 console.log('recorder', this._recorder);
               }
-              this._recording = true;
+              this._isRecording = true;
 
               resolve(null);
             }
@@ -229,7 +230,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   }
 
   pause(): Promise<any> {
-    console.log('pause() Recording?', this._recording);
+    console.log('pause() Recording?', this._isRecording);
     return new Promise((resolve, reject) => {
       try {
         if (this._recorder) {
@@ -243,7 +244,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   }
 
   resume(): Promise<any> {
-    console.log('resume() Recording?', this._recording);
+    console.log('resume() Recording?', this._isRecording);
     return new Promise((resolve, reject) => {
       try {
         if (this._recorder) {
@@ -258,13 +259,13 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   }
 
   stop(): Promise<any> {
-    console.log('stop() Recording?', this._recording);
+    console.log('stop() Recording?', this._isRecording);
     return new Promise((resolve, reject) => {
       try {
         if (this._recorder) {
           this._delegate._resolve = resolve;
           this._delegate._reject = reject;
-          this._recording = false; //done recording
+          this._isRecording = false; //done recording
           this._recorder.stop();
           //the delegate will handle the file produced if any
         } else {
@@ -286,7 +287,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
       try {
         if (this._recorder) {
           this._recorder.stop();
-          this._recording = false;
+          this._isRecording = false;
           this._recorder.meteringEnabled = false;
           this._recordingSession.setActiveError(false, null);
           this._recorder = undefined;
@@ -301,11 +302,13 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   }
 
   isRecording() {
-    return this._recorder && this._recorder.recording;
+    // return this._recorder && this._recorder.recording;
+    return this._recorder && this._recorder.recording && this._isRecording;
   }
 
   isPaused() {
-    return this._recorder && this._recorder.recording && this._recording;
+    // return this._recorder && this._recorder.recording && this._isRecording;
+    return this._recorder && this._isPaused;
   }
 
   getMeters(channel?: number) {

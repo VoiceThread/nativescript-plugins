@@ -116,16 +116,24 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   getMeters(channel?: number): any;
 
   /**
-   * iOS Only
    * Returns value indicating the recorder is currently recording.
    */
   isRecording(): any;
 
   /**
-   * iOS Only
    * Returns value indicating the recorder has paused a recording in progress.
    */
   isPaused(): any;
+
+  /**
+   * Prepares a preview file for all audio recordings made so far during this session
+   */
+  preview(): Promise<any>;
+
+  /**
+   * Returns an array with all filenames of audio recordings made so far during this session
+   */
+  audioFiles(): Promise<any>;
 
   audioRecorderDidFinishRecording(recorder: any, success: boolean): void;
 }
