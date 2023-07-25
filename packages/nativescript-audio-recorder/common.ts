@@ -8,16 +8,6 @@ export interface IAudioRecorder {
   record(options: AudioRecorderOptions): Promise<any>;
 
   /**
-   * Pauses the native audio recording control.
-   */
-  pause(): Promise<any>;
-
-  /**
-   * Resumes the native audio recording control.
-   */
-  resume(): Promise<any>;
-
-  /**
    * Stops the native audio recording control.
    */
   stop(): Promise<any>;
@@ -26,6 +16,13 @@ export interface IAudioRecorder {
    * Releases resources from the recorder.
    */
   dispose(): Promise<any>;
+
+  /**
+   * Merges the mp4 files specified in an array of file paths into an mp4 file
+   *      named outputPath.
+   * NOTE: these must be AAC MP4 audio files!
+   **/
+  mergeAudioFiles(audioFileUrls: [string], outputPath: string);
 }
 
 /**

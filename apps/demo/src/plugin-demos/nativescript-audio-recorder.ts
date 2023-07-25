@@ -1,7 +1,6 @@
 import { EventData, Page, File, Frame, StackLayout, GridLayout, Color, Label, Image, alert, Button, isAndroid, path, knownFolders } from '@nativescript/core';
 import { DemoSharedNativescriptAudioRecorder } from '@demo/shared';
 import { AudioRecorder, AudioRecorderOptions } from '@voicethread/nativescript-audio-recorder';
-import { TempFile } from '@voicethread/nativescript-filepicker/files';
 import { check as checkPermission, request as requestPermission } from '@nativescript-community/perms';
 import { AudioPlayer, AudioPlayerOptions } from '@voicethread/nativescript-audio-player';
 
@@ -14,6 +13,7 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
   constructor() {
     super();
     this.recorder = new AudioRecorder();
+    //TODO: tie these events into plugin
     this.recorder.on('RecorderFinished', () => {
       console.log('RecorderFinished');
     });
@@ -25,65 +25,32 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
 
   protected recorder: AudioRecorder;
   protected player: AudioPlayer;
-  protected _isRecording = false;
+  protected audioFiles: [string] = null;
+  protected lastRecorded: string = null;
+  protected sessionPreview: string = null;
 
-  protected _recordOptions: AudioRecorderOptions = isAndroid
-    ? {
-        filename: '',
-        metering: true,
-        format: android.media.MediaRecorder.OutputFormat.MPEG_4,
-        source: null,
-        //channels:1,
-        // sampleRate:?,
-        // bitRate:?,
-        // android: { encoder: android.media.MediaRecorder.AudioEncoder.AAC },
-        // audioMixing: false,
-        infoCallback: infoObject => {
-          console.log('AudioRecorder infoCallback: ', JSON.stringify(infoObject));
-        },
-
-        errorCallback: errorObject => {
-          console.log('AudioRecorder errorCallback: ', JSON.stringify(errorObject));
-        },
-      }
-    : {
-        filename: '',
-        metering: true,
-        // format: ?,
-        //channels:1,
-        // sampleRate:?,
-        // bitRate:?,
-        // ios:{},
-        // audioMixing: false,
-        infoCallback: infoObject => {
-          console.log('AudioRecorder infoCallback: ', JSON.stringify(infoObject));
-        },
-
-        errorCallback: errorObject => {
-          console.log('AudioRecorder errorCallback: ', JSON.stringify(errorObject));
-        },
-        // sessionCategory: 'AVAudioSessionCategoryPlayAndRecord',
-        // sessionMode:'',
-        // sessionRouteSharingPolicy:'',
-      };
+  protected _recordOptions: AudioRecorderOptions = {
+    filename: null,
+    metering: true,
+    infoCallback: infoObject => {
+      console.log('AudioRecorder infoCallback: ', JSON.stringify(infoObject));
+    },
+    errorCallback: errorObject => {
+      console.log('AudioRecorder errorCallback: ', JSON.stringify(errorObject));
+    },
+  };
 
   protected _playOptions: AudioPlayerOptions = {
     audioFile: '',
     loop: false,
-    // metering:?,
-    // pitch:?,
     audioMixing: false,
-    // sessionCategory: 'AVAudioSessionCategoryPlayAndRecord',
-    //sessionMode:?,
-    //sessionRouteSharingPolicy:?,
     completeCallback: async () => {
       console.log('Audio file recording complete.');
+      //TODO: reset control state
     },
-
     errorCallback: errorObject => {
       console.log(JSON.stringify(errorObject));
     },
-
     infoCallback: infoObject => {
       console.log(JSON.stringify(infoObject));
     },
@@ -95,42 +62,60 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
         await requestPermission('microphone').then(async result => {
           if (result[0] == 'authorized') {
             try {
+              //An audio recording session will be active until we hit stop, at which point
+              //   we merge all segments so far and show a button to play back the final audio
+              //   file with filename as specified in recorderOptions.
+              //Each time the session is paused, we will prepare a preview file of all segments recorded
+              //     so far and present a playback button for that merged preview file, as well
+              //     as another button to play back only the recently recorded segment. Another button will
+              //     be shown to discard the last recorded segment of audio if user wants to record again.
+              let tempFileName: string, outputPath: string;
+              if (this._recordOptions.filename == null) {
+                //also clear out sessionPreview since we're starting fresh
+                this.sessionPreview = null;
+                for (let i = 1; i < 999999999; i++) {
+                  tempFileName = 'audiorecording-' + i + '.mp4';
+                  outputPath = path.join(knownFolders.documents().path, tempFileName);
+                  if (!File.exists(outputPath)) break;
+                }
+                this._recordOptions.filename = outputPath;
+                console.log('No session final filename yet, starting new session for final recording:', outputPath);
+                //reset controls state
+                const playLastBtn: Button = Frame.topmost().getViewById('playLastBtn');
+                playLastBtn.visibility = 'collapsed';
+                const discardLastBtn: Button = Frame.topmost().getViewById('discardLastBtn');
+                discardLastBtn.visibility = 'collapsed';
+                const playBtn: Button = Frame.topmost().getViewById('playBtn');
+                playBtn.visibility = 'collapsed';
+              }
+              if (this.sessionPreview == null) {
+                for (let i = 1; i < 999999999; i++) {
+                  tempFileName = 'audiopreview-' + i + '.mp4';
+                  outputPath = path.join(knownFolders.documents().path, tempFileName);
+                  if (!File.exists(outputPath)) break;
+                }
+                this.sessionPreview = outputPath;
+                console.log('No session preview filename yet, using :', outputPath);
+              }
+
+              for (let i = 1; i < 999999999; i++) {
+                tempFileName = 'segment-' + i + '.mp4';
+                outputPath = path.join(knownFolders.documents().path, tempFileName);
+                if (!File.exists(outputPath)) break;
+              }
+              console.log('Starting segment recording with temp filename', outputPath);
               const pauseBtn: Button = Frame.topmost().getViewById('pauseBtn');
               const recordBtn: Button = Frame.topmost().getViewById('recordBtn');
               const stopBtn: Button = Frame.topmost().getViewById('stopBtn');
-              if (this.recorder.isPaused()) {
-                console.log('paused, so just resuming recording');
-                this.recorder.resume();
-                recordBtn.visibility = 'collapsed';
-                stopBtn.visibility = 'visible';
-                pauseBtn.visibility = 'visible';
-                return;
-              }
-              console.log('starting recording of an audio file');
               recordBtn.visibility = 'collapsed';
               pauseBtn.visibility = 'visible';
               stopBtn.visibility = 'visible';
 
-              //set record options and record
-              // let tempPath = TempFile.getPath('audio', isAndroid ? '.m4a' : '.caf');
-              // let tempPath = TempFile.getPath('audio', '.mp4');
-              let tempFileName: string, outputPath: string;
-              for (let i = 1; i < 999999999; i++) {
-                tempFileName = 'audiorecording-' + i + '.mp4';
-                outputPath = path.join(knownFolders.documents().path, tempFileName);
-                if (!File.exists(outputPath)) break;
-              }
-              this._playOptions.audioFile = this._recordOptions.filename = outputPath;
-              // if (File.exists(outputPath)) {
-              //   // remove file if it exists
-              //   File.fromPath(outputPath).removeSync();
-              // }
-              //   this._playOptions.audioFile = tempPath;
-              console.log('recording with options', this._recordOptions);
-              this._isRecording = true;
-
+              let tempOptions = Object.assign({}, this._recordOptions);
+              this.lastRecorded = tempOptions.filename = outputPath;
+              console.log('recording with options', tempOptions);
               this.recorder
-                .record(this._recordOptions)
+                .record(tempOptions)
                 .then(() => {
                   console.log('recording audio started');
                 })
@@ -147,6 +132,7 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
   }
 
   async stopRecording() {
+    //done with this session, merge all audio segments so far and prepare playback controls for final file
     const recordBtn: Button = Frame.topmost().getViewById('recordBtn');
     recordBtn.text = 'Record audio';
     recordBtn.visibility = 'visible';
@@ -154,53 +140,128 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
     stopBtn.visibility = 'collapsed';
     const pauseBtn: Button = Frame.topmost().getViewById('pauseBtn');
     pauseBtn.visibility = 'collapsed';
-
-    let output: File = await this.recorder.stop();
-    console.log('returned file', output, output.path, output.size);
-    //check if file exists
-    console.log('stopRecording(): recording file', this._recordOptions.filename);
-    const file = File.fromPath(this._recordOptions.filename);
-    console.log(file);
-    if (file.size) {
-      console.log('YaY! have a non-zero output file with name', this._recordOptions.filename);
-      const playBtn: Button = Frame.topmost().getViewById('playBtn');
-      playBtn.visibility = 'visible';
-      this.handleRecording(file);
+    if (this.recorder.isRecording()) {
+      let lastSegment: File = await this.recorder.stop();
+      console.log('segment just recorded', lastSegment, lastSegment.path, lastSegment.size);
+      if (!this.audioFiles) {
+        this.audioFiles = [lastSegment.path];
+      } else {
+        this.audioFiles.push(lastSegment.path);
+      }
     } else {
-      console.error('No file found for audio recording with name', this._recordOptions.filename);
+      console.log('Was paused, so just preparing final merged audio');
     }
+
+    console.log('stopRecording(): preparing final file', this._recordOptions.filename);
+    try {
+      let finalfile = await this.recorder.mergeAudioFiles(this.audioFiles, this._recordOptions.filename);
+      console.log('merge func returned', finalfile, finalfile.size);
+      if (finalfile.size) {
+        console.log('audio file merged, deleting temporary files');
+        for (let i = 0; i < this.audioFiles.length; i++) {
+          if (File.exists(this.audioFiles[i])) {
+            // remove file if it exists
+            File.fromPath(this.audioFiles[i]).removeSync();
+          }
+        }
+        console.log('Done cleaning out temp files merged');
+        this.handleRecording(finalfile);
+        this._playOptions.audioFile = finalfile.path;
+        const playBtn: Button = Frame.topmost().getViewById('playBtn');
+        playBtn.visibility = 'visible';
+      } else {
+        console.error('No file found for final audio with name', this._recordOptions.filename);
+      }
+    } catch (err) {
+      console.error('Error preparing final file', err);
+    }
+    File.fromPath(this.sessionPreview).removeSync();
+    this.audioFiles = null;
+    this.lastRecorded = null;
+    this.sessionPreview = this._recordOptions.filename;
+    this._recordOptions.filename = null;
+    const discardLastBtn: Button = Frame.topmost().getViewById('discardLastBtn');
+    discardLastBtn.visibility = 'collapsed';
+    const playLastBtn: Button = Frame.topmost().getViewById('playLastBtn');
+    playLastBtn.visibility = 'collapsed';
+
+    console.log('Done resetting recording session demo state');
   }
 
-  pauseRecording() {
+  async pauseRecording() {
     const recordBtn: Button = Frame.topmost().getViewById('recordBtn');
     recordBtn.text = 'Record more audio';
     recordBtn.visibility = 'visible';
     const pauseBtn: Button = Frame.topmost().getViewById('pauseBtn');
     pauseBtn.visibility = 'collapsed';
-    // this.handleRecording();
-    console.log('pausing recording for file', this._recordOptions.filename);
-    this.recorder.pause();
-    //check if file exists
-    // const file = File.fromPath(this._recordOptions.filename);
-    // console.log(file);
-    // if (file.size) {
-    //   console.log('YaY! have a non-zero output file with name', this._recordOptions.filename);
-    //   const playBtn: Button = Frame.topmost().getViewById('playBtn');
-    //   playBtn.visibility = 'visible';
-    //   this.handleRecording(file);
-    // } else {
-    //   console.error('No file found for audio recording with name', this._recordOptions.filename);
-    // }
+    console.log('pausing recording for session', this._recordOptions.filename);
+    let lastSegment: File = await this.recorder.stop();
+    console.log('Segment last recorded:', lastSegment.path);
+    if (!this.audioFiles) this.audioFiles = [lastSegment.path];
+    else this.audioFiles.push(lastSegment.path);
+
+    //present playback controls for the preview file
+    const playLastBtn: Button = Frame.topmost().getViewById('playLastBtn');
+    playLastBtn.visibility = 'visible';
+    const discardLastBtn: Button = Frame.topmost().getViewById('discardLastBtn');
+    discardLastBtn.visibility = 'visible';
+    this._playOptions.audioFile = lastSegment.path;
+
+    //prepare a preview of all segments so far
+    let previewfile = await this.recorder.mergeAudioFiles(this.audioFiles, this.sessionPreview);
+    if (previewfile.size) {
+      console.log('audio preview files merged');
+      const playBtn: Button = Frame.topmost().getViewById('playBtn');
+      playBtn.visibility = 'visible';
+    }
   }
+
   playRecording() {
-    console.log('playRecording(): playing audio that was last recorded');
+    console.log('playRecording(): playing all audio segments recorded during this session');
+    if (!this.sessionPreview) {
+      alert('No preview filename set yet');
+      return;
+    }
+    this.player.pause();
+    this._playOptions.audioFile = this.sessionPreview;
     this.player.prepareAudio(this._playOptions).then(() => {
       this.player.play();
     });
+  }
+
+  playLastsegment() {
+    if (!this.audioFiles) {
+      alert('No segments recorded yet');
+      return;
+    }
+    this.player.pause();
+    console.log('playLastsegment()', this.audioFiles[this.audioFiles.length - 1]);
+    this._playOptions.audioFile = this.audioFiles[this.audioFiles.length - 1];
+    this.player.prepareAudio(this._playOptions).then(() => {
+      console.log('audio prepared, playing');
+      this.player.play();
+    });
+  }
+
+  async discardLastSegment() {
+    console.log('discardLastSegment()', this.audioFiles[this.audioFiles.length - 1]);
+    this.audioFiles.splice(this.audioFiles.length - 1, 1);
+    this.player.pause();
     const playBtn: Button = Frame.topmost().getViewById('playBtn');
-    playBtn.visibility = 'collapsed';
-    const stopPlayBtn: Button = Frame.topmost().getViewById('stopPlayBtn');
-    stopPlayBtn.visibility = 'visible';
+    if (this.audioFiles.length) {
+      //generate new preview files
+      let previewfile = await this.recorder.mergeAudioFiles(this.audioFiles, this.sessionPreview);
+      if (previewfile.size) {
+        console.log('audio preview files merged');
+        playBtn.visibility = 'visible';
+      }
+    } else {
+      playBtn.visibility = 'collapsed';
+    }
+    const playLastBtn: Button = Frame.topmost().getViewById('playLastBtn');
+    playLastBtn.visibility = 'collapsed';
+    const discardLastBtn: Button = Frame.topmost().getViewById('discardLastBtn');
+    discardLastBtn.visibility = 'collapsed';
   }
 
   stopPlayback() {
@@ -213,7 +274,7 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
   }
 
   handleRecording(result: File): void {
-    console.log('handleRecording(): finished recording, result:', result);
+    console.log('handleRecording(): file:', result);
     const outputStack: StackLayout = Frame.topmost().getViewById('outputStack');
     outputStack.removeChildren();
     const fileContainer = new GridLayout();

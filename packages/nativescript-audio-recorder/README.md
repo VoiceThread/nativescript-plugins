@@ -6,7 +6,9 @@ npm install @voicethread/nativescript-audio-recorder
 
 ## Usage
 
-// TODO
+Android:
+API 26+ required to call mergeFiles() to merge an array of mp4 audio files
+
 
 ## License
 

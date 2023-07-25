@@ -1,4 +1,4 @@
-import { Observable } from '@nativescript/core';
+import { Observable, File } from '@nativescript/core';
 
 /* eslint-disable @typescript-eslint/ban-types */
 export interface AudioRecorderOptions {
@@ -48,16 +48,15 @@ export interface AudioRecorderOptions {
 
 export interface IAudioRecorder {
   start(options: AudioRecorderOptions): Promise<any>;
-  pause(): Promise<any>;
-  resume(): Promise<any>;
   stop(): Promise<any>;
   dispose(): Promise<any>;
 }
 
 export class AudioRecorder extends Observable implements IAudioRecorder {
-  static ObjCProtocols: any[];
-  private _recorder;
-  private _recordingSession;
+  private _recorder: any;
+  private _recordingSession: any;
+  private _recorderOptions: AudioRecorderOptions;
+
   readonly ios: any;
   readonly android: any;
 
@@ -67,45 +66,18 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   debug: boolean;
 
   /**
-   * Returns true if the device has a microphone available. on iOS, this returns true without any code checks.
-   */
-  static CAN_RECORD(): boolean;
-
-  /**
-   * Android Only
-   * Returns true if the RECORD_AUDIO permission has been granted.
-   */
-  hasRecordPermission(): boolean;
-
-  /**
-   * Android Only
-   * Promise will resolve if the user grants the permission or if the permission has already been granted.
-   */
-  requestRecordPermission(): Promise<any>;
-
-  /**
    * Starts a recording session with the provided options.
    * @param options [AudioRecorderOptions]
    */
   record(options: AudioRecorderOptions): Promise<any>;
 
   /**
-   * Pauses the recorder.
+   * Stops the recording
    */
-  pause(): Promise<any>;
+  stop(): Promise<File>;
 
   /**
-   * Resumes the recorder.
-   */
-  resume(): Promise<any>;
-
-  /**
-   * Stops the recording.
-   */
-  stop(): Promise<any>;
-
-  /**
-   * Disposes of the recorder session.
+   * Disposes of the recorder session
    */
   dispose(): Promise<any>;
 
@@ -118,22 +90,11 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   /**
    * Returns value indicating the recorder is currently recording.
    */
-  isRecording(): any;
+  isRecording(): boolean;
 
   /**
-   * Returns value indicating the recorder has paused a recording in progress.
+   * Merges all files with file paths specified in audioFiles into a new file at outputPath
+   * Note: this only supports MP4 audio files
    */
-  isPaused(): any;
-
-  /**
-   * Prepares a preview file for all audio recordings made so far during this session
-   */
-  preview(): Promise<any>;
-
-  /**
-   * Returns an array with all filenames of audio recordings made so far during this session
-   */
-  audioFiles(): Promise<any>;
-
-  audioRecorderDidFinishRecording(recorder: any, success: boolean): void;
+  mergeAudioFiles(audioFiles: [string], outputPath: string): Promise<File>;
 }
