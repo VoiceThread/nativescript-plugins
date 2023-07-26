@@ -123,7 +123,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
     });
   }
 
-  public mergeAudioFiles(audioFiles: [string], outputPath: string): Promise<File> {
+  public mergeAudioFiles(audioFiles: string[], outputPath: string): Promise<File> {
     return new Promise((resolve, reject) => {
       //Note: This will only merge audio tracks from  mp4 files, and only succeed if all input have same format/encoding
       //MediaMuxer support for multiple audio/video tracks only on API 26+ only

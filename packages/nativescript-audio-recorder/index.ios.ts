@@ -232,7 +232,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
     }
   }
 
-  public mergeAudioFiles(audioFiles: [string], outputPath: string): Promise<File> {
+  public mergeAudioFiles(audioFiles: string[], outputPath: string): Promise<File> {
     return new Promise((resolve, reject) => {
       if (!audioFiles || audioFiles.length <= 0) return reject('audioFiles is empty!');
       if (!outputPath) return reject('outputPath should be a valid path string');
