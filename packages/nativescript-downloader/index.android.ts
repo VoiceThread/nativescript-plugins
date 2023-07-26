@@ -56,8 +56,6 @@ export class Downloader extends DownloaderCommon {
         //       android.permission.DOWNLOAD_WITHOUT_NOTIFICATION
         req.setNotificationVisibility(notification ? android.app.DownloadManager.Request.VISIBILITY_VISIBLE : android.app.DownloadManager.Request.VISIBILITY_HIDDEN);
 
-        // req.allowScanningByMediaScanner();//deprecated, files saved outside app directory will be scanned automatically
-
         //if we don't set the title, the server may provide a valid filename, or it may provide the url with whatever querystring it has
         req.setDescription(destinationFilename);
         req.setTitle(destinationFilename);
@@ -117,7 +115,7 @@ export class Downloader extends DownloaderCommon {
                 if (fdelete.delete()) {
                   // console.log('file Deleted :' + uri.getPath());
                 } else {
-                  // console.log('file not Deleted :' + uri.getPath());
+                  // console.warn('file not Deleted :' + uri.getPath());
                 }
               }
 
@@ -215,6 +213,7 @@ export class Downloader extends DownloaderCommon {
                 outputStream.close();
               }
             }
+
             //return the user-accessible downloaded file path to user
             const downloadedFile = File.fromPath(outputpath);
             emit(DownloaderCommon.DOWNLOAD_COMPLETE, { filepath: outputpath });
@@ -335,7 +334,7 @@ function getActivity(): android.app.Activity {
   return Application.android.foregroundActivity || Application.android.startActivity;
 }
 
-// Not sure why DocumentsContact is not defined in Android types yet?
+// Not sure why DocumentsContact is not defined in NS Android types yet?
 type ProviderWithDocumentsContact = typeof android.provider & {
   DocumentsContract: any;
 };

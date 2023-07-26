@@ -89,10 +89,8 @@ export class Downloader extends DownloaderCommon {
               if (!this.handle.seekToEndReturningOffsetError(written)) {
                 emit(DownloaderCommon.DOWNLOAD_ERROR, { error: 'Error seeking end of file' });
                 return reject();
-                // throw new Error('Error seeking end of file');
               }
               if (!this.handle.writeDataError(data)) {
-                // throw new Error('Error writing data');
                 emit(DownloaderCommon.DOWNLOAD_ERROR, { error: 'Error writing data' });
                 return reject();
               }
@@ -219,14 +217,13 @@ export class Downloader extends DownloaderCommon {
                       PHAssetChangeRequest.creationRequestForAssetFromVideoAtFileURL(iosurl);
                     } else if (isImage) {
                       PHAssetChangeRequest.creationRequestForAssetFromImageAtFileURL(iosurl);
-                    }
-                    // else console.log('neither a video or image, not saving to gallery');
+                    } else console.warn('not a recognized video or image file extension, not saving to gallery');
                   },
                   (success, err) => {
                     if (success) {
                       // console.log('success');
                     } else {
-                      // console.log('failed');
+                      console.warn('Unable to copy into Photos gallery', err);
                     }
                     resolve(downloadedFile);
                   }
@@ -298,7 +295,7 @@ class UIDocumentPickerDelegateImpl extends NSObject implements UIDocumentPickerD
     return this._owner.get();
   }
 
-  //this shouldn't be called, but we'll have the same handler code just in case
+  //for a directory picker, this should never be called, but we'll include the code anyway
   documentPickerDidPickDocumentAtURL(controller: UIDocumentPickerViewController, url: NSURL): void {
     const access = url.startAccessingSecurityScopedResource();
     let copypath = url.path + '/' + this._downloadFilename;
@@ -314,7 +311,7 @@ class UIDocumentPickerDelegateImpl extends NSObject implements UIDocumentPickerD
         if (!NSFileManager.defaultManager.fileExistsAtPath(copypath)) break;
       }
     }
-    const suc = NSFileManager.defaultManager.copyItemAtPathToPathError(this._downloadPath, copypath);
+    NSFileManager.defaultManager.copyItemAtPathToPathError(this._downloadPath, copypath);
     if (access) url.stopAccessingSecurityScopedResource();
     const downloadedFile = File.fromPath(this._downloadPath);
     this._resolve(downloadedFile);
@@ -322,12 +319,8 @@ class UIDocumentPickerDelegateImpl extends NSObject implements UIDocumentPickerD
     this.deRegisterFromGlobal();
   }
 
-  //if multiple selections allowed:
   documentPickerDidPickDocumentsAtURLs(controller: UIDocumentPickerViewController, urls: NSArray<NSURL>): void {
-    const files: File[] = [];
-    //This view can't display an UIActivityIndicatorView inside it using the usual ios spinner approach,
-    //    but picker shows a small spinner on the "Open" button while processing
-    //Process picker results
+    //we should only get one folder, but will loop through just in case and just return the first one as destination
     for (let i = 0; i < urls.count; i++) {
       const url = urls.objectAtIndex(i); //urls[0];
       const access = url.startAccessingSecurityScopedResource();
@@ -337,7 +330,6 @@ class UIDocumentPickerDelegateImpl extends NSObject implements UIDocumentPickerD
         const fileName = fileParts[fileParts.length - 1];
         const filePrefix = fileName.split('.', 2).length > 0 ? fileName.split('.', 2)[0] : null;
         const fileSuffix = fileName.split('.', 2).length > 0 ? '.' + fileName.split('.', 2)[1] : null;
-        // let tempFileName = 'dl-' + generateId() + fileSuffix;
         let tempFileName;
         for (let i = 1; i < 999999999; i++) {
           tempFileName = filePrefix + '-' + i + fileSuffix;
@@ -345,7 +337,7 @@ class UIDocumentPickerDelegateImpl extends NSObject implements UIDocumentPickerD
           if (!NSFileManager.defaultManager.fileExistsAtPath(copypath)) break;
         }
       }
-      const suc = NSFileManager.defaultManager.copyItemAtPathToPathError(this._downloadPath, copypath);
+      NSFileManager.defaultManager.copyItemAtPathToPathError(this._downloadPath, copypath);
       if (access) url.stopAccessingSecurityScopedResource();
       const downloadedFile = File.fromPath(this._downloadPath);
       this._resolve(downloadedFile);
@@ -357,5 +349,8 @@ class UIDocumentPickerDelegateImpl extends NSObject implements UIDocumentPickerD
   documentPickerWasCancelled(controller: UIDocumentPickerViewController): void {
     controller.dismissViewControllerAnimatedCompletion(true, null);
     this.deRegisterFromGlobal();
+    //user canceled the extra copy, just resolve the downloaded file
+    const downloadedFile = File.fromPath(this._downloadPath);
+    this._resolve(downloadedFile);
   }
 }
