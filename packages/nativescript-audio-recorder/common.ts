@@ -22,7 +22,7 @@ export interface IAudioRecorder {
    *      named outputPath.
    * NOTE: these must be AAC MP4 audio files!
    **/
-  mergeAudioFiles(audioFileUrls: [string], outputPath: string);
+  mergeAudioFiles(audioFileUrls: string[], outputPath: string);
 }
 
 /**
