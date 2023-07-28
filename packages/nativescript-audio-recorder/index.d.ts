@@ -96,5 +96,5 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
    * Merges all files with file paths specified in audioFiles into a new file at outputPath
    * Note: this only supports MP4 audio files
    */
-  mergeAudioFiles(audioFiles: [string], outputPath: string): Promise<File>;
+  mergeAudioFiles(audioFiles: string[], outputPath: string): Promise<File>;
 }
