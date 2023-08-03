@@ -166,8 +166,6 @@ export class AudioPlayer implements IAudioPlayer {
   private _audioFocusManager: AudioFocusManager | null;
   private _readyToPlay = false;
 
-  debug: boolean;
-
   constructor(durationHint: AudioFocusDurationHint | AudioFocusManager = AudioFocusDurationHint.AUDIOFOCUS_GAIN) {
     if (!(durationHint instanceof AudioFocusManager)) {
       this.setAudioFocusManager(

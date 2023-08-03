@@ -14,7 +14,7 @@ export interface AudioPlayer {
   volume: any;
 
   /**
-   * Prepare Audio player by preloading an audio from file or URL
+   * Prepare Audio player by preloading an audio file from file oath or URL
    * @function prepareAudio
    * @param options
    */
@@ -59,11 +59,6 @@ export interface AudioPlayer {
 export interface IAudioPlayer {
   readonly ios?: any;
   readonly android?: any;
-
-  /**
-   * Set to true to enable console log output for debugging.
-   */
-  debug: boolean;
 
   /**
    * Volume getter/setter

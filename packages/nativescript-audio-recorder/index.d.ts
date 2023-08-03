@@ -61,11 +61,6 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   readonly android: any;
 
   /**
-   * Set to true to enable console log output for debugging.
-   */
-  debug: boolean;
-
-  /**
    * Starts a recording session with the provided options.
    * @param options [AudioRecorderOptions]
    */

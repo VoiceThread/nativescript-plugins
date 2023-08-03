@@ -51,7 +51,7 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
   private delegate: TNSPlayerDelegate;
   private _options: AudioPlayerOptions;
   private _readyToPlay = false;
-  debug: boolean;
+
   get ios(): any {
     return this._player;
   }
@@ -154,10 +154,6 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
               // enableRate to change playback speed
               this._player.enableRate = true;
 
-              if (options.metering) {
-                this._player.meteringEnabled = true;
-              }
-
               if (options.loop) {
                 this._player.numberOfLoops = -1;
               }
@@ -241,9 +237,6 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
                   // enableRate to change playback speed
                   this._player.enableRate = true;
                   this._player.numberOfLoops = options.loop ? -1 : 0;
-                  if (options.metering) {
-                    this._player.meteringEnabled = true;
-                  }
                   resolve(true);
                 } else {
                   reject();

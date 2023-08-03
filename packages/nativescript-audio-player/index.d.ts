@@ -13,10 +13,6 @@ export interface AudioPlayerOptions {
    */
   loop: boolean;
 
-  /**
-   * Set true to enable audio metering.
-   */
-  metering?: boolean;
   audioMixing?: boolean;
 
   pitch?: number;
@@ -43,11 +39,6 @@ export interface AudioPlayerOptions {
 export interface IAudioPlayer {
   readonly ios?: any;
   readonly android?: any;
-
-  /**
-   * Set to true to enable console log output for debugging.
-   */
-  debug: boolean;
 
   /**
    * Volume getter/setter
@@ -129,11 +120,6 @@ export declare class AudioPlayer {
   readonly ios: any;
   readonly android: any;
   readonly events: Observable;
-
-  /**
-   * Set to true to enable console log output for debugging.
-   */
-  debug: boolean;
 
   /**
    * Volume getter/setter

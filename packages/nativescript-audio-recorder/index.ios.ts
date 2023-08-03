@@ -52,7 +52,6 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   private _recordingSession: any;
   private _delegate: any;
   public _recorderOptions: AudioRecorderOptions;
-  public debug: boolean = false;
 
   protected getDelegate(resolve, reject): any {
     if (!this._delegate) {

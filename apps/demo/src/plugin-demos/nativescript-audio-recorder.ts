@@ -13,7 +13,7 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
   constructor() {
     super();
     this.recorder = new AudioRecorder();
-    //TODO: tie these events into plugin
+    //you can tie these events to update control states as well
     this.recorder.on('RecorderFinished', () => {
       console.log('RecorderFinished');
     });
@@ -46,13 +46,12 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
     audioMixing: false,
     completeCallback: async () => {
       console.log('Audio file recording complete.');
-      //TODO: reset control state
     },
     errorCallback: errorObject => {
-      console.log(JSON.stringify(errorObject));
+      console.error(JSON.stringify(errorObject));
     },
     infoCallback: infoObject => {
-      console.log(JSON.stringify(infoObject));
+      console.info(JSON.stringify(infoObject));
     },
   };
 

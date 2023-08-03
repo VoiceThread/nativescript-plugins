@@ -7,7 +7,6 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   private _recorder: android.media.MediaRecorder;
   private _isRecording: boolean = false;
   public _recorderOptions: AudioRecorderOptions;
-  public debug: boolean = false;
 
   get android() {
     return this._recorder;

@@ -29,11 +29,11 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
     },
 
     errorCallback: errorObject => {
-      console.log('AudioPlayer error!', JSON.stringify(errorObject));
+      console.error('AudioPlayer error!', JSON.stringify(errorObject));
     },
 
     infoCallback: infoObject => {
-      console.log('AudioPlayer info: ', JSON.stringify(infoObject));
+      console.info('AudioPlayer info: ', JSON.stringify(infoObject));
     },
   };
 
