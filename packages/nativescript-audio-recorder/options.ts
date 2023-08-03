@@ -2,7 +2,6 @@
 /**
  * Provides options for the audio recorder.
  */
-
 export interface AudioRecorderOptions {
   /**
    * Gets or sets the recorded file name.
@@ -27,11 +26,6 @@ export interface AudioRecorderOptions {
   metering?: boolean;
 
   /**
-   * Format
-   */
-  format?: any;
-
-  /**
    * Channels
    */
   channels?: any;
@@ -44,12 +38,7 @@ export interface AudioRecorderOptions {
   /**
    * Bit rate
    */
-  bitRate?: any;
-
-  /**
-   * Encoding
-   */
-  encoder?: any;
+  bitRate?: any; //Android only, use iosAudioQuality for iOS
 
   /**
    * Sets the ios audio quality setting. Options are Min|Low|Medium|High|Max. Set to Medium by default.

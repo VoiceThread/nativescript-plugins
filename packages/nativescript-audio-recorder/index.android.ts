@@ -1,5 +1,5 @@
 /* eslint-disable no-async-promise-executor */
-import { Application, Observable, File, path, knownFolders, Device } from '@nativescript/core';
+import { Observable, File, Device } from '@nativescript/core';
 import { IAudioRecorder } from './common';
 import { AudioRecorderOptions } from './options';
 
@@ -13,21 +13,17 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   }
 
   public record(options: AudioRecorderOptions): Promise<any> {
-    console.log('Starting a new recording');
     this._recorderOptions = options;
     return new Promise(async (resolve, reject) => {
       try {
         if (this._recorder) {
           // reset for reuse
           this._recorder.reset();
-          console.log('reset Android recorder instance');
         } else {
           this._recorder = new android.media.MediaRecorder();
-          console.log('initializing Android recorder instance');
         }
         const audioSource = options.source ? options.source : android.media.MediaRecorder.AudioSource.DEFAULT; // https://developer.android.com/reference/android/media/MediaRecorder.AudioSource
         // const audioSource = android.media.MediaRecorder.AudioSource.MIC; // https://developer.android.com/reference/android/media/MediaRecorder.AudioSource
-        console.log('setting audio Source to ', audioSource);
         this._recorder.setAudioSource(audioSource);
 
         //NOTE: to ensure we can merge audioFiles, only allow MP4 with AAC for now
@@ -94,7 +90,6 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
         if (this._recorder) {
           this._recorder.stop();
           this._isRecording = false;
-          console.log('Done recording');
           resolve(File.fromPath(this._recorderOptions.filename));
         } else return reject('No native recorder instance, was this cleared by mistake!?');
       } catch (ex) {
@@ -134,14 +129,12 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
       if (!outputPath) return reject('outputPath should be a valid path string');
       if (File.exists(outputPath)) {
         // remove file if it exists
-        console.log('file with this name already exists, removing');
         File.fromPath(outputPath).removeSync(err => {
           console.error('Unable to remove file!', err);
           return reject('Unable to remove file!' + err.message);
         });
       }
       if (audioFiles.length == 1) {
-        console.log('Only a single file in array, copying and returning');
         let fileData = File.fromPath(audioFiles[0]).readSync();
         File.fromPath(outputPath).writeSync(fileData);
         return resolve(File.fromPath(outputPath));
@@ -215,7 +208,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
           audioExtractor = null;
         }
         muxer.stop();
-        console.log('totalDuration (ms) => ', totalDuration);
+        // console.log('totalDuration (ms) => ', totalDuration);
         return resolve(File.fromPath(outputPath));
       } catch (err) {
         console.error(err, err.message);

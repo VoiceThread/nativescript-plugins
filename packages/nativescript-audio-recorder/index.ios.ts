@@ -1,5 +1,5 @@
 // import { AudioRecorderCommon } from './common';
-import { Observable, File, path, knownFolders } from '@nativescript/core';
+import { Observable, File } from '@nativescript/core';
 import { IAudioRecorder } from './common';
 import { AudioRecorderOptions } from './options';
 
@@ -20,7 +20,6 @@ class TNSRecorderDelegate extends NSObject implements AVAudioRecorderDelegate {
   }
 
   audioRecorderDidFinishRecording(recorder: any, success: boolean) {
-    console.log(`audioRecorderDidFinishRecording: ${success}`);
     const owner = this._owner.get();
     if (owner) {
       owner.notify({
@@ -32,10 +31,7 @@ class TNSRecorderDelegate extends NSObject implements AVAudioRecorderDelegate {
 
   async audioRecorderDidFinishRecordingSuccessfully(recorder: AVAudioRecorder, flag) {
     const owner = this._owner.get();
-    console.log(`audioRecorderDidFinishRecordingSuccessfully: ${flag}`, owner._recorderOptions);
     const file = File.fromPath(owner._recorderOptions.filename);
-    console.log(file, file.size, recorder);
-
     if (owner) {
       owner.notify({
         eventName: 'RecorderFinishedSuccessfully',
@@ -77,10 +73,8 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   }
 
   record(options: AudioRecorderOptions): Promise<any> {
-    console.log('record() Recording?', options);
     this._recorderOptions = options;
     return new Promise((resolve, reject) => {
-      console.log('Starting a new recording');
       //starting a new recording
       try {
         this._recordingSession = AVAudioSession.sharedInstance();
@@ -94,8 +88,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
         this._recordingSession.requestRecordPermission((allowed: boolean) => {
           if (allowed) {
             const recordSetting = NSMutableDictionary.alloc().init();
-            let format = options.format ? options.format : kAudioFormatMPEG4AAC;
-            console.log(`setting format: ${format}`);
+            let format = kAudioFormatMPEG4AAC;
             recordSetting.setValueForKey(NSNumber.numberWithInt(format), 'AVFormatIDKey');
 
             let avAudioQualityValue = AVAudioQuality.Medium;
@@ -112,16 +105,12 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
                 avAudioQualityValue = AVAudioQuality.Max;
               }
             }
-            console.log(`setting audio quality: ${avAudioQualityValue}`); // https://developer.apple.com/documentation/avfaudio/avaudioquality;
             recordSetting.setValueForKey(NSNumber.numberWithInt(avAudioQualityValue), 'AVEncoderAudioQualityKey');
-
             let sampleRate = 44100.0;
             if (options.sampleRate) sampleRate = parseFloat(parseInt(options.sampleRate).toFixed(1));
-            console.log(`setting sampleRate: ${sampleRate}`);
             recordSetting.setValueForKey(NSNumber.numberWithFloat(sampleRate), 'AVSampleRateKey');
 
             let channels = options.channels ? options.channels : 1;
-            console.log(`setting channels: ${channels}`);
             recordSetting.setValueForKey(NSNumber.numberWithInt(channels), 'AVNumberOfChannelsKey');
 
             AVAudioSession.sharedInstance().setCategoryWithOptionsError(
@@ -140,13 +129,11 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
               //if we have multiple inputs, try to select a connected bluetooth or airpod device first
               //otherwise a headset and finally the device mic
               for (let i = 0; i < inputs.count; i++) {
-                console.log('Available mic port #', i, ' type:', inputs.objectAtIndex(i).portType);
                 if (inputs.objectAtIndex(i).portType.includes('Bluetooth')) bluetooth = i;
                 else if (inputs.objectAtIndex(i).portType.includes('BuiltIn')) builtin = i;
                 else if (inputs.objectAtIndex(i).portType.includes('Headset')) headset = i;
                 else if (inputs.objectAtIndex(i).portType.includes('Wired')) wired = i;
               }
-              console.log('Using mic port: ', bluetooth || wired || headset || builtin || 0);
               AVAudioSession.sharedInstance().setPreferredInputError(inputs.objectAtIndex(bluetooth || wired || headset || builtin || 0));
             } else if (inputs.count == 1) AVAudioSession.sharedInstance().setPreferredInputError(inputs.objectAtIndex(0));
             else console.warn('AVAudioSession unable to find available microphone!');
@@ -156,6 +143,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
             this._recorder = (<any>AVAudioRecorder.alloc()).initWithURLSettingsError(url, recordSetting, errorRef);
             if (errorRef && errorRef.value) {
               console.error(`initWithURLSettingsError errorRef: ${errorRef.value}, ${errorRef}`);
+              reject('failed to initialize AVAudioRecorder');
             } else {
               this._recorder.delegate = this.getDelegate(resolve, reject);
               if (options.metering) {
@@ -179,7 +167,6 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   }
 
   stop(): Promise<any> {
-    console.log('stop() Recording?', this.isRecording());
     return new Promise((resolve, reject) => {
       try {
         if (this._recorder) {
@@ -193,7 +180,6 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
         // may need this in future
         this._recordingSession.setActiveError(false, null);
         this._recorder.meteringEnabled = false;
-        // resolve(null); //promise resolution handled by delegate
       } catch (ex) {
         reject(ex);
       }
@@ -235,32 +221,25 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
     return new Promise((resolve, reject) => {
       if (!audioFiles || audioFiles.length <= 0) return reject('audioFiles is empty!');
       if (!outputPath) return reject('outputPath should be a valid path string');
-      console.log('merging into output file ', outputPath);
 
       if (File.exists(outputPath)) {
         // remove file if it exists
-        console.log('file with this name already exists, removing');
         File.fromPath(outputPath).removeSync(err => {
           console.error('Unable to remove existing file!', err);
           return reject('Unable to remove existing file!' + err.message);
         });
       }
       if (audioFiles.length == 1) {
-        console.log('Only a single file in array, renaming from', audioFiles[0], ' and returning', outputPath);
-        let segmentFile = File.fromPath(audioFiles[0]);
-        console.log('Renaming file', segmentFile, segmentFile.size);
         let suc = NSFileManager.defaultManager.copyItemAtPathToPathError(audioFiles[0], outputPath);
-        console.log('ios rename success?', suc);
         if (!suc) {
-          console.error('Unable to rename file!');
-          return reject('Unable to rename file!');
+          console.error('Unable to copy file!');
+          return reject('Unable to copy file!');
         }
         return resolve(File.fromPath(outputPath));
       }
       let composition = AVMutableComposition.new();
       for (let i = 0; i < audioFiles.length; i++) {
         let compositionAudioTrack: AVMutableCompositionTrack = composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeAudio, 0);
-        console.log('Loading AVURLAsset with path', audioFiles[i]);
         let asset = AVURLAsset.assetWithURL(NSURL.fileURLWithPath(audioFiles[i]));
         let track = asset.tracksWithMediaType(AVMediaTypeAudio)[0];
         let timeRange = CMTimeRangeMake(CMTimeMake(0, 600), track.timeRange.duration);
@@ -273,23 +252,23 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
       assetExport.exportAsynchronouslyWithCompletionHandler(() => {
         switch (assetExport.status) {
           case AVAssetExportSessionStatus.Failed:
-            console.log('failed (assetExport?.error)', assetExport.error);
+            // console.log('failed (assetExport?.error)', assetExport.error);
             reject(assetExport.error);
             break;
           case AVAssetExportSessionStatus.Cancelled:
-            console.log('cancelled (assetExport?.error)');
+            // console.log('cancelled (assetExport?.error)');
             break;
           case AVAssetExportSessionStatus.Unknown:
-            console.log('unknown(assetExport?.error)');
+            // console.log('unknown(assetExport?.error)');
             break;
           case AVAssetExportSessionStatus.Waiting:
-            console.log('waiting(assetExport?.error)');
+            // console.log('waiting(assetExport?.error)');
             break;
           case AVAssetExportSessionStatus.Exporting:
-            console.log('exporting(assetExport?.error)');
+            // console.log('exporting(assetExport?.error)');
             break;
           case AVAssetExportSessionStatus.Completed:
-            console.log('Audio Concatenation Complete');
+            // console.log('Audio Concatenation Complete');
             resolve(File.fromPath(outputPath));
             break;
         }

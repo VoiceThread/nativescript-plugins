@@ -3,7 +3,7 @@ import { Observable, File } from '@nativescript/core';
 /* eslint-disable @typescript-eslint/ban-types */
 export interface AudioRecorderOptions {
   /**
-   * The name of the file recorded.
+   * The name of the file recorded to.
    */
   filename: string;
 
@@ -27,11 +27,9 @@ export interface AudioRecorderOptions {
   /**
    * The format of the audio recording.
    */
-  format?: any;
   channels?: any;
   sampleRate?: any;
-  bitRate?: any;
-  encoder?: any;
+  bitRate?: any; //Android only, use iosAudioQuality for iOS
 
   /**
    * Callback to execute when playback has an error.

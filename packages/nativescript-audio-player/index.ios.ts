@@ -94,7 +94,6 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
 
         if (Utils.isFileOrResourcePath(audioPath)) {
           //if it's a local file, prepare should be almost instant
-          console.log('playing a local audio file');
           if (!File.exists(audioPath)) {
             console.error("Audio file doesn't exist on device file system");
             reject('File not found! ' + audioPath);
@@ -159,7 +158,6 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
               }
 
               this._readyToPlay = true;
-              console.log('prepared to play');
               resolve(true);
             } else {
               reject(false);
@@ -175,14 +173,11 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
           let cachefilename: string = audioPath.replaceAll('://', '_').replaceAll('.', '_').replaceAll('/', '-');
           cachefilename =
             knownFolders.temp().path + '/' + cachefilename.substring(0, cachefilename.lastIndexOf('_')) + '.' + cachefilename.substring(cachefilename.lastIndexOf('_') + 1, cachefilename.length);
-          console.log('Looking for cached file', cachefilename);
           const localFile = File.fromPath(cachefilename);
           if (File.exists(cachefilename) && localFile.size > 100) {
-            console.log('Found a non-zero cached file named', cachefilename);
             this._data = localFile.readSync();
             resolve(true);
           } else {
-            console.log('no cached file found, playing remote audio file from URL');
             //for url, need to wait for urlsession to load and return
             try {
               this.completeCallback = options.completeCallback;
@@ -197,15 +192,13 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
                   reject(false);
                   return false;
                 }
-                // console.log('remote urlsession prepared with response', response);
                 this._data = data;
-                console.log('saving as filename ', cachefilename);
                 const f = File.fromPath(cachefilename);
                 f.writeSync(NSData.dataWithData(data), (e: any) => {
                   console.error('Failed to write data: ' + e.toString());
+                  reject('Failed to write data: ' + e.toString());
                 });
                 let cacheFile = File.fromPath(cachefilename);
-                // console.log('Size:', cacheFile.size);
                 if (cacheFile.size < 100) {
                   console.error('Downloaded file too small, failed?', cacheFile.size);
                   reject('Remote url file invalid! ' + audioPath);

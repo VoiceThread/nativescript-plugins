@@ -38,7 +38,6 @@ export class AudioFocusManager extends Observable {
       return;
     }
     // Request audio focus for play back
-
     const playbackAttributes = new android.media.AudioAttributes.Builder().setUsage(options.usage).setContentType(options.contentType).build();
     this._audioFocusRequest = new android.media.AudioFocusRequest.Builder(options.durationHint)
       .setAudioAttributes(playbackAttributes)
@@ -114,19 +113,19 @@ export class AudioFocusManager extends Observable {
     let result = null;
 
     if (android.os.Build.VERSION.SDK_INT >= 26) {
-      console.log('abandonAudioFocusRequest...', this._audioFocusRequest);
+      // console.log('abandonAudioFocusRequest...', this._audioFocusRequest);
       result = am.abandonAudioFocusRequest(this._audioFocusRequest);
-      console.log('abandonAudioFocusRequest...result...', result);
+      // console.log('abandonAudioFocusRequest...result...', result);
 
       // this._audioFocusRequest = null;
     } else {
-      console.log('abandonAudioFocus...', this._mOnAudioFocusChangeListener);
+      // console.log('abandonAudioFocus...', this._mOnAudioFocusChangeListener);
       result = am.abandonAudioFocus(this._mOnAudioFocusChangeListener);
     }
     if (result === android.media.AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
       this._mAudioFocusGranted = false;
     } else {
-      console.log('Failed to abandon audio focus.');
+      console.error('Failed to abandon audio focus.');
     }
     return this._mAudioFocusGranted;
   }
@@ -243,7 +242,6 @@ export class AudioPlayer implements IAudioPlayer {
         this._player.setDataSource(audioPath);
 
         // check if local file or remote - local then `prepare` is okay https://developer.android.com/reference/android/media/MediaPlayer.html#prepare()
-        console.log('preparing for playback');
         // On Info
         if (options.infoCallback) {
           this._player.setOnInfoListener(
@@ -260,7 +258,6 @@ export class AudioPlayer implements IAudioPlayer {
         this._player.setOnPreparedListener(
           new android.media.MediaPlayer.OnPreparedListener({
             onPrepared: mp => {
-              console.log('MediaPlayer.OnPreparedListener: audio player prepared');
               this._readyToPlay = true;
               resolve(true);
             },
@@ -317,7 +314,6 @@ export class AudioPlayer implements IAudioPlayer {
           reject('Audio source not ready, call prepareAudio(options) first!');
           return false;
         }
-        console.log('player play()');
         if (this._player && !this._player.isPlaying()) {
           // request audio focus, this will setup the onAudioFocusChangeListener
           if (this._options.audioMixing) {

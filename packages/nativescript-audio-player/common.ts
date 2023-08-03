@@ -113,7 +113,7 @@ export interface IAudioPlayer {
   getAudioTrackDuration(): Promise<string>;
 
   /**
-   * Sets the player playback speed rate. On Android this works on API 23+.
+   * Sets the player playback speed rate. On Android this only works on API 23+.
    * @param speed [number] - The speed of the playback.
    */
   changePlayerSpeed(speed: number): void;
@@ -154,7 +154,6 @@ export function resolveAudioFilePath(path: string) {
     const isUrl = isStringUrl(path);
     // if it's a url just return the audio file url
     if (isUrl === true) {
-      console.log('detected a url filename, using directly', path);
       return path;
     } else {
       let audioPath;
@@ -165,7 +164,6 @@ export function resolveAudioFilePath(path: string) {
       } else {
         audioPath = fileName;
       }
-      console.log('detected a local filename, using path', audioPath);
       return audioPath;
     }
   }
