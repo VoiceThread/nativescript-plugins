@@ -21,8 +21,11 @@ The `nativescript-custom-rotors` adds easy to use properties to common {N} views
 ## Installation
 
 ```bash
-npm install @voicethread/nativescript-custom-rotors
+npm install @voicethread/nativescript-custom-rotors --save
 ```
+OR
+```bash
+ns plugin install @voicethread/nativescript-custom-rotors
 
 ## Expanded Classes
 
