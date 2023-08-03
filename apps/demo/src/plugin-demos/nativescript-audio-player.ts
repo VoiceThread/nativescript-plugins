@@ -18,20 +18,13 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
   protected _playOptions: AudioPlayerOptions = {
     audioFile: '',
     loop: false,
-    // metering:?,
-    // pitch:?,
     audioMixing: false,
-    // sessionCategory: 'AVAudioSessionCategoryPlayAndRecord',
-    //sessionMode:?,
-    //sessionRouteSharingPolicy:?,
     completeCallback: async result => {
       console.log('AudioPlayer - Audio file playback complete.', result);
     },
-
     errorCallback: errorObject => {
       console.error('AudioPlayer error!', JSON.stringify(errorObject));
     },
-
     infoCallback: infoObject => {
       console.info('AudioPlayer info: ', JSON.stringify(infoObject));
     },
@@ -79,7 +72,7 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
         console.log('playing file ', file.path, ' with size', file.size);
         this.showInfo(file);
       } else {
-        console.log('ERRRO! Unable to prepare audio!');
+        console.log('ERROR! Unable to prepare audio!');
       }
     });
   }
@@ -94,7 +87,7 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
         console.log('playing file ', file.path, ' with size', file.size);
         this.showInfo(file);
       } else {
-        console.log('ERRRO! Unable to prepare audio!');
+        console.log('ERROR! Unable to prepare audio!');
       }
     });
   }
@@ -109,7 +102,7 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
         console.log('playing remote url ', this._playOptions.audioFile);
         this.showInfo(null);
       } else {
-        console.log('ERRRO! Unable to prepare audio!');
+        console.log('ERROR! Unable to prepare audio!');
       }
     });
   }

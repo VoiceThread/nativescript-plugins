@@ -341,11 +341,11 @@ export class AudioPlayer implements IAudioPlayer {
             this.pause();
           });
 
-          if (this._options?.pitch) {
-            const playBackParams = new android.media.PlaybackParams();
-            playBackParams.setPitch(this._options!.pitch);
-            this._player.setPlaybackParams(playBackParams);
-          }
+          // if (this._options?.pitch) {
+          //   const playBackParams = new android.media.PlaybackParams();
+          //   playBackParams.setPitch(this._options!.pitch);
+          //   this._player.setPlaybackParams(playBackParams);
+          // }
 
           this._player.start();
         }

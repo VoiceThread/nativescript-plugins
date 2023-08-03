@@ -15,8 +15,6 @@ export interface AudioPlayerOptions {
 
   audioMixing?: boolean;
 
-  pitch?: number;
-
   /**
    * Callback to execute when playback has completed.
    * @returns {Object} An object containing the native values for the callback.
@@ -49,19 +47,6 @@ export interface IAudioPlayer {
    * Duration getter
    */
   duration: number;
-
-  // initFromFile(options: AudioPlayerOptions): Promise<any>;
-  // /**
-  //  * Starts playing audio file from local app files.
-  //  */
-  // playFromFile(options: AudioPlayerOptions): Promise<any>;
-
-  // initFromUrl(options: AudioPlayerOptions): Promise<any>;
-
-  // /**
-  //  * Starts playing audio file from url
-  //  */
-  // playFromUrl(options: AudioPlayerOptions): Promise<any>;
 
   //prepares audio from file or url to be played back
   //if there is already an audio file prepared for this instance, disposes first and re-inits
