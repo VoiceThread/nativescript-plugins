@@ -20,8 +20,8 @@ https://github.com/VoiceThread/nativescript-plugins/assets/20136906/ba6dcba1-bfd
   - [Contents](#contents)
   - [Installation](#installation)
   - [Usage](#usage)
-    - [Android Permissions](#android-permissions)
-    - [iOS Permissions](#ios-permissions)
+  - [Android Permissions](#android-permissions)
+  - [iOS Permissions](#ios-permissions)
   - [Supported Picker File Types](#supported-picker-file-types)
   - [Android](#android)
   - [iOS](#ios)
@@ -32,9 +32,12 @@ https://github.com/VoiceThread/nativescript-plugins/assets/20136906/ba6dcba1-bfd
 ## Installation
 
 ```bash
-npm install @voicethread/nativescript-filepicker
+npm install @voicethread/nativescript-filepicker --save
 ```
-
+OR
+```bash
+ns plugin install @voicethread/nativescript-filepicker
+```
 ## Usage
 
 The best way to understand how to use the plugin is to look at the demo app included in this repo.
