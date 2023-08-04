@@ -358,6 +358,10 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
       if (typeof speed === 'string') {
         speed = parseFloat(speed);
       }
+      if (isNaN(speed)) {
+        console.error('speed was not parsable as a number!');
+        return;
+      }
       this._player.rate = speed;
     }
   }
