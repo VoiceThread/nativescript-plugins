@@ -1,7 +1,7 @@
 {
   "name": "@voicethread/nativescript-filepicker",
   "version": "1.0.1",
-  "description": "Add a plugin description",
+  "description": "File picker plugin for Nativescript applications",
   "main": "index",
   "typings": "index.d.ts",
   "nativescript": {
@@ -23,7 +23,7 @@
   ],
   "author": {
     "name": "VoiceThread",
-    "email": "oss@nativescript.org"
+    "email": "mobile@voicethread.net"
   },
   "bugs": {
     "url": "https://github.com/VoiceThread/nativescript-plugins/issues"

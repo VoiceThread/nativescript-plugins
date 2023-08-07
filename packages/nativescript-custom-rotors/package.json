@@ -1,7 +1,7 @@
 {
   "name": "@voicethread/nativescript-custom-rotors",
   "version": "1.0.0",
-  "description": "Add a plugin description",
+  "description": "Accessibility rotor controls for Nativescript iOS applications.",
   "main": "index",
   "typings": "index.d.ts",
   "nativescript": {
@@ -23,7 +23,7 @@
   ],
   "author": {
     "name": "VoiceThread",
-    "email": "oss@nativescript.org"
+    "email": "mobile@voicethread.net"
   },
   "bugs": {
     "url": "https://github.com/VoiceThread/nativescript-plugins/issues"
