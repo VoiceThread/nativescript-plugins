@@ -1,6 +1,6 @@
 import { EventData, Page, File, Frame, StackLayout, Color, Label, Image, alert, isAndroid, Device, isIOS } from '@nativescript/core';
 import { DemoSharedNativescriptDownloader } from '@demo/shared';
-import { DownloadDestination, Downloader, DownloadOptions, MessageData } from '@voicethread/nativescript-downloader';
+import { Downloader, DownloadOptions, MessageData } from '@voicethread/nativescript-downloader';
 import { LoadingIndicator, Mode, OptionsCommon } from '@nstudio/nativescript-loading-indicator';
 import { Feedback, FeedbackType, FeedbackPosition } from '@valor/nativescript-feedback';
 import { Result, check as checkPermission, request as requestPermission } from '@nativescript-community/perms';

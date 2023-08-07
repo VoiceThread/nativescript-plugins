@@ -9,7 +9,10 @@
     "noEmitHelpers": true,
     "target": "ES2020",
     "module": "ESNext",
-    "lib": ["ESNext", "dom"],
+    "lib": [
+      "ESNext",
+      "dom"
+    ],
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
@@ -20,12 +23,31 @@
       }
     ],
     "paths": {
-      "@demo/shared": ["tools/demo/index.ts"],
-      "@voicethread/*": ["packages/*"],
-      "@voicethread/nativescript-custom-rotors": ["packages/nativescript-custom-rotors/index.d.ts"],
-      "@voicethread/nativescript-filepicker": ["packages/nativescript-filepicker/index.d.ts"],
-      "@voicethread/nativescript-downloader": ["packages/nativescript-downloader/index.d.ts"]
+      "@demo/shared": [
+        "tools/demo/index.ts"
+      ],
+      "@voicethread/*": [
+        "packages/*"
+      ],
+      "@voicethread/nativescript-custom-rotors": [
+        "packages/nativescript-custom-rotors/index.d.ts"
+      ],
+      "@voicethread/nativescript-filepicker": [
+        "packages/nativescript-filepicker/index.d.ts"
+      ],
+      "@voicethread/nativescript-downloader": [
+        "packages/nativescript-downloader/index.d.ts"
+      ],
+      "@voicethread/nativescript-audio-player": [
+        "packages/nativescript-audio-player/index.d.ts"
+      ],
+      "@voicethread/nativescript-audio-recorder": [
+        "packages/nativescript-audio-recorder/index.d.ts"
+      ]
     }
   },
-  "exclude": ["node_modules", "tmp"]
+  "exclude": [
+    "node_modules",
+    "tmp"
+  ]
 }

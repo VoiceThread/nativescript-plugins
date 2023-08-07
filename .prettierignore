@@ -5,3 +5,4 @@
 native-src
 /.vscode
 *.json
+apps/demo-angular/**/*.html

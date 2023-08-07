@@ -1,13 +1,22 @@
-<Page xmlns="http://schemas.nativescript.org/tns.xsd" navigatingTo="navigatingTo">
+<Page xmlns="http://schemas.nativescript.org/tns.xsd"
+  navigatingTo="navigatingTo">
   <Page.actionBar>
-    <ActionBar title="VoiceThread Plugin Demos" icon=""/>
+    <ActionBar title="VoiceThread Plugin Demos"
+      icon=""/>
   </Page.actionBar>
   <StackLayout class="p-20">
     <ScrollView class="h-full">
       <StackLayout>
-        <Button text="⚙️ Custom Rotors" tap="{{ viewCustomRotors }}"/>
-        <Button text="📁 Filepicker" tap="{{ viewFilePicker }}"/>
-        <Button text="💾 Downloader" tap="{{ viewDownloader }}"/>
+        <Button text="⚙️ Custom Rotors"
+          tap="{{ viewCustomRotors }}"/>
+        <Button text="📁 Filepicker"
+          tap="{{ viewFilePicker }}"/>
+        <Button text="💾 Downloader"
+          tap="{{ viewDownloader }}"/>
+        <Button text="▶️ Audio Player"
+          tap="{{ viewAudioPlayer }}" />
+        <Button text="⏺️ Audio Recorder"
+          tap="{{ viewAudioRecorder }}" />
       </StackLayout>
     </ScrollView>
   </StackLayout>

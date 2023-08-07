@@ -82,6 +82,20 @@ module.exports = {
           description: '@voicethread/nativescript-downloader: Build',
         },
       },
+      // @voicethread/nativescript-audio-player
+      'nativescript-audio-player': {
+        build: {
+          script: 'nx run nativescript-audio-player:build.all',
+          description: '@voicethread/nativescript-audio-player: Build',
+        },
+      },
+      // @voicethread/nativescript-audio-recorder
+      'nativescript-audio-recorder': {
+        build: {
+          script: 'nx run nativescript-audio-recorder:build.all',
+          description: '@voicethread/nativescript-audio-recorder: Build',
+        },
+      },
       'build-all': {
         script: 'nx run-many --target=build.all --all',
         description: 'Build all packages',
@@ -103,6 +117,14 @@ module.exports = {
       'nativescript-downloader': {
         script: 'nx run nativescript-downloader:focus',
         description: 'Focus on @voicethread/nativescript-downloader',
+      },
+      'nativescript-audio-player': {
+        script: 'nx run nativescript-audio-player:focus',
+        description: 'Focus on @voicethread/nativescript-audio-player',
+      },
+      'nativescript-audio-recorder': {
+        script: 'nx run nativescript-audio-recorder:focus',
+        description: 'Focus on @voicethread/nativescript-audio-recorder',
       },
       reset: {
         script: 'nx g @voicethread/plugin-tools:focus-packages',

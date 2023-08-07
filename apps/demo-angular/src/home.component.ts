@@ -7,6 +7,12 @@ import { Component } from '@angular/core';
 export class HomeComponent {
   demos = [
     {
+      name: 'nativescript-audio-player',
+    },
+    {
+      name: 'nativescript-audio-recorder',
+    },
+    {
       name: 'nativescript-custom-rotors',
     },
     {

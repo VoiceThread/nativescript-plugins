@@ -11,7 +11,9 @@
     "@valor/nativescript-feedback": "^2.0.2",
     "@voicethread/nativescript-custom-rotors": "file:../../packages/nativescript-custom-rotors",
     "@voicethread/nativescript-downloader": "file:../../packages/nativescript-downloader",
-    "@voicethread/nativescript-filepicker": "file:../../packages/nativescript-filepicker"
+    "@voicethread/nativescript-filepicker": "file:../../packages/nativescript-filepicker",
+    "@voicethread/nativescript-audio-player": "file:../../packages/nativescript-audio-player",
+    "@voicethread/nativescript-audio-recorder": "file:../../packages/nativescript-audio-recorder"
   },
   "devDependencies": {
     "@nativescript/android": "~8.4.0",
