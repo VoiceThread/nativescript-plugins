@@ -13,7 +13,8 @@
     "@voicethread/nativescript-downloader": "file:../../packages/nativescript-downloader",
     "@voicethread/nativescript-filepicker": "file:../../packages/nativescript-filepicker",
     "@voicethread/nativescript-audio-player": "file:../../packages/nativescript-audio-player",
-    "@voicethread/nativescript-audio-recorder": "file:../../packages/nativescript-audio-recorder"
+    "@voicethread/nativescript-audio-recorder": "file:../../packages/nativescript-audio-recorder",
+    "@voicethread/nativescript-transcoder": "file:../../packages/nativescript-transcoder"
   },
   "devDependencies": {
     "@nativescript/android": "~8.4.0",

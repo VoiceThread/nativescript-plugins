@@ -1,0 +1,16 @@
+<Page xmlns="http://schemas.nativescript.org/tns.xsd" navigatingTo="navigatingTo" class="page">
+    <Page.actionBar>
+        <ActionBar title="nativescript-transcoder" icon="" class="action-bar">
+        </ActionBar>
+    </Page.actionBar>
+    <StackLayout class="p-20">
+        <ScrollView class="h-full">
+          <StackLayout>
+            <Button text="Pick Video" tap="{{ pickImageVideo }}"/>
+            <Button text="Pick Audio" tap="{{ pickAudio }}"/>
+            <Button text="Process" tap="{{ process }}"/>
+
+          </StackLayout>
+        </ScrollView>
+    </StackLayout>
+</Page>

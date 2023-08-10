@@ -1,0 +1,73 @@
+{
+  "name": "nativescript-transcoder",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "packages/nativescript-transcoder",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/js:tsc",
+      "options": {
+        "outputPath": "dist/packages/nativescript-transcoder",
+        "tsConfig": "packages/nativescript-transcoder/tsconfig.json",
+        "packageJson": "packages/nativescript-transcoder/package.json",
+        "main": "packages/nativescript-transcoder/index.d.ts",
+        "assets": [
+          "packages/nativescript-transcoder/*.md",
+          "packages/nativescript-transcoder/index.d.ts",
+          "LICENSE",
+          {
+            "glob": "**/*",
+            "input": "packages/nativescript-transcoder/platforms/",
+            "output": "./platforms/"
+          }
+        ],
+        "dependsOn": [
+          {
+            "target": "build.all",
+            "projects": "dependencies"
+          }
+        ]
+      }
+    },
+    "build.all": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "node tools/scripts/build-finish.ts nativescript-transcoder"
+        ],
+        "parallel": false
+      },
+      "outputs": [
+        "dist/packages/nativescript-transcoder"
+      ],
+      "dependsOn": [
+        {
+          "target": "build.all",
+          "projects": "dependencies"
+        },
+        {
+          "target": "build",
+          "projects": "self"
+        }
+      ]
+    },
+    "focus": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "nx g @nativescript/plugin-tools:focus-packages nativescript-transcoder"
+        ],
+        "parallel": false
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "options": {
+        "lintFilePatterns": [
+          "packages/nativescript-transcoder/**/*.ts"
+        ]
+      }
+    }
+  },
+  "tags": []
+}
