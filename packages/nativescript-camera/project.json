@@ -1,0 +1,73 @@
+{
+  "name": "nativescript-camera",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "library",
+  "sourceRoot": "packages/nativescript-camera",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/js:tsc",
+      "options": {
+        "outputPath": "dist/packages/nativescript-camera",
+        "tsConfig": "packages/nativescript-camera/tsconfig.json",
+        "packageJson": "packages/nativescript-camera/package.json",
+        "main": "packages/nativescript-camera/index.d.ts",
+        "assets": [
+          "packages/nativescript-camera/*.md",
+          "packages/nativescript-camera/index.d.ts",
+          "LICENSE",
+          {
+            "glob": "**/*",
+            "input": "packages/nativescript-camera/platforms/",
+            "output": "./platforms/"
+          }
+        ],
+        "dependsOn": [
+          {
+            "target": "build.all",
+            "projects": "dependencies"
+          }
+        ]
+      }
+    },
+    "build.all": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "node tools/scripts/build-finish.ts nativescript-camera"
+        ],
+        "parallel": false
+      },
+      "outputs": [
+        "dist/packages/nativescript-camera"
+      ],
+      "dependsOn": [
+        {
+          "target": "build.all",
+          "projects": "dependencies"
+        },
+        {
+          "target": "build",
+          "projects": "self"
+        }
+      ]
+    },
+    "focus": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "nx g @nativescript/plugin-tools:focus-packages nativescript-camera"
+        ],
+        "parallel": false
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "options": {
+        "lintFilePatterns": [
+          "packages/nativescript-camera/**/*.ts"
+        ]
+      }
+    }
+  },
+  "tags": []
+}

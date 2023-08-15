@@ -29,4 +29,9 @@ export class MainViewModel extends Observable {
       moduleName: 'plugin-demos/nativescript-audio-recorder',
     });
   }
+  viewCamera() {
+    Frame.topmost().navigate({
+      moduleName: 'plugin-demos/nativescript-camera',
+    });
+  }
 }

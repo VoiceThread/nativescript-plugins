@@ -13,6 +13,9 @@ export class HomeComponent {
       name: 'nativescript-audio-recorder',
     },
     {
+      name: 'nativescript-camera',
+    },
+    {
       name: 'nativescript-custom-rotors',
     },
     {

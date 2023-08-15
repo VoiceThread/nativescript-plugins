@@ -1,0 +1,13 @@
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+dependencies {
+    implementation 'androidx.multidex:multidex:2.0.1'
+    implementation('io.github.triniwiz:fancycamera:3.0.0-alpha22'){
+        transitive = true
+    }
+}

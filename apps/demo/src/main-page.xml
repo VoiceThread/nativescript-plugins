@@ -17,6 +17,8 @@
           tap="{{ viewAudioPlayer }}" />
         <Button text="⏺️ Audio Recorder"
           tap="{{ viewAudioRecorder }}" />
+        <Button text="📷 Camera"
+          tap="{{ viewCamera }}" />
       </StackLayout>
     </ScrollView>
   </StackLayout>

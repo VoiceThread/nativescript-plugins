@@ -1,5 +1,6 @@
 - [@voicethread/nativescript-audio-player](packages/nativescript-audio-player/README.md)
 - [@voicethread/nativescript-audio-recorder](packages/nativescript-audio-recorder/README.md)
+- [@voicethread/nativescript-camera](packages/nativescript-camera/README.md)
 - [@voicethread/nativescript-custom-rotors](packages/nativescript-custom-rotors/README.md)
 - [@voicethread/nativescript-downloader](packages/nativescript-downloader/README.md)
 - [@voicethread/nativescript-filepicker](packages/nativescript-filepicker/README.md)
