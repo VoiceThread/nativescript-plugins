@@ -83,7 +83,7 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
         },
       ],
     });
-    let tempPath = TempFile.getPath('processed-tempfile', 'tmp');
+    let tempPath = TempFile.getPath('processed-tempfile', '.tmp');
     console.log('-ready to process-');
     transcoder.process('low', tempPath);
     // NativescriptTranscoder .addAsset()

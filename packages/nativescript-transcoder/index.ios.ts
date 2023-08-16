@@ -348,14 +348,15 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
 
       console.log('-- initializing SDAVAssetExportSession');
       // const assetExportSession = SDAVAssetExportSession.exportSessionWithAsset(composition);
-      const assetExportSession = SDAVAssetExportSession.alloc().initWithAsset(composition);
-      console.log('-SDAVAssetExportSession', assetExportSession);
-      console.log('-assetExportSession', assetExportSession.audioMix);
-      console.log('-- assetExportSession', assetExportSession);
+      const assetExportSession = new NSAVAssetExportSession().initWithAsset(composition);
+      // console.log('-SDAVAssetExportSession', assetExportSession);
+      // console.log('-assetExportSession', assetExportSession.audioMix);
+      // console.log('-- assetExportSession', assetExportSession);
       assetExportSession.outputFileType = AVFileTypeMPEG4;
 
       // TODO: this needs to be checked if it works
-      assetExportSession.outputURL = NSURL.URLWithString(outputPath);
+      // assetExportSession.outputURL = NSURL.URLWithString(outputPath);
+      assetExportSession.outputURL = NSURL.fileURLWithPath(outputPath);
       // assetExportSession.outputURL = [self getURLFromFilePath:outputFilePath];
 
       assetExportSession.shouldOptimizeForNetworkUse = false;
@@ -427,12 +428,428 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
       // https://github.com/selsamman/react-native-transcode/blob/master/ios/Transcode/Transcode.m
     }
   }
+}
 
-  invokeOnRunLoop = (function () {
-    var runloop = CFRunLoopGetMain();
-    return function (func) {
-      CFRunLoopPerformBlock(runloop, kCFRunLoopDefaultMode, func);
-      CFRunLoopWakeUp(runloop);
-    };
-  })();
+class NSAVAssetExportSession {
+  private _asset: AVAsset;
+  timeRange: CMTimeRange;
+  private _reader: AVAssetReader;
+  private _writer: AVAssetWriter;
+  shouldOptimizeForNetworkUse: boolean;
+  private _metadata: NSArray<AVMetadataItem>;
+  private _videoOutput: AVAssetReaderVideoCompositionOutput;
+  private _videoInputSettings: NSDictionary<string, any>;
+  videoComposition: AVMutableVideoComposition;
+  videoSettings: NSDictionary<string, any>;
+  private _videoInput: AVAssetWriterInput;
+  private _videoPixelBufferAdaptor;
+  private _inputQueue: NSObject;
+  outputURL: NSURL;
+  outputFileType: string;
+
+  // audio
+  private _audioOutput: AVAssetReaderAudioMixOutput;
+  private _audioMix: AVAudioMix;
+  private _audioInput: AVAssetWriterInput;
+  audioSettings: NSDictionary<string, any>;
+
+  private _progress: number;
+  private _lastSamplePresentationTime: CMTime;
+  private _duration;
+  private _error: NSError;
+  private _completionHandler: () => void;
+  private _delegate: NSAVAssetExportSessionDelegate;
+
+  initWithAsset(asset: AVAsset) {
+    this._asset = asset;
+    this.timeRange = CMTimeRangeMake(kCMTimeZero, kCMTimePositiveInfinity);
+    return this;
+  }
+
+  exportAsynchronouslyWithCompletionHandler(completionHandler: () => void): void {
+    this._delegate = NSAVAssetExportSessionDelegate.initWithOwner(this);
+    this.cancelExport();
+    this._completionHandler = completionHandler;
+    if (!this.outputURL) {
+      this._error = NSError.errorWithDomainCodeUserInfo(AVFoundationErrorDomain, AVError.ExportFailed, {
+        NSLocalizedDescriptionKey: 'Output URL not set',
+      } as any);
+      completionHandler();
+      return;
+    }
+
+    this._reader = AVAssetReader.alloc().initWithAssetError(this._asset);
+    if (this._reader.error) {
+      this._error = this._reader.error;
+      completionHandler();
+      return;
+    }
+    console.log('- outputURL', this.outputURL);
+    console.log('- outputFileType', this.outputFileType);
+    this._writer = AVAssetWriter.assetWriterWithURLFileTypeError(this.outputURL, this.outputFileType);
+    if (this._writer.error) {
+      this._error = this._writer.error;
+      completionHandler();
+      return;
+    }
+
+    this._reader.timeRange = this.timeRange;
+    this._writer.shouldOptimizeForNetworkUse = this.shouldOptimizeForNetworkUse;
+    this._writer.metadata = this._metadata;
+
+    const videoTracks = this._asset.tracksWithMediaType(AVMediaTypeVideo);
+
+    // TODO: find equivalent in NS
+    // if (CMTIME_IS_VALID(this.timeRange.duration) && !CMTIME_IS_POSITIVE_INFINITY(this.timeRange.duration))
+    let duration: number;
+    if (this.timeRange.duration) {
+      duration = CMTimeGetSeconds(this.timeRange.duration);
+    } else {
+      duration = CMTimeGetSeconds(this._asset.duration);
+    }
+
+    // Video output
+    console.log('-- videoTracks', videoTracks);
+    if (videoTracks.count > 0) {
+      console.log('-- setting videoOutput');
+      this._videoOutput = AVAssetReaderVideoCompositionOutput.assetReaderVideoCompositionOutputWithVideoTracksVideoSettings(videoTracks, this._videoInputSettings);
+      this._videoOutput.alwaysCopiesSampleData = false;
+      if (this.videoComposition) {
+        // TODO: this might be the problem - https://stackoverflow.com/a/67665341/10280206
+        console.log('-- videoComposition', this.videoComposition);
+        // this.videoComposition.sourceTrackIDForFrameTiming = kCMPersistentTrackID_Invalid;
+
+        this._videoOutput.videoComposition = this.videoComposition;
+      } else {
+        this._videoOutput.videoComposition = this.buildDefaultVideoComposition();
+      }
+
+      if (this._reader.canAddOutput(this._videoOutput)) {
+        console.log('-- reader adding video output');
+        this._reader.addOutput(this._videoOutput);
+      }
+
+      // Video input
+      this._videoInput = AVAssetWriterInput.assetWriterInputWithMediaTypeOutputSettings(AVMediaTypeVideo, this.videoSettings);
+      this._videoInput.expectsMediaDataInRealTime = false;
+      if (this._writer.canAddInput(this._videoInput)) {
+        console.log('-- writer adding video input');
+        this._writer.addInput(this._videoInput);
+      }
+
+      const pixelBufferAttributes: any = {
+        kCVPixelBufferPixelFormatTypeKey: kCVPixelFormatType_32BGRA,
+        kCVPixelBufferWidthKey: this._videoOutput.videoComposition.renderSize.width,
+        kCVPixelBufferHeightKey: this._videoOutput.videoComposition.renderSize.height,
+        IOSurfaceOpenGLESTextureCompatibility: true,
+        IOSurfaceOpenGLESFBOCompatibility: true,
+      };
+      this._videoPixelBufferAdaptor = AVAssetWriterInputPixelBufferAdaptor.assetWriterInputPixelBufferAdaptorWithAssetWriterInputSourcePixelBufferAttributes(
+        this._videoInput,
+        pixelBufferAttributes as NSDictionary<any, any>
+      );
+      console.log('-- _videoPixelBufferAdaptor', this._videoPixelBufferAdaptor);
+    }
+
+    // Audio output
+    const audioTracks = this._asset.tracksWithMediaType(AVMediaTypeAudio);
+    if (audioTracks.count > 0) {
+      this._audioOutput = AVAssetReaderAudioMixOutput.assetReaderAudioMixOutputWithAudioTracksAudioSettings(audioTracks, null);
+      this._audioOutput.alwaysCopiesSampleData = false;
+      this._audioOutput.audioMix = this._audioMix;
+      if (this._reader.canAddOutput(this._audioOutput)) {
+        this._reader.addOutput(this._audioOutput);
+      }
+    } else {
+      // Just in case this gets reused
+      this._audioOutput = null;
+    }
+
+    // Audio input
+    if (this._audioOutput) {
+      this._audioInput = AVAssetWriterInput.assetWriterInputWithMediaTypeOutputSettings(AVMediaTypeAudio, this.audioSettings);
+      this._audioInput.expectsMediaDataInRealTime = false;
+      if (this._writer.canAddInput(this._audioInput)) {
+        this._writer.addInput(this._audioInput);
+      }
+    }
+
+    this._writer.startWriting();
+    this._reader.startReading();
+    this._writer.startSessionAtSourceTime(this.timeRange.start);
+
+    let videoCompleted = false;
+    let audioCompleted = false;
+    // TODO: is DISPATCH_QUEUE_SERIAL and null the same
+    this._inputQueue = dispatch_queue_create('VideoEncoderInputQueue', null);
+    if (videoTracks.count > 0) {
+      this._videoInput.requestMediaDataWhenReadyOnQueueUsingBlock(this._inputQueue, () => {
+        console.log('-- queueing video');
+        if (!this.encodeReadySamplesFromOutputToInput(this._videoOutput, this._videoInput)) {
+          videoCompleted = true;
+          if (audioCompleted) {
+            this.finish();
+          }
+        }
+      });
+    } else {
+      videoCompleted = true;
+    }
+
+    if (!this._audioOutput) {
+      audioCompleted = true;
+    } else {
+      this._audioInput.requestMediaDataWhenReadyOnQueueUsingBlock(this._inputQueue, () => {
+        console.log('-- queueing audio');
+        if (!this.encodeReadySamplesFromOutputToInput(this._audioOutput, this._audioInput)) {
+          audioCompleted = true;
+          if (videoCompleted) {
+            this.finish();
+          }
+        }
+      });
+    }
+  }
+  encodeReadySamplesFromOutputToInput(output: AVAssetReaderOutput, input: AVAssetWriterInput): boolean {
+    console.log('encodeReadySamplesFromOutputToInput');
+    console.log(' output', output);
+    console.log(' input', input);
+    while (input.readyForMoreMediaData) {
+      console.log('input.readyForMoreMediaData', input.readyForMoreMediaData);
+      const sampleBuffer = output.copyNextSampleBuffer();
+      console.log('- sampleBuffer', sampleBuffer);
+
+      // TODO: sampleBuffer is null WHY?
+      if (sampleBuffer) {
+        let handled = false;
+        let error = false;
+
+        if (this._reader.status != AVAssetReaderStatus.Reading || this._writer.status != AVAssetWriterStatus.Writing) {
+          handled = true;
+          error = true;
+        }
+
+        if (!handled && this._videoOutput == output) {
+          // update the video progress
+          this._lastSamplePresentationTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
+          this._lastSamplePresentationTime = CMTimeSubtract(this._lastSamplePresentationTime, this.timeRange.start);
+          this._progress = this._duration == 0 ? 1 : CMTimeGetSeconds(this._lastSamplePresentationTime) / this._duration;
+
+          // TODO: no need to worry about delegates anymore, the contents here are the delegate replacement
+          // if ([self.delegate respondsToSelector:@selector(exportSession:renderFrame:withPresentationTime:toBuffer:)])
+          const pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+          const renderBuffer = null;
+          CVPixelBufferPoolCreatePixelBuffer(null, this._videoPixelBufferAdaptor.pixelBufferPool, renderBuffer);
+          CVPixelBufferLockBaseAddress(pixelBuffer, CVPixelBufferLockFlags.kCVPixelBufferLock_ReadOnly);
+          CVPixelBufferLockBaseAddress(renderBuffer, CVPixelBufferLockFlags.kCVPixelBufferLock_ReadOnly);
+
+          const height = CVPixelBufferGetHeight(pixelBuffer);
+          const bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer);
+
+          const pixelBufferBaseAddress = CVPixelBufferGetBaseAddress(pixelBuffer);
+          const renderBufferBaseAddress = CVPixelBufferGetBaseAddress(renderBuffer);
+
+          memcpy(renderBufferBaseAddress, pixelBufferBaseAddress, height * bytesPerRow);
+          CVPixelBufferUnlockBaseAddress(pixelBuffer, CVPixelBufferLockFlags.kCVPixelBufferLock_ReadOnly);
+          CVPixelBufferUnlockBaseAddress(renderBuffer, CVPixelBufferLockFlags.kCVPixelBufferLock_ReadOnly);
+          // //     [self.delegate exportSession:self renderFrame:pixelBuffer withPresentationTime:lastSamplePresentationTime toBuffer:renderBuffer];
+          if (!this._videoPixelBufferAdaptor.appendPixelBuffer(renderBuffer).withPresentationTime(this._lastSamplePresentationTime)) {
+            error = true;
+          }
+          CVPixelBufferRelease(renderBuffer);
+          handled = true;
+        }
+
+        if (!handled && !input.appendSampleBuffer(sampleBuffer)) {
+          error = true;
+        }
+        console.log('--- input', input);
+        CFRelease(sampleBuffer);
+        if (error) {
+          return false;
+        }
+      } else {
+        input.markAsFinished();
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // exportSession(): void {
+  //   console.log('--- exportSession');
+  //   const pixelBuffer = CMSampleBufferGetImageBuffer(this._sampleBuffer);
+  //   const renderBuffer = null;
+  //   CVPixelBufferPoolCreatePixelBuffer(null, this._videoPixelBufferAdaptor.pixelBufferPool, renderBuffer);
+
+  //   this._delegate.exportSession(this, pixelBuffer, this._lastSamplePresentationTime, renderBuffer);
+  //   //     [self.delegate exportSession:self renderFrame:pixelBuffer withPresentationTime:lastSamplePresentationTime toBuffer:renderBuffer];
+  //   if (!this._videoPixelBufferAdaptor.appendPixelBuffer(renderBuffer).withPresentationTime(this._lastSamplePresentationTime)) {
+  //     // error = true;
+  //   }
+  //   CVPixelBufferRelease(renderBuffer);
+  //   // handled = true;
+  // }
+
+  buildDefaultVideoComposition(): AVMutableVideoComposition {
+    const videoComposition = AVMutableVideoComposition.videoComposition();
+    const videoTrack = this._asset.tracksWithMediaType(AVMediaTypeVideo).objectAtIndex(0);
+    // get the frame rate from videoSettings, if not set then try to get it from the video track,
+    // if not set (mainly when asset is AVComposition) then use the default frame rate of 30
+    let trackFrameRate = 0;
+    if (this.videoSettings) {
+      console.log('--- this.videoSettings', this.videoSettings);
+      const videoCompressionProperties = this.videoSettings['AVVideoCompressionPropertiesKey'];
+      if (videoCompressionProperties) {
+        const maxKeyFrameInterval: NSNumber = videoCompressionProperties.objectForKey(AVVideoMaxKeyFrameIntervalKey);
+        if (maxKeyFrameInterval) {
+          trackFrameRate = maxKeyFrameInterval.floatValue;
+        }
+      }
+    } else {
+      trackFrameRate = videoTrack.nominalFrameRate;
+    }
+
+    if (trackFrameRate === 0) {
+      trackFrameRate = 30;
+    }
+
+    videoComposition.frameDuration = CMTimeMake(1, trackFrameRate);
+    const targetSize = CGSizeMake(this.videoSettings['AVVideoWidthKey'], this.videoSettings['AVVideoHeightKey']);
+    const naturalSize = videoTrack.naturalSize;
+    let transform = videoTrack.preferredTransform;
+    const videoAngleInDegree = (atan2(transform.b, transform.a) * 180) / Math.PI;
+    if (videoAngleInDegree === 90 || videoAngleInDegree === -90) {
+      // flipping the video
+      const width = naturalSize.width;
+      naturalSize.width = naturalSize.height;
+      naturalSize.height = width;
+    }
+    videoComposition.renderSize = naturalSize;
+
+    // center inside
+    const xRatio = targetSize.width / naturalSize.width;
+    const yRatio = targetSize.height / naturalSize.height;
+    const ratio = Math.min(xRatio, yRatio);
+
+    const postWidth = naturalSize.width * ratio;
+    const postHeight = naturalSize.height * ratio;
+    const transx = (targetSize.width - postWidth) / 2;
+    const transy = (targetSize.height - postHeight) / 2;
+
+    let matrix = CGAffineTransformMakeTranslation(transx / xRatio, transy / yRatio);
+    matrix = CGAffineTransformScale(matrix, ratio / xRatio, ratio / yRatio);
+    transform = CGAffineTransformConcat(transform, matrix);
+
+    // Make a "pass through video track" video composition.
+    const passThroughInstruction: AVMutableVideoCompositionInstruction = AVMutableVideoCompositionInstruction.videoCompositionInstruction();
+    passThroughInstruction.timeRange = CMTimeRangeMake(kCMTimeZero, this._asset.duration);
+
+    const passThroughLayer = AVMutableVideoCompositionLayerInstruction.videoCompositionLayerInstructionWithAssetTrack(videoTrack);
+    passThroughLayer.setTransformAtTime(transform, kCMTimeZero);
+
+    passThroughInstruction.layerInstructions = NSArray.arrayWithArray([passThroughLayer]);
+    videoComposition.instructions = NSArray.arrayWithArray([passThroughInstruction]);
+
+    return videoComposition;
+  }
+
+  cancelExport(): void {
+    if (this._inputQueue) {
+      dispatch_async(this._inputQueue, () => {
+        this._writer.cancelWriting();
+        this._reader.cancelReading();
+        this.complete();
+        this.reset();
+      });
+    }
+  }
+
+  finish(): void {
+    // Synchronized block to ensure we never cancel the writer before calling finishWritingWithCompletionHandler
+    if (this._reader.status == AVAssetReaderStatus.Cancelled || this._writer.status == AVAssetWriterStatus.Cancelled) {
+      return;
+    }
+
+    if (this._writer.status == AVAssetWriterStatus.Failed) {
+      this.complete();
+    } else {
+      this._writer.endSessionAtSourceTime(this._lastSamplePresentationTime);
+      this._writer.finishWritingWithCompletionHandler(() => {
+        this.complete();
+      });
+    }
+  }
+
+  complete(): void {
+    if (this._writer.status == AVAssetWriterStatus.Failed || this._writer.status == AVAssetWriterStatus.Cancelled) {
+      NSFileManager.defaultManager.removeItemAtURLError(this.outputURL);
+    }
+
+    if (this._completionHandler) {
+      this._completionHandler();
+      this._completionHandler = null;
+    }
+  }
+
+  error(): NSError {
+    if (this._error) {
+      return this._error;
+    } else {
+      return this._writer.error || this._reader.error;
+    }
+  }
+
+  reset(): void {
+    this._error = null;
+    this._progress = 0;
+    this._reader = null;
+    this._videoOutput = null;
+    this._audioOutput = null;
+    this._writer = null;
+    this._videoInput = null;
+    this._videoPixelBufferAdaptor = null;
+    this._audioInput = null;
+    this._inputQueue = null;
+    this._completionHandler = null;
+  }
+
+  status(): AVAssetExportSessionStatus {
+    switch (this._writer.status) {
+      default:
+      case AVAssetWriterStatus.Unknown:
+        return AVAssetExportSessionStatus.Unknown;
+      case AVAssetWriterStatus.Writing:
+        return AVAssetExportSessionStatus.Exporting;
+      case AVAssetWriterStatus.Failed:
+        return AVAssetExportSessionStatus.Failed;
+      case AVAssetWriterStatus.Completed:
+        return AVAssetExportSessionStatus.Completed;
+      case AVAssetWriterStatus.Cancelled:
+        return AVAssetExportSessionStatus.Cancelled;
+    }
+  }
+}
+
+@NativeClass()
+class NSAVAssetExportSessionDelegate extends NSObject {
+  static ObjCProtocols = [AVAssetWriterDelegate];
+  private _owner: WeakRef<NSAVAssetExportSession>;
+  static initWithOwner(owner: NSAVAssetExportSession) {
+    const delegate = <NSAVAssetExportSessionDelegate>NSAVAssetExportSessionDelegate.new();
+    delegate._owner = new WeakRef(owner);
+    console.log('-delegate created-');
+    return delegate;
+  }
+
+  exportSession(session: NSAVAssetExportSession, renderFrame: any, presentationTime: CMTime, renderBuffer: any) {
+    console.log('-- wht wht');
+    // this._owner.deref().exportSession();
+  }
+
+  assetWriter(writer: AVAssetWriter, didOutputSegmentData: NSData, segmentType: AVAssetSegmentType) {
+    console.log('-- asset writer');
+  }
+
+  // - (void)exportSession:(SDAVAssetExportSession *)exportSession renderFrame:(CVPixelBufferRef)pixelBuffer withPresentationTime:(CMTime)presentationTime toBuffer:(CVPixelBufferRef)renderBuffer;
 }
