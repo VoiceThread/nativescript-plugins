@@ -1,10 +1,142 @@
-import { Observable, EventData, Page } from '@nativescript/core';
+import { Observable, EventData, Page, ImageAsset, ImageSource, Frame, Screen, Image } from '@nativescript/core';
 import { DemoSharedNativescriptCamera } from '@demo/shared';
-import {} from '@voicethread/nativescript-camera';
+import { CameraPlus } from '@voicethread/nativescript-camera';
+import { ObservableProperty } from './observable-property';
+import { checkMultiple, check as checkPermission, request } from '@nativescript-community/perms';
 
 export function navigatingTo(args: EventData) {
   const page = <Page>args.object;
-  page.bindingContext = new DemoModel();
+  page.bindingContext = new DemoModel(page);
 }
 
-export class DemoModel extends DemoSharedNativescriptCamera {}
+export class DemoModel extends DemoSharedNativescriptCamera {
+  private _counter: number = 0;
+  @ObservableProperty()
+  public cam: CameraPlus;
+  @ObservableProperty()
+  public cameraHeight: number;
+
+  constructor(page: Page) {
+    super();
+
+    this.cam = page.getViewById('camPlus') as unknown as CameraPlus;
+
+    // hide a default icon button here
+    // this.cam.showGalleryIcon = false
+
+    this.cameraHeight = Screen.mainScreen.heightDIPs * 0.6;
+
+    if (this._counter > 0) {
+      return;
+    }
+
+    // this.cam.on(CameraPlus.errorEvent, args => {
+    //   console.log('*** CameraPlus errorEvent ***', args);
+    // });
+
+    // this.cam.on(CameraPlus.toggleCameraEvent, (args: any) => {
+    //   console.log(`toggleCameraEvent listener on main-view-model.ts  ${args}`);
+    // });
+
+    // this.cam.on(CameraPlus.photoCapturedEvent, (args: any) => {
+    //   console.log(`photoCapturedEvent listener on main-view-model.ts  ${args}`);
+    //   console.log((<any>args).data);
+    //   ImageSource.fromAsset((<any>args).data).then(res => {
+    //     const testImg = Frame.topmost().getViewById('testImagePickResult') as Image;
+    //     testImg.src = res;
+    //   });
+    // });
+
+    // this.cam.on(CameraPlus.imagesSelectedEvent, (args: any) => {
+    //   console.log(`imagesSelectedEvent listener on main-view-model.ts ${args}`);
+    // });
+
+    // this.cam.on(CameraPlus.videoRecordingReadyEvent, (args: any) => {
+    //   console.log(`videoRecordingReadyEvent listener fired`, args.data);
+    // });
+
+    // this.cam.on(CameraPlus.videoRecordingStartedEvent, (args: any) => {
+    //   console.log(`videoRecordingStartedEvent listener fired`, args.data);
+    // });
+
+    // this.cam.on(CameraPlus.videoRecordingFinishedEvent, (args: any) => {
+    //   console.log(`videoRecordingFinishedEvent listener fired`, args.data);
+    // });
+
+    this._counter = 1;
+  }
+
+  public async recordDemoVideo() {
+    try {
+      let canPick = true;
+      //check audio and video permissions
+      const result = await checkMultiple({ photo: {}, audio: {}, video: {} });
+      if (result['camera'] != 'authorized') {
+        console.log('No camera permission, requesting...');
+        await request('camera').then(result => {
+          console.log('Request result', result);
+          if (result[0] != 'authorized') canPick = false;
+        });
+      }
+      if (result['microphone'] != 'authorized') {
+        console.log('No microphone permission, requesting...');
+        await request('microphone').then(result => {
+          console.log('Request result', result);
+          if (result[0] != 'authorized') canPick = false;
+        });
+      }
+      console.log('canPick?:', canPick);
+      if (!canPick) {
+        console.error('Not enough permissions to record video with audio!');
+        alert('Not enough permissions to record video with audio!');
+        return;
+      }
+      console.log(`*** start recording ***`);
+      this.cam.record({
+        saveToGallery: true,
+      });
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  public stopRecordingDemoVideo() {
+    try {
+      console.log(`*** stop recording ***`);
+      this.cam.stop();
+      console.log(`*** after this.cam.stop() ***`);
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  public toggleFlashOnCam() {
+    this.cam.toggleFlash();
+  }
+
+  public toggleShowingFlashIcon() {
+    console.log(`showFlashIcon = ${this.cam.showFlashIcon}`);
+    this.cam.showFlashIcon = !this.cam.showFlashIcon;
+  }
+
+  public toggleTheCamera() {
+    this.cam.toggleCamera();
+  }
+
+  public takePicFromCam() {
+    // this.cam.requestCameraPermissions().then(() => {
+    checkPermission('camera').then(async permres => {
+      if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
+        await request('camera').then(async result => {
+          if (result[0] == 'authorized') {
+            if (!this.cam) {
+              this.cam = new CameraPlus();
+            }
+            this.cam.takePicture({ saveToGallery: true });
+          } else alert('No permission for camera, cannot take a photo!');
+        });
+      } else alert('No permission for camera! Grant this permission in app settings first');
+    });
+    // });
+  }
+}
