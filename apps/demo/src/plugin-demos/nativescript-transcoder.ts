@@ -1,9 +1,10 @@
-import { Observable, EventData, Page, File } from '@nativescript/core';
+import { Observable, EventData, Page, File, Application, Frame, knownFolders } from '@nativescript/core';
 import { DemoSharedNativescriptTranscoder } from '@demo/shared';
 import { TempFile } from '@voicethread/nativescript-filepicker/files';
 import { filePicker, galleryPicker, MediaType, getFreeMBs } from '@voicethread/nativescript-filepicker';
 import { NativescriptTranscoder } from '@voicethread/nativescript-transcoder';
 import { checkMultiple, check as checkPermission, request, request as requestPermission } from '@nativescript-community/perms';
+import { Video } from 'nativescript-videoplayer';
 
 export function navigatingTo(args: EventData) {
   const page = <Page>args.object;
@@ -56,7 +57,9 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
   }
 
   process() {
-    console.log('-process-');
+    // To test
+    // Select a single video file (with audio) and run it through here
+    console.log('[START PROCESSING]');
     if (this.pickedFiles.length === 0) {
       return;
     }
@@ -69,28 +72,31 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
       });
     });
     transcoder.addSegment({
-      duration: 5000,
+      duration: 10000,
       tracks: [
         {
           asset: this.pickedFiles[0].name,
-          filter: 'FadeOut',
-          duration: 2000,
+          type: 'AudioVideo',
+          // filter: 'FadeOut',
+          // duration: 5000,
         },
-        {
-          asset: this.pickedFiles[1].name,
-          filter: 'FadeOut',
-          duration: 2000,
-        },
+        // {
+        //   asset: this.pickedFiles[1].name,
+        //   filter: 'FadeOut',
+        //   duration: 1000,
+        // },
       ],
     });
-    let tempPath = TempFile.getPath('processed-tempfile', '.tmp');
+    let tempPath = TempFile.getPath('processed-tempfile', '.mp4');
     console.log('-ready to process-');
-    transcoder.process('low', tempPath);
-    // NativescriptTranscoder .addAsset()
-    // .start()
-    //          .asset({name: "A", path: poolCleanerInputFile})
-    //          .asset({name: "B", path: poolCleanerInputFile})
-    //          .segment(500)
-    //              .track({asset: "A"})
+    transcoder.process('low', tempPath).then(() => {
+      console.log('[PROCCESSING COMPLETED]');
+      const documents = knownFolders.documents();
+      const targetFile = documents.getFile('video-copy.mp4');
+      const tempFile = File.fromPath(tempPath).readSync();
+      targetFile.writeSync(tempFile);
+      const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
+      video.src = tempPath;
+    });
   }
 }

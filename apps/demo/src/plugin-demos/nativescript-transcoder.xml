@@ -1,4 +1,4 @@
-<Page xmlns="http://schemas.nativescript.org/tns.xsd" navigatingTo="navigatingTo" class="page">
+<Page xmlns="http://schemas.nativescript.org/tns.xsd" xmlns:VideoPlayer="nativescript-videoplayer" navigatingTo="navigatingTo" class="page">
     <Page.actionBar>
         <ActionBar title="nativescript-transcoder" icon="" class="action-bar">
         </ActionBar>
@@ -9,6 +9,8 @@
             <Button text="Pick Video" tap="{{ pickImageVideo }}"/>
             <Button text="Pick Audio" tap="{{ pickAudio }}"/>
             <Button text="Process" tap="{{ process }}"/>
+            <VideoPlayer:Video id="nativeVideoPlayer"
+              controls="true" loop="true" autoplay="false" height="280" />
 
           </StackLayout>
         </ScrollView>
