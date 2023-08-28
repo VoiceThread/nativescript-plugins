@@ -155,9 +155,9 @@ export class DemoModel extends DemoSharedNativescriptDownloader {
     };
     var indicator;
     //indicator plugin doesn't work on iOS 12
-    if (iOSNativeHelper.MajorVersion > 12) indicator = new LoadingIndicator();
+    if (isAndroid || (isIOS && iOSNativeHelper.MajorVersion > 12)) indicator = new LoadingIndicator();
 
-    if (iOSNativeHelper.MajorVersion > 12) indicator.show(options);
+    if (isAndroid || (isIOS && iOSNativeHelper.MajorVersion > 12)) indicator.show(options);
     console.log('starting download');
     const dp = new Downloader();
 
@@ -171,35 +171,35 @@ export class DemoModel extends DemoSharedNativescriptDownloader {
     dp.on(Downloader.DOWNLOAD_PROGRESS, (payload: MessageData) => {
       console.log(' >>>>>  ', payload?.data?.progress, payload?.data?.url, payload?.data?.destinationFilename);
       options.progress = +payload.data.progress;
-      if (iOSNativeHelper.MajorVersion > 12) indicator.show(options);
+      if (isAndroid || (isIOS && iOSNativeHelper.MajorVersion > 12)) indicator.show(options);
     });
     dp.on(Downloader.DOWNLOAD_COMPLETE, (payload: MessageData) => {
       console.log('finished', payload?.data?.filepath);
-      if (iOSNativeHelper.MajorVersion > 12) indicator.hide();
+      if (isAndroid || (isIOS && iOSNativeHelper.MajorVersion > 12)) indicator.hide();
     });
 
     dp.on(Downloader.DOWNLOAD_ERROR, (payload: MessageData) => {
       console.log(payload?.data.error);
-      if (iOSNativeHelper.MajorVersion > 12) indicator.hide();
+      if (isAndroid || (isIOS && iOSNativeHelper.MajorVersion > 12)) indicator.hide();
       this.toast('Download FAILED! error: ' + payload?.data.error, ToastStatus.error);
       this.handleFiles(null);
     });
 
     dp.download(dlopts).then((file: File) => {
       if (!file) {
-        if (iOSNativeHelper.MajorVersion > 12) indicator.hide();
+        if (isAndroid || (isIOS && iOSNativeHelper.MajorVersion > 12)) indicator.hide();
         this.toast('No file resolved!', ToastStatus.error);
         return console.error('Failed to download file!');
       }
       console.log('Finished downloading file ', file.path, file.size);
-      if (iOSNativeHelper.MajorVersion > 12) indicator.hide();
+      if (isAndroid || (isIOS && iOSNativeHelper.MajorVersion > 12)) indicator.hide();
       this.toast('File downloaded!', ToastStatus.success);
       this.handleFiles(file);
     });
   }
 
   toast(message: string, status: ToastStatus, position: ToastPosition = ToastPosition.TOP, title?: string) {
-    if (iOSNativeHelper.MajorVersion > 12) {
+    if (isAndroid || (isIOS && iOSNativeHelper.MajorVersion > 12)) {
       //this plugin doesn't work on iOS 12
       try {
         const options: any = {
