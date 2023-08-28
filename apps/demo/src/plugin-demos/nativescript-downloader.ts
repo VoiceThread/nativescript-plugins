@@ -1,9 +1,11 @@
 import { EventData, Page, File, Frame, StackLayout, Color, Label, Image, alert, isAndroid, Device, isIOS } from '@nativescript/core';
 import { DemoSharedNativescriptDownloader } from '@demo/shared';
 import { Downloader, DownloadOptions, MessageData } from '@voicethread/nativescript-downloader';
+import { Result, check as checkPermission, request as requestPermission } from '@nativescript-community/perms';
+import { iOSNativeHelper } from '@nativescript/core/utils';
+//note: these two plugins don't work on iOS 12
 import { LoadingIndicator, Mode, OptionsCommon } from '@nstudio/nativescript-loading-indicator';
 import { Feedback, FeedbackType, FeedbackPosition } from '@valor/nativescript-feedback';
-import { Result, check as checkPermission, request as requestPermission } from '@nativescript-community/perms';
 
 export function navigatingTo(args: EventData) {
   const page = <Page>args.object;
@@ -24,6 +26,7 @@ enum ToastPosition {
 
 const feedback = new Feedback();
 const imageUri = 'https://www.gstatic.com/webp/gallery3/1.sm.png';
+const largeImageUri = 'https://www.learningcontainer.com/wp-content/uploads/2020/07/Sample-JPEG-Image-File-Download.jpg';
 const badUri = 'https://static.wikia.nocookie.net/nomediatest.png';
 const movieUri = 'https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4'; //10mb
 const largeMovieUri = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4'; //100mb
@@ -41,6 +44,16 @@ export class DemoModel extends DemoSharedNativescriptDownloader {
     return;
   }
 
+  async downloadValidLarge() {
+    //iOS doesn't need permission to download to application cache directory
+    //Android can also download to applications external cache directory without permissions
+    try {
+      this.downloadFile({ url: largeImageUri, destinationFilename: 'largejpeg.png' });
+    } catch (err) {
+      if (err) alert(err?.message);
+    }
+    return;
+  }
   downloadValidDest() {
     //Android can do this if we let user select the destination directory which grants permission, otherwise need SAF storage approach to save to default Downloads directory
     //iOS also will grant permission since user is involved in selecting destination
@@ -131,7 +144,7 @@ export class DemoModel extends DemoSharedNativescriptDownloader {
       margin: 40,
       dimBackground: true,
       backgroundColor: 'white',
-      color: 'blue',
+      color: 'black',
       userInteractionEnabled: false,
       hideBezel: false,
       mode: Mode.AnnularDeterminate,
@@ -140,9 +153,12 @@ export class DemoModel extends DemoSharedNativescriptDownloader {
       },
       ios: {},
     };
-    const indicator = new LoadingIndicator();
+    var indicator;
+    //indicator plugin doesn't work on iOS 12
+    if (iOSNativeHelper.MajorVersion > 12) indicator = new LoadingIndicator();
 
-    indicator.show(options);
+    if (iOSNativeHelper.MajorVersion > 12) indicator.show(options);
+    console.log('starting download');
     const dp = new Downloader();
 
     dp.on(Downloader.DOWNLOAD_STARTED, (payload: MessageData) => {
@@ -155,53 +171,60 @@ export class DemoModel extends DemoSharedNativescriptDownloader {
     dp.on(Downloader.DOWNLOAD_PROGRESS, (payload: MessageData) => {
       console.log(' >>>>>  ', payload?.data?.progress, payload?.data?.url, payload?.data?.destinationFilename);
       options.progress = +payload.data.progress;
-      indicator.show(options);
+      if (iOSNativeHelper.MajorVersion > 12) indicator.show(options);
     });
     dp.on(Downloader.DOWNLOAD_COMPLETE, (payload: MessageData) => {
       console.log('finished', payload?.data?.filepath);
-      indicator.hide();
+      if (iOSNativeHelper.MajorVersion > 12) indicator.hide();
     });
 
     dp.on(Downloader.DOWNLOAD_ERROR, (payload: MessageData) => {
       console.log(payload?.data.error);
-      indicator.hide();
+      if (iOSNativeHelper.MajorVersion > 12) indicator.hide();
       this.toast('Download FAILED! error: ' + payload?.data.error, ToastStatus.error);
       this.handleFiles(null);
     });
 
     dp.download(dlopts).then((file: File) => {
       if (!file) {
-        indicator.hide();
+        if (iOSNativeHelper.MajorVersion > 12) indicator.hide();
         this.toast('No file resolved!', ToastStatus.error);
         return console.error('Failed to download file!');
       }
-      console.log('Finished downloading file ', file.path);
-      indicator.hide();
+      console.log('Finished downloading file ', file.path, file.size);
+      if (iOSNativeHelper.MajorVersion > 12) indicator.hide();
       this.toast('File downloaded!', ToastStatus.success);
       this.handleFiles(file);
     });
   }
 
   toast(message: string, status: ToastStatus, position: ToastPosition = ToastPosition.TOP, title?: string) {
-    const options: any = {
-      message,
-      title: title?.toUpperCase(),
-      type: FeedbackType.Custom,
-      messageSize: 18,
-      messageColor: new Color('white'),
-      backgroundColor:
-        status === ToastStatus.success
-          ? new Color('#1194B6')
-          : status === ToastStatus.warning
-          ? new Color('#FA923C')
-          : status === ToastStatus.error
-          ? new Color('#F17577')
-          : new Color('#2AD3BE') /* normal */,
-      position: position === ToastPosition.TOP ? FeedbackPosition.Top : FeedbackPosition.Bottom,
-      duration: status === ToastStatus.error || status === ToastStatus.warning ? 2500 : 1500,
-      titleColor: new Color('white'),
-    };
-    feedback.show(options);
+    if (iOSNativeHelper.MajorVersion > 12) {
+      //this plugin doesn't work on iOS 12
+      try {
+        const options: any = {
+          message,
+          title: title?.toUpperCase(),
+          type: FeedbackType.Custom,
+          messageSize: 18,
+          messageColor: new Color('#ffffff'),
+          backgroundColor:
+            status === ToastStatus.success
+              ? new Color('#1194B6')
+              : status === ToastStatus.warning
+              ? new Color('#FA923C')
+              : status === ToastStatus.error
+              ? new Color('#F17577')
+              : new Color('#2AD3BE') /* normal */,
+          position: position === ToastPosition.TOP ? FeedbackPosition.Top : FeedbackPosition.Bottom,
+          duration: status === ToastStatus.error || status === ToastStatus.warning ? 2500 : 1500,
+          titleColor: new Color('white'),
+        };
+        feedback.show(options);
+      } catch (err) {
+        console.error(err);
+      }
+    } else alert(message);
   }
 
   handleFiles(result: File): void {
@@ -225,7 +248,7 @@ export class DemoModel extends DemoSharedNativescriptDownloader {
       fileLabel.text = result.name;
       fileLabel.textWrap = true;
       fileLabel.fontSize = 14;
-      fileLabel.color = new Color('#ffffff');
+      fileLabel.color = new Color('white');
       fileContainer.addChild(fileLabel);
 
       const pathLabel = new Label();
