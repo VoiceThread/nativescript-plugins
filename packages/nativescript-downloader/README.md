@@ -119,10 +119,12 @@ Android version of the plugin supports two destination copy approaches:
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
 ```
+Tested and working on Android API 25-33.
 
 ### iOS Specifics
 
 iOS applications will download files by default to the application's documents directory, which is defined in Nativescript as `knownFolders.documents()` and does not require any extra permissions from the user. This also has the advantage of being the location where an application can make downloaded files visible to other apps once it has been configured as a document provider.
+
 
 The iOS version of the plugin supports two destination copy approaches: 
 1. `copyPicker` will first download the file to the application documents directory, and then present the user with a picker UI so that they can select where they'd like a copy saved. This approach avoids permission requirements since the user is involved in the destination choice. Note: This is only available on iOS 13+
@@ -136,6 +138,7 @@ The iOS version of the plugin supports two destination copy approaches:
 
 > **NOTE**: if you do use the perms plugin in a production app, make sure to read their README.md first, as using this plugin in production apps will require you to add all iOS Info.plist permission strings to avoid being rejected by automatic processing since the plugin includes code for all permission types.
 
+Tested and working on iOS 12.x-16.x with caveats noted above. 
 ## Acknowledgements
 
 This plugin was inspired by https://github.com/tobydeh/nativescript-download-progress

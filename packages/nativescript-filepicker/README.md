@@ -131,9 +131,13 @@ Each platform natively supports a different set of file/mime types, you can see 
 
 The Android stock file picker also supports selecting files from Google Photos and Google Drive if you have an account signed in on the Android device. Other document provider apps installed on your device may also offer additional services.
 
+Tested and working on Android API 25-33.
+
 ## iOS
 
 The iOS pickers also support selecting files from an associated iCloud account if the user has signed in on the device. Note that for a production application, you'll need to add the iCloud capability to your iOS application, and register that entitlement via the Apple Developer site for that package id. After that, update the relevant keys as shown in the demo application's `Info.plist`.
+
+Tested and working on iOS 12.x-16.x
 
 ## Additional Utils
 

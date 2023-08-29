@@ -176,6 +176,8 @@ export interface AudioPlayer {
 }
 ```
 
+Tested and working on Android API 25-33.
+Tested and working on iOS 12.x-16.x. 
 
 ## Acknowledgements
 
