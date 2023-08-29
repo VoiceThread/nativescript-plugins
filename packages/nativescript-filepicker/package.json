@@ -1,6 +1,6 @@
 {
   "name": "@voicethread/nativescript-filepicker",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "File picker plugin for Nativescript applications",
   "main": "index",
   "typings": "index.d.ts",
