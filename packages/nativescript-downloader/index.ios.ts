@@ -1,5 +1,6 @@
 import { DownloaderCommon, DownloadOptions } from './common';
 import { File, path, knownFolders, Application, Device } from '@nativescript/core';
+import { iOSNativeHelper } from '@nativescript/core/utils';
 
 const currentDevice = UIDevice.currentDevice;
 const device = currentDevice.userInterfaceIdiom === UIUserInterfaceIdiom.Phone ? 'Phone' : 'Pad';
@@ -78,25 +79,39 @@ export class Downloader extends DownloaderCommon {
           ) {
             completionHandler(NSURLSessionResponseDisposition.Allow);
             this.handle = NSFileHandle.fileHandleForWritingAtPath(downloadedFile.path);
-            this.handle.truncateAtOffsetError(0);
+            if (iOSNativeHelper.MajorVersion > 12) this.handle.truncateAtOffsetError(0); //only on iOS13+
+            else this.handle.truncateFileAtOffset(0);
             this.contentLength = response.expectedContentLength;
             emit(DownloaderCommon.DOWNLOAD_STARTED, { contentLength: this.contentLength });
           }
 
           public URLSessionDataTaskDidReceiveData(_session: NSURLSession, _dataTask: NSURLSessionDataTask, data: NSData) {
             try {
-              const written = new interop.Reference(0);
-              if (!this.handle.seekToEndReturningOffsetError(written)) {
-                emit(DownloaderCommon.DOWNLOAD_ERROR, { error: 'Error seeking end of file' });
-                return reject();
-              }
-              if (!this.handle.writeDataError(data)) {
-                emit(DownloaderCommon.DOWNLOAD_ERROR, { error: 'Error writing data' });
-                return reject();
-              }
-              if (this.contentLength > 0) {
-                const progress = written.value / this.contentLength;
-                emit(DownloaderCommon.DOWNLOAD_PROGRESS, { progress, url, destinationFilename });
+              if (iOSNativeHelper.MajorVersion > 12) {
+                const written = new interop.Reference(0);
+                if (!this.handle.seekToEndReturningOffsetError(written)) {
+                  emit(DownloaderCommon.DOWNLOAD_ERROR, { error: 'Error seeking end of file' });
+                  return reject();
+                }
+                if (!this.handle.writeDataError(data)) {
+                  emit(DownloaderCommon.DOWNLOAD_ERROR, { error: 'Error writing data' });
+                  return reject();
+                }
+                if (this.contentLength > 0) {
+                  const progress = written.value / this.contentLength;
+                  emit(DownloaderCommon.DOWNLOAD_PROGRESS, { progress, url, destinationFilename });
+                }
+              } else {
+                try {
+                  this.handle.writeData(data); //this may throw an NSFileHandleOperationException
+                } catch (err) {
+                  emit(DownloaderCommon.DOWNLOAD_ERROR, { error: 'Error writing data' });
+                  return reject();
+                }
+                if (this.contentLength > 0) {
+                  const progress = this.handle.offsetInFile / this.contentLength;
+                  emit(DownloaderCommon.DOWNLOAD_PROGRESS, { progress, url, destinationFilename });
+                }
               }
             } catch (err) {
               emit(DownloaderCommon.DOWNLOAD_ERROR, { error: err.message });
@@ -106,7 +121,8 @@ export class Downloader extends DownloaderCommon {
 
           public URLSessionTaskDidCompleteWithError(_session: NSURLSession, task: NSURLSessionTask, error: NSError) {
             if (this.handle) {
-              this.handle.closeAndReturnError();
+              if (iOSNativeHelper.MajorVersion > 12) this.handle.closeAndReturnError();
+              else this.handle.closeFile();
             }
             if (error) {
               console.error('URLSessionTaskDidCompleteWithError error with description:');
@@ -230,8 +246,8 @@ export class Downloader extends DownloaderCommon {
                 );
               }
               if (copyPicker) {
-                if (+Device.osVersion < 13) {
-                  console.error('Destination Picker only available on iOS 13+ ');
+                if (iOSNativeHelper.MajorVersion < 14) {
+                  console.error('Destination Picker only available on iOS 14+ ');
                   resolve(downloadedFile);
                 } else {
                   //Dev wants a copy made somewhere else, show them a picker to select a folder

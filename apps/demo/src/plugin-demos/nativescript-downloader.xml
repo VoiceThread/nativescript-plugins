@@ -19,6 +19,8 @@
           marginBottom="15"/>
         <Button text="DL jpeg"
           tap="{{ downloadValid }}"/>
+        <Button text="DL 1.5mb jpeg"
+          tap="{{ downloadValidLarge }}"/>
         <Button text="DL jpeg destination picker"
           tap="{{ downloadValidDest }}"/>
         <Button text="DL jpeg dest Downloads"
