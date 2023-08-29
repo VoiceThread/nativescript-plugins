@@ -246,8 +246,8 @@ export class Downloader extends DownloaderCommon {
                 );
               }
               if (copyPicker) {
-                if (iOSNativeHelper.MajorVersion < 13) {
-                  console.error('Destination Picker only available on iOS 13+ ');
+                if (iOSNativeHelper.MajorVersion < 14) {
+                  console.error('Destination Picker only available on iOS 14+ ');
                   resolve(downloadedFile);
                 } else {
                   //Dev wants a copy made somewhere else, show them a picker to select a folder
