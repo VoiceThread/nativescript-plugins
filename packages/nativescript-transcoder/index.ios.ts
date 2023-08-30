@@ -460,6 +460,7 @@ class NSAVAssetExportSession {
     console.log('[exportAsynchronouslyWithCompletionHandler] Start');
     this.cancelExport();
     this._completionHandler = completionHandler;
+    console.log('------- completion handler', this._completionHandler);
     if (!this.outputURL) {
       this._error = NSError.errorWithDomainCodeUserInfo(AVFoundationErrorDomain, AVError.ExportFailed, {
         NSLocalizedDescriptionKey: 'Output URL not set',
@@ -564,6 +565,7 @@ class NSAVAssetExportSession {
       }
     }
 
+    // NSURL. url.startAccessingSecurityScopedResource();
     this._writer.startWriting();
     this._reader.startReading();
     console.log('[exportAsynchronouslyWithCompletionHandler] Starting Writer Session');
@@ -619,6 +621,12 @@ class NSAVAssetExportSession {
         let error = false;
         console.log('| Reader Status:', this._reader.status);
         console.log('| Writer Status:', this._writer.status);
+        if (this._reader.error) {
+          console.log('| Reader error', this._reader.error);
+        }
+        if (this._writer.error) {
+          console.log('| Writer error', this._writer.error);
+        }
         if (this._reader.status != AVAssetReaderStatus.Reading || this._writer.status != AVAssetWriterStatus.Writing) {
           handled = true;
           error = true;
@@ -626,37 +634,42 @@ class NSAVAssetExportSession {
         console.log('| Handled:', handled);
         console.log('| Error:', error);
 
-        if (!handled && this._videoOutput == output) {
-          console.log('[encodeReadySamplesFromOutputToInput] Updating video progress');
-          // update the video progress
-          this._lastSamplePresentationTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
-          this._lastSamplePresentationTime = CMTimeSubtract(this._lastSamplePresentationTime, this.timeRange.start);
-          this._progress = this._duration == 0 ? 1 : CMTimeGetSeconds(this._lastSamplePresentationTime) / this._duration;
+        // if (!handled && this._videoOutput == output) {
+        //   console.log('[encodeReadySamplesFromOutputToInput] Updating video progress');
+        //   // update the video progress
+        this._lastSamplePresentationTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
+        this._lastSamplePresentationTime = CMTimeSubtract(this._lastSamplePresentationTime, this.timeRange.start);
+        //   // this._progress = this._duration == 0 ? 1 : CMTimeGetSeconds(this._lastSamplePresentationTime) / this._duration;
 
-          // TODO: no need to worry about delegates anymore, the contents here are the delegate replacement
-          // if ([self.delegate respondsToSelector:@selector(exportSession:renderFrame:withPresentationTime:toBuffer:)])
-          const pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
-          const renderBuffer = null;
-          CVPixelBufferPoolCreatePixelBuffer(null, this._videoPixelBufferAdaptor.pixelBufferPool, renderBuffer);
-          CVPixelBufferLockBaseAddress(pixelBuffer, CVPixelBufferLockFlags.kCVPixelBufferLock_ReadOnly);
-          CVPixelBufferLockBaseAddress(renderBuffer, CVPixelBufferLockFlags.kCVPixelBufferLock_ReadOnly);
+        //   // TODO: no need to worry about delegates anymore, the contents here are the delegate replacement
+        //   // if ([self.delegate respondsToSelector:@selector(exportSession:renderFrame:withPresentationTime:toBuffer:)])
+        //   const pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+        //   const renderBuffer = null;
+        //   CVPixelBufferPoolCreatePixelBuffer(null, this._videoPixelBufferAdaptor.pixelBufferPool, renderBuffer);
+        //   CVPixelBufferLockBaseAddress(pixelBuffer, CVPixelBufferLockFlags.kCVPixelBufferLock_ReadOnly);
+        //   CVPixelBufferLockBaseAddress(renderBuffer, CVPixelBufferLockFlags.kCVPixelBufferLock_ReadOnly);
 
-          const height = CVPixelBufferGetHeight(pixelBuffer);
-          const bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer);
+        //   console.log('----- HERE');
+        //   const height = CVPixelBufferGetHeight(pixelBuffer);
+        //   const bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer);
 
-          const pixelBufferBaseAddress = CVPixelBufferGetBaseAddress(pixelBuffer);
-          const renderBufferBaseAddress = CVPixelBufferGetBaseAddress(renderBuffer);
+        //   const pixelBufferBaseAddress = CVPixelBufferGetBaseAddress(pixelBuffer);
+        //   const renderBufferBaseAddress = CVPixelBufferGetBaseAddress(renderBuffer);
 
-          memcpy(renderBufferBaseAddress, pixelBufferBaseAddress, height * bytesPerRow);
-          CVPixelBufferUnlockBaseAddress(pixelBuffer, CVPixelBufferLockFlags.kCVPixelBufferLock_ReadOnly);
-          CVPixelBufferUnlockBaseAddress(renderBuffer, CVPixelBufferLockFlags.kCVPixelBufferLock_ReadOnly);
-          // //     [self.delegate exportSession:self renderFrame:pixelBuffer withPresentationTime:lastSamplePresentationTime toBuffer:renderBuffer];
-          if (!this._videoPixelBufferAdaptor.appendPixelBuffer(renderBuffer).withPresentationTime(this._lastSamplePresentationTime)) {
-            error = true;
-          }
-          CVPixelBufferRelease(renderBuffer);
-          handled = true;
-        }
+        //   console.log('----- HERE');
+
+        //   memcpy(renderBufferBaseAddress, pixelBufferBaseAddress, height * bytesPerRow);
+        //   CVPixelBufferUnlockBaseAddress(pixelBuffer, CVPixelBufferLockFlags.kCVPixelBufferLock_ReadOnly);
+        //   CVPixelBufferUnlockBaseAddress(renderBuffer, CVPixelBufferLockFlags.kCVPixelBufferLock_ReadOnly);
+        //   // //     [self.delegate exportSession:self renderFrame:pixelBuffer withPresentationTime:lastSamplePresentationTime toBuffer:renderBuffer];
+        //   console.log('- ERE?');
+        //   if (!this._videoPixelBufferAdaptor.appendPixelBuffer(renderBuffer).withPresentationTime(this._lastSamplePresentationTime)) {
+        //     error = true;
+        //   }
+        //   console.log(' NO ERROR ');
+        //   CVPixelBufferRelease(renderBuffer);
+        //   handled = true;
+        // }
 
         if (!handled) {
           const appendSampleBuffer = input.appendSampleBuffer(sampleBuffer);
@@ -746,37 +759,47 @@ class NSAVAssetExportSession {
       dispatch_async(this._inputQueue, () => {
         this._writer.cancelWriting();
         this._reader.cancelReading();
-        this.complete();
+        this.complete(this._completionHandler);
         this.reset();
       });
     }
   }
 
   finish(): void {
+    console.log('----- FINISH -------');
+    console.log('-- this._reader', this._reader);
+    console.log('-- this._writer', this._writer);
     // Synchronized block to ensure we never cancel the writer before calling finishWritingWithCompletionHandler
-    if (this._reader.status == AVAssetReaderStatus.Cancelled || this._writer.status == AVAssetWriterStatus.Cancelled) {
+    if (this._reader?.status == AVAssetReaderStatus.Cancelled || this._writer?.status == AVAssetWriterStatus.Cancelled) {
       return;
     }
 
-    if (this._writer.status == AVAssetWriterStatus.Failed) {
-      this.complete();
+    const completionHandler = this._completionHandler;
+    if (this._writer?.status == AVAssetWriterStatus.Failed) {
+      this.complete(completionHandler);
     } else {
+      console.log('---this._lastSamplePresentationTime', this._lastSamplePresentationTime);
+
       this._writer.endSessionAtSourceTime(this._lastSamplePresentationTime);
       this._writer.finishWritingWithCompletionHandler(() => {
-        this.complete();
+        console.log('[finishWritingWithCompletionHandler]');
+        console.log('------- completion handler', this._completionHandler);
+        this.complete(completionHandler);
       });
     }
     this.reset();
   }
 
-  complete(): void {
-    if (this._writer.status == AVAssetWriterStatus.Failed || this._writer.status == AVAssetWriterStatus.Cancelled) {
+  complete(completionHandler: () => void): void {
+    console.log('----- COMPLETE -------');
+    console.log('-- this._reader', this._reader);
+    console.log('-- this._writer', this._writer);
+    if (this._writer?.status == AVAssetWriterStatus.Failed || this._writer?.status == AVAssetWriterStatus.Cancelled) {
       NSFileManager.defaultManager.removeItemAtURLError(this.outputURL);
     }
 
-    if (this._completionHandler) {
-      this._completionHandler();
-      this._completionHandler = null;
+    if (completionHandler) {
+      completionHandler();
     }
   }
 

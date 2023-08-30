@@ -72,14 +72,19 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
       });
     });
     transcoder.addSegment({
-      duration: 10000,
+      duration: 2000,
       tracks: [
         {
           asset: this.pickedFiles[0].name,
-          type: 'AudioVideo',
+          // type: 'videoAudio',
           // filter: 'FadeOut',
-          // duration: 5000,
+          // duration: 2000,
         },
+        // {
+        //   asset: this.pickedFiles[0].name,
+        //   type: 'videoAudio',
+        //   // duration: 3000,
+        // },
         // {
         //   asset: this.pickedFiles[1].name,
         //   filter: 'FadeOut',
@@ -87,16 +92,25 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
         // },
       ],
     });
-    let tempPath = TempFile.getPath('processed-tempfile', '.mp4');
+
+    // const tempPath = TempFile.getPath('processed-tempfile', '.mpeg-4');
+    const tempPath = knownFolders.documents().getFile('video-copy.mp4').path;
+    // const documents = TempFile.deletePathLater knownFolders.documents();
+    // const targetFile = documents.getFile('video-copy.mp4');
+    if (File.exists(tempPath)) {
+      const file = File.fromPath(tempPath);
+      file.removeSync();
+    }
     console.log('-ready to process-');
-    transcoder.process('low', tempPath).then(() => {
+    transcoder.process('high', tempPath).then(() => {
       console.log('[PROCCESSING COMPLETED]');
-      const documents = knownFolders.documents();
-      const targetFile = documents.getFile('video-copy.mp4');
-      const tempFile = File.fromPath(tempPath).readSync();
-      targetFile.writeSync(tempFile);
+      // const documents = knownFolders.documents();
+      // const targetFile = documents.getFile('video-copy.mp4');
+      const tempFile = File.fromPath(tempPath);
+      console.log('[outputSize]', tempFile.size);
       const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
       video.src = tempPath;
+      video.loop = false;
     });
   }
 }
