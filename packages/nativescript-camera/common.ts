@@ -8,7 +8,7 @@ import { ContentView } from '@nativescript/core';
 import { CameraPlus as CameraPlusDefinition } from '.';
 
 export class CameraUtil {
-  public static debug: boolean = false;
+  public static debug: boolean = true;
 }
 
 export const CLog = (...args) => {
