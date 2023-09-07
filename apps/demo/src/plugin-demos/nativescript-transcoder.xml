@@ -1,18 +1,48 @@
-<Page xmlns="http://schemas.nativescript.org/tns.xsd" xmlns:VideoPlayer="nativescript-videoplayer" navigatingTo="navigatingTo" class="page">
+<Page xmlns="http://schemas.nativescript.org/tns.xsd" xmlns:VideoPlayer="nativescript-videoplayer" navigatingTo="navigatingTo">
     <Page.actionBar>
-        <ActionBar title="nativescript-transcoder" icon="" class="action-bar">
+        <ActionBar title="Video Processing" icon="">
         </ActionBar>
     </Page.actionBar>
-    <StackLayout class="p-20">
-        <ScrollView class="h-full">
-          <StackLayout>
+    <StackLayout>
+        <!-- asset gathering -->
+        <ScrollView id="assetsGatheringContainer" class="h-full">
+          <StackLayout class="p-20">
             <Button text="Pick Video" tap="{{ pickImageVideo }}"/>
             <Button text="Pick Audio" tap="{{ pickAudio }}"/>
-            <Button text="Process" tap="{{ process }}"/>
-            <VideoPlayer:Video id="nativeVideoPlayer"
-              controls="true" loop="true" autoplay="false" height="280" />
+            <Button text="Clear All" tap="{{ clear }}"/>
+            <Button text="Start Editting" tap="{{ setEditMode }}"/>
+
+            <Label text="Assets" class="h2" />
+            <StackLayout id="pickedFiles"/>
+
+            <!-- <VideoPlayer:Video id="nativeVideoPlayer"
+              controls="true" loop="true" autoplay="false" height="280" /> -->
 
           </StackLayout>
+        </ScrollView>
+        
+        <!-- editting -->
+        <ScrollView id="edittingContainer" class="h-full" visibility="collapsed">
+          <StackLayout class="p-20">
+            <Button text="New Segment" tap="{{ openNewSegmentForm }}"/>
+            <StackLayout id="newSegmentFormContainer"/>
+
+            <Button text="Video Configs" tap="{{ openVideoConfigsForm }}"/>
+            <StackLayout id="videoConfigsFormContainer"/>
+
+            <Button text="Preview" tap="{{ processVideos }}"/>
+            
+            <Label text="Segments" marginTop="20" marginBottom="10" class="h2" />
+            <StackLayout id="segmentsContainer"/>
+
+
+
+            <VideoPlayer:Video id="nativeVideoPlayer" controls="true" loop="true" autoplay="false" height="280" opacity="0" />
+            <Label id="outputDetails" marginTop="20" />
+
+          </StackLayout>
+
+
         </ScrollView>
     </StackLayout>
 </Page>
