@@ -10,7 +10,7 @@ export interface AssetInternal extends Asset {
 }
 
 const DefaultVideoConfig: VideoConfig = {
-  quality: 'high',
+  quality: '720p',
   frameRate: 30,
   audioChannels: 2,
   audioSampleRate: 44100, // between 8 and 192
@@ -62,6 +62,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
     this.segments = [];
   }
 
+  private _composition: AVMutableComposition;
   process(outputPath: string, videoConfig?: VideoConfig): Promise<void> {
     return new Promise(resolve => {
       if (videoConfig) {
@@ -75,8 +76,16 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
 
       console.log('[process] Start');
       // let audioVideoError: NSError;
-      const composition = new AVMutableComposition();
-      const compositionTrack = composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeVideo, kCMPersistentTrackID_Invalid);
+      if (!this._composition) {
+        this._composition = new AVMutableComposition();
+      } else {
+        for (let trackIndex = 0; trackIndex < this._composition.tracks.count; trackIndex++) {
+          const track = this._composition.tracks[trackIndex] as AVCompositionTrack;
+          this._composition.removeTrack(track);
+          // this._composition.removeTrack(this._composition.tracks[trackIndex] as AVAssetTrack)
+        }
+      }
+      const compositionTrack = this._composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeVideo, kCMPersistentTrackID_Invalid);
 
       const mix = new AVMutableAudioMix();
       const audioParams = new AVMutableAudioMixInputParameters();
@@ -167,7 +176,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
               let videoTrack: AVMutableCompositionTrack | undefined;
               console.log('[process] Inserting Video Track');
               if (videoTrackIndex >= videoTracks.count) {
-                videoTrack = composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeVideo, kCMPersistentTrackID_Invalid);
+                videoTrack = this._composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeVideo, kCMPersistentTrackID_Invalid);
                 videoTracks.addObject(videoTrack);
                 const transform = assetTrack.preferredTransform;
                 videoTrack.preferredTransform = transform;
@@ -204,7 +213,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
               let audioTrack: AVMutableCompositionTrack;
 
               if (audioTrackIndex >= audioTracks.count) {
-                audioTrack = composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeAudio, kCMPersistentTrackID_Invalid);
+                audioTrack = this._composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeAudio, kCMPersistentTrackID_Invalid);
               } else {
                 audioTrack = audioTrack[audioTrackIndex];
               }
@@ -234,7 +243,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
       }
 
       // Creating the videoComposition from the composition ensures that we have default intructions and layerInstructions
-      const videoComposition: AVMutableVideoComposition = AVMutableVideoComposition.videoCompositionWithPropertiesOfAsset(composition);
+      const videoComposition: AVMutableVideoComposition = AVMutableVideoComposition.videoCompositionWithPropertiesOfAsset(this._composition);
 
       // TODO: make this configurable
       let trackFrameRate = firstAssetTrack.nominalFrameRate;
@@ -244,12 +253,27 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
 
       if (this._videoConfig.frameRate) {
         trackFrameRate = this._videoConfig.frameRate;
-        console.log('------ SETTING FRAME RATE ', trackFrameRate);
       }
 
       videoComposition.frameDuration = CMTimeMake(1, trackFrameRate);
       // TODO: make this configurable
-      const targetSize = this._videoConfig.quality === 'high' ? CGSizeMake(1920.0, 1080.0) : CGSizeMake(1280.0, 720.0);
+      // default to 720p
+      let targetSize = CGSizeMake(1280.0, 720.0);
+      switch (this._videoConfig.quality) {
+        case '1080p': {
+          targetSize = CGSizeMake(1920.0, 1080.0);
+          break;
+        }
+        case '720p': {
+          targetSize = CGSizeMake(1280.0, 720.0);
+          break;
+        }
+        case '480p': {
+          targetSize = CGSizeMake(640.0, 480.0);
+          break;
+        }
+      }
+      // const targetSize = this._videoConfig.quality === 'high' ? CGSizeMake(1920.0, 1080.0) : CGSizeMake(1280.0, 720.0);
       const transform = firstAssetTrack.preferredTransform;
 
       // TODO: make this configurable as orientation - horizontal vs vertical
@@ -322,7 +346,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
           const asset = this.assets[assetName];
           const assetTrack = asset.videoTrack;
           const transform = assetTrack.preferredTransform;
-          let orientation = UIInterfaceOrientation.Portrait;
+          let orientation = UIInterfaceOrientation.LandscapeLeft;
 
           // Determine orientation
           // Portrait
@@ -386,7 +410,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
       const audioChannels = this._videoConfig.audioChannels;
       const audioSampleRate = this._videoConfig.audioSampleRate;
       const audioBitrate = this._videoConfig.audioBitRate;
-      const assetExportSession = new NSAVAssetExportSession().initWithAsset(composition);
+      const assetExportSession = new NSAVAssetExportSession().initWithAsset(this._composition);
       assetExportSession.outputFileType = AVFileTypeMPEG4;
       assetExportSession.outputURL = this.getURLFromFilePath(outputPath);
       assetExportSession.shouldOptimizeForNetworkUse = false;
@@ -398,6 +422,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
         'AVVideoHeightKey': targetSize.height,
       };
       assetExportSession.videoSettings = videoSettings as NSDictionary<string, any>;
+      assetExportSession.frameRate = this._videoConfig.frameRate;
 
       // TODO: need to check if this works
       console.log('[process] Setting Audio Settings');
@@ -445,6 +470,7 @@ class NSAVAssetExportSession {
   private _videoInputSettings: NSDictionary<string, any>;
   videoComposition: AVMutableVideoComposition;
   videoSettings: NSDictionary<string, any>;
+  frameRate: number;
   private _videoInput: AVAssetWriterInput;
   private _videoPixelBufferAdaptor;
   private _inputQueue: NSObject;
@@ -515,15 +541,16 @@ class NSAVAssetExportSession {
       console.log('[exportAsynchronouslyWithCompletionHandler] Setting Video Output');
       this._videoOutput = AVAssetReaderVideoCompositionOutput.assetReaderVideoCompositionOutputWithVideoTracksVideoSettings(videoTracks, this._videoInputSettings);
       this._videoOutput.alwaysCopiesSampleData = false;
-      if (this.videoComposition) {
-        // TODO: this might be the problem - https://stackoverflow.com/a/67665341/10280206
-        // this.videoComposition.sourceTrackIDForFrameTiming = kCMPersistentTrackID_Invalid;
-        console.log('[exportAsynchronouslyWithCompletionHandler] Setting Video Composition');
-        this._videoOutput.videoComposition = this.videoComposition;
-      } else {
-        console.log('[exportAsynchronouslyWithCompletionHandler] Buliding Video Composition');
-        this._videoOutput.videoComposition = this.buildDefaultVideoComposition();
-      }
+      // this check is causing the video to not scale down correctly
+      // if (this.videoComposition) {
+      //   // TODO: this might be the problem - https://stackoverflow.com/a/67665341/10280206
+      //   // this.videoComposition.sourceTrackIDForFrameTiming = kCMPersistentTrackID_Invalid;
+      //   console.log('[exportAsynchronouslyWithCompletionHandler] Setting Video Composition');
+      //   this._videoOutput.videoComposition = this.videoComposition;
+      // } else {
+      console.log('[exportAsynchronouslyWithCompletionHandler] Buliding Video Composition');
+      this._videoOutput.videoComposition = this.buildDefaultVideoComposition();
+      // }
 
       if (this._reader.canAddOutput(this._videoOutput)) {
         console.log('[exportAsynchronouslyWithCompletionHandler] Adding Video Output to Reader');
@@ -622,16 +649,15 @@ class NSAVAssetExportSession {
     console.log('[encodeReadySamplesFromOutputToInput] Output', output);
 
     while (input.readyForMoreMediaData) {
-      console.log('------------------------');
+      // console.log('------------------------');
       const sampleBuffer = output.copyNextSampleBuffer();
-      console.log('| Sample Buffer:', !!sampleBuffer);
+      // console.log('| Sample Buffer:', !!sampleBuffer);
 
-      // TODO: sampleBuffer is null WHY?
       if (sampleBuffer) {
         let handled = false;
         let error = false;
-        console.log('| Reader Status:', this._reader.status);
-        console.log('| Writer Status:', this._writer.status);
+        // console.log('| Reader Status:', this._reader.status);
+        // console.log('| Writer Status:', this._writer.status);
         if (this._reader.error) {
           console.log('| Reader error', this._reader.error);
         }
@@ -642,8 +668,8 @@ class NSAVAssetExportSession {
           handled = true;
           error = true;
         }
-        console.log('| Handled:', handled);
-        console.log('| Error:', error);
+        // console.log('| Handled:', handled);
+        // console.log('| Error:', error);
         if (!handled && this._videoOutput == output) {
           this._lastSamplePresentationTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
           this._lastSamplePresentationTime = CMTimeSubtract(this._lastSamplePresentationTime, this.timeRange.start);
@@ -654,13 +680,18 @@ class NSAVAssetExportSession {
 
         if (!handled) {
           const appendSampleBuffer = input.appendSampleBuffer(sampleBuffer);
-          console.log('| AppendSampleBuffer:', appendSampleBuffer);
+          // console.log('| AppendSampleBuffer:', appendSampleBuffer);
           if (!appendSampleBuffer) {
             error = true;
           }
         }
-        CFRelease(sampleBuffer);
-        console.log('------------------------');
+
+        // This is automatically managed by NativeScript via toll-free bridging
+        // so we don't have to release this manually
+        // Calling this runs the risk of causing a crash due to the object being already
+        // cleaned up by NativeScript
+        // CFRelease(sampleBuffer);
+        // console.log('------------------------');
         if (error) {
           return false;
         }
@@ -693,6 +724,10 @@ class NSAVAssetExportSession {
 
     if (trackFrameRate === 0) {
       trackFrameRate = 30;
+    }
+
+    if (this.frameRate) {
+      trackFrameRate = this.frameRate;
     }
 
     videoComposition.frameDuration = CMTimeMake(1, trackFrameRate);
@@ -805,6 +840,8 @@ class NSAVAssetExportSession {
     this._videoPixelBufferAdaptor = null;
     this._audioInput = null;
     this._inputQueue = null;
+    this._metadata = null;
+    this.shouldOptimizeForNetworkUse = null;
     this._completionHandler = null;
 
     this._asset = null;
@@ -818,6 +855,7 @@ class NSAVAssetExportSession {
     this.audioSettings = null;
     this._lastSamplePresentationTime = null;
     this._duration = null;
+    this.frameRate = null;
   }
 
   status(): AVAssetExportSessionStatus {

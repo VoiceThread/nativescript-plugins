@@ -21,7 +21,7 @@ export class NativescriptTranscoderCommon extends Observable {
 export type LogLevel = 'none' | 'verbose';
 
 export interface VideoConfig {
-  quality?: 'low' | 'high';
+  quality?: '480p' | '720p' | '1080p';
   frameRate?: number;
   audioChannels?: number;
   audioSampleRate?: number;

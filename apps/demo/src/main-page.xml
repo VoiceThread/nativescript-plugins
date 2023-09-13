@@ -18,7 +18,9 @@
           tap="{{ viewAudioPlayer }}" />
         <Button text="⏺️ Audio Recorder"
           tap="{{ viewAudioRecorder }}" />
-          <Button text="🚀 Transcoder"
+        <Button text="🔭 Basic Transcoder"
+          tap="{{ viewBasicTranscoder }}" />
+        <Button text="🚀 Advanced Transcoder"
           tap="{{ viewTranscoder }}" />
       </StackLayout>
     </ScrollView>

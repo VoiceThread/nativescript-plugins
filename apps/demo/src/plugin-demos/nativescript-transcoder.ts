@@ -181,7 +181,7 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
     }
   }
 
-  videoConfigs: VideoConfig = { quality: 'high', frameRate: 30, audioChannels: 2, audioSampleRate: 44100, audioBitRate: 128000 };
+  videoConfigs: VideoConfig = { quality: '720p', frameRate: 30, audioChannels: 2, audioSampleRate: 44100, audioBitRate: 128000 };
   videoConfigIsOpen = false;
   openVideoConfigsForm(): void {
     const videoConfigsFormContainer: StackLayout = Frame.topmost().getViewById('videoConfigsFormContainer');
@@ -204,14 +204,18 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
     promptLabel.marginBottom = 10;
     videoConfigsForm.addChild(promptLabel);
 
-    const videoQualityOptions: { displayName: string; configValue: 'low' | 'high' }[] = [
+    const videoQualityOptions: { displayName: string; configValue: '480p' | '720p' | '1080p' }[] = [
       {
-        displayName: 'Low',
-        configValue: 'low',
+        displayName: '480p',
+        configValue: '480p',
       },
       {
-        displayName: 'High',
-        configValue: 'high',
+        displayName: '720p',
+        configValue: '720p',
+      },
+      {
+        displayName: '1080p',
+        configValue: '1080p',
       },
     ];
     const videoQualityOptionsContainer = new StackLayout();
