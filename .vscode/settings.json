@@ -41,5 +41,10 @@
   "prettier.requireConfig": true,
   "[java]": {
     "editor.defaultFormatter": "redhat.java"
-  }
+  },
+  "[swift]": {
+    "editor.defaultFormatter": "vknabel.vscode-apple-swift-format"
+  },
+  "lldb.library": "/Applications/Xcode.app/Contents/SharedFrameworks/LLDB.framework/Versions/A/LLDB",
+  "lldb.launch.expressions": "native"
 }
