@@ -13,7 +13,7 @@ export class CameraUtil {
 
 export const CLog = (...args) => {
   if (CameraUtil.debug) {
-    console.log('NativeScript-CameraPlus ---', args);
+    console.log('NSCamera ---', args);
   }
 };
 
