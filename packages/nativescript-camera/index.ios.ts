@@ -118,7 +118,7 @@ export class MySwifty extends SwiftyCamViewController {
 
   public static initWithOwner(owner: WeakRef<CameraPlus>, defaultCamera: CameraTypes = 'rear') {
     CLog('MySwifty initWithOwner');
-    const ctrl = <MySwifty>MySwifty.new();
+    const ctrl = <MySwifty>MySwifty.alloc().init();
     CLog('ctrl', ctrl);
     ctrl._owner = owner;
     // set default camera
@@ -494,7 +494,7 @@ export class CameraPlus extends CameraPlusBase {
     this._onLayoutChangeListener = this._onLayoutChangeFn.bind(this);
     CLog('CameraPlus constructor');
     this._swifty = MySwifty.initWithOwner(new WeakRef(this), CameraPlus.defaultCamera);
-    this._swifty.shouldPrompToAppSettings = false;
+    // this._swifty.shouldPrompToAppSettings = false;
 
     // experimenting with static flag (this is usually explicitly false)
     // enable device orientation
@@ -529,11 +529,11 @@ export class CameraPlus extends CameraPlusBase {
     if (typeof value === 'string') {
       value = Boolean(value);
     }
-    if (typeof value === 'boolean') {
-      if (this._swifty) {
-        this._swifty.cropByPreview = value;
-      }
-    }
+    // if (typeof value === 'boolean') {
+    //   if (this._swifty) {
+    //     this._swifty.cropByPreview = value;
+    //   }
+    // }
 
     this._cropByPreview = value;
   }
@@ -569,10 +569,10 @@ export class CameraPlus extends CameraPlusBase {
           this._swifty.videoQuality = VideoQuality.Low;
           this._pictureQuality = 'Low';
           break;
-        case 'Photo':
-          this._swifty.videoQuality = VideoQuality.Photo;
-          this._pictureQuality = 'Photo';
-          break;
+        // case 'Photo':
+        //   this._swifty.videoQuality = VideoQuality;
+        //   this._pictureQuality = 'Photo';
+        //   break;
         default:
           this._swifty.videoQuality = VideoQuality.High;
           this._pictureQuality = 'High';
@@ -582,7 +582,7 @@ export class CameraPlus extends CameraPlusBase {
   }
 
   getAvailablePictureSizes(ratio?: string): string[] {
-    return ['3840x2160', '1920x1080', '1280x720', '640x480', '352x288', 'Photo', 'High', 'Medium', 'Low'];
+    return ['3840x2160', '1920x1080', '1280x720', '640x480', '352x288', 'High', 'Medium', 'Low'];
   }
 
   private _pictureQuality: string = 'High';
@@ -613,7 +613,7 @@ export class CameraPlus extends CameraPlusBase {
     this.on(View.layoutChangedEvent, this._onLayoutChangeListener);
     this._updatePhotoQuality();
     if (this.cropByPreview) {
-      this._swifty.cropByPreview = this.cropByPreview;
+      // this._swifty.cropByPreview = this.cropByPreview;
     }
     this._swifty.viewWillAppear(true);
   }
@@ -627,8 +627,9 @@ export class CameraPlus extends CameraPlusBase {
 
   onLoaded() {
     super.onLoaded();
-    this._swifty._addButtons();
+
     this._swifty.viewDidAppear(true);
+    this._swifty._addButtons();
   }
 
   onUnloaded() {

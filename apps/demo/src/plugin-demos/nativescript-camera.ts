@@ -1,12 +1,39 @@
-import { Observable, EventData, Page, ImageAsset, ImageSource, Frame, Screen, Image } from '@nativescript/core';
+import { Observable, EventData, Page, ImageAsset, alert, ImageSource, Frame, Screen, Image } from '@nativescript/core';
 import { DemoSharedNativescriptCamera } from '@demo/shared';
 import { CameraPlus } from '@voicethread/nativescript-camera';
 import { ObservableProperty } from './observable-property';
 import { checkMultiple, check as checkPermission, request } from '@nativescript-community/perms';
 
 export function navigatingTo(args: EventData) {
+  console.log('navigatingTo()');
   const page = <Page>args.object;
   page.bindingContext = new DemoModel(page);
+}
+export async function onLoaded(args) {
+  // page.on('loaded', async args => {
+  console.log('page loaded');
+  try {
+    await checkPermission('camera').then(async permres => {
+      console.log('checked permission', permres);
+      if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
+        console.log('requesting permission to camera');
+        await request('camera').then(async result => {
+          console.log('request result', result);
+          if (result[0] == 'authorized') {
+            // if (!this.cam) {
+            // this.cam = new CameraPlus();
+            this.cam = args.object.getViewById('camPlus') as CameraPlus;
+            // this.cam.visibility = 'visible';
+            // }
+            // this.cam.takePicture({ saveToGallery: true });
+          } else alert('No permission for camera, cannot take a photo!');
+        });
+      } else alert('No permission for camera! Grant this permission in app settings first');
+    });
+  } catch (err) {
+    console.error(err);
+  }
+  // });
 }
 
 export class DemoModel extends DemoSharedNativescriptCamera {
@@ -18,7 +45,9 @@ export class DemoModel extends DemoSharedNativescriptCamera {
 
   constructor(page: Page) {
     super();
-
+    // page.on('onLoaded', args => {
+    //   console.log('page loaded');
+    // });
     this.cam = page.getViewById('camPlus') as unknown as CameraPlus;
 
     // hide a default icon button here
@@ -66,6 +95,24 @@ export class DemoModel extends DemoSharedNativescriptCamera {
     this._counter = 1;
   }
 
+  public camLoaded() {
+    console.log('camera loaded');
+    // checkPermission('camera').then(async permres => {
+    //   if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
+    //     await request('camera').then(async result => {
+    //       if (result[0] == 'authorized') {
+    //         if (!this.cam) {
+    //           this.cam = new CameraPlus();
+    //         }
+    //         // this.cam.takePicture({ saveToGallery: true });
+    //       } else alert('No permission for camera, cannot take a photo!');
+    //     });
+    //   } else alert('No permission for camera! Grant this permission in app settings first');
+    // });
+  }
+  protected onLoaded() {
+    console.log('_onLoaded()');
+  }
   public async recordDemoVideo() {
     try {
       let canPick = true;
@@ -111,6 +158,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
   }
 
   public toggleFlashOnCam() {
+    console.log('toggleFlashOnCam()');
     this.cam.toggleFlash();
   }
 
@@ -120,10 +168,12 @@ export class DemoModel extends DemoSharedNativescriptCamera {
   }
 
   public toggleTheCamera() {
+    console.log('toggleTheCamera()');
     this.cam.toggleCamera();
   }
 
   public takePicFromCam() {
+    console.log('takePicFromCam()');
     // this.cam.requestCameraPermissions().then(() => {
     checkPermission('camera').then(async permres => {
       if (permres[0] == 'undetermined' || permres[0] == 'authorized') {

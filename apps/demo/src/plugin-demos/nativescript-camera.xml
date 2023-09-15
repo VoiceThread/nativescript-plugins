@@ -1,5 +1,6 @@
 <Page xmlns="http://schemas.nativescript.org/tns.xsd"
   navigatingTo="navigatingTo"
+  loaded="onLoaded"
   xmlns:Cam="@voicethread/nativescript-camera">
   <Page.actionBar>
     <ActionBar title="nativescript-camera"
