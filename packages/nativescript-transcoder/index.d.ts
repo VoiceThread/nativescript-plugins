@@ -7,4 +7,6 @@ export declare class NativescriptTranscoder extends NativescriptTranscoderCommon
   addAsset(asset: Asset): void;
   addSegment(segment: Segment): void;
   process(outputPath: string, videoConfig?: VideoConfig): Promise<void>;
+
+  transcode(inputPath: string, outputPath: string): Promise<void>;
 }

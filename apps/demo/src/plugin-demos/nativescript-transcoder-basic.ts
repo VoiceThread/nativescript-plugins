@@ -1,4 +1,4 @@
-import { Observable, EventData, Page, File, Application, Frame, knownFolders, StackLayout, Label, Color, ScrollView, Button, TextField, TextView } from '@nativescript/core';
+import { Observable, EventData, Page, File, Application, Frame, knownFolders, StackLayout, Label, Color, ScrollView, Button, TextField, TextView, isAndroid, Device } from '@nativescript/core';
 import { DemoSharedNativescriptTranscoder } from '@demo/shared';
 import { TempFile } from '@voicethread/nativescript-filepicker/files';
 import { filePicker, galleryPicker, MediaType, getFreeMBs } from '@voicethread/nativescript-filepicker';
@@ -17,6 +17,8 @@ export function navigatingTo(args: EventData) {
 export class DemoModel extends DemoSharedNativescriptTranscoder {
   pickedFile: File | undefined = undefined;
   transcoder: NativescriptTranscoder;
+  count = 0;
+
   constructor() {
     super();
     this.transcoder = new NativescriptTranscoder();
@@ -24,24 +26,78 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
 
   async pickVideo() {
     this.pickedFile = undefined;
-    checkPermission('photo').then(async permres => {
-      if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
-        await requestPermission('photo').then(async result => {
-          if (result[0] == 'authorized') {
-            try {
-              const files = await galleryPicker(MediaType.VIDEO, false);
-              this.pickedFile = files?.[0];
-            } catch (err) {
-              if (err) alert(err?.message);
-            }
-          } else alert("No permission for files, can't open picker");
+    if (isAndroid) {
+      if (isAndroid && +Device.sdkVersion > 32) {
+        requestPermission('storage').then(async result => {
+          if (result['android.permission.READ_EXTERNAL_STORAGE'] === 'authorized') {
+            const files = await filePicker(MediaType.VIDEO, false);
+            this.pickedFile = files?.[0];
+          }
         });
-      } else alert("No permission for files, can't open picker. Grant this permission in app settings first and then try again");
-    });
+      } else {
+        await request('video').then(async result => {
+          if (result[0] != 'authorized') {
+            this.pickedFile = await filePicker(MediaType.VIDEO, false)?.[0];
+          }
+        });
+      }
+    } else {
+      checkPermission('photo').then(async permres => {
+        if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
+          await requestPermission('photo').then(async result => {
+            if (result[0] == 'authorized') {
+              try {
+                const files = await galleryPicker(MediaType.VIDEO, false);
+                this.pickedFile = files?.[0];
+              } catch (err) {
+                if (err) alert(err?.message);
+              }
+            } else alert("No permission for files, can't open picker");
+          });
+        } else alert("No permission for files, can't open picker. Grant this permission in app settings first and then try again");
+      });
+    }
   }
 
   processVideo480() {
-    this.processVideo('480p');
+    if (isAndroid) {
+      this.processAndroid();
+    } else {
+      this.processVideo('480p');
+    }
+  }
+
+  processAndroid(): void {
+    // currently only working for videos with audio
+    // TODO:
+    // implement transcoding videos without audio:
+    // https://github.com/ypresto/android-transcoder/compare/master...AlexMiniApps:android-transcoder:master
+    if (!this.pickedFile) {
+      return;
+    }
+
+    // we need the absolute path for Android, so we need to use the method below
+    const tempPath = TempFile.getPath(`video-copy-${this.count}`, 'mp4');
+    this.count += 1;
+    if (File.exists(tempPath)) {
+      const file = File.fromPath(tempPath);
+      file.removeSync();
+    }
+    console.log('[START PROCESSING]');
+    this.transcoder.transcode(this.pickedFile.path, tempPath).then(() => {
+      console.log('[PROCCESSING COMPLETED]');
+      const tempFile = File.fromPath(tempPath);
+      console.log('[outputSize]', tempFile.size);
+      const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
+      video.opacity = 1;
+      video.src = tempPath;
+      video.loop = false;
+      const outputDetailsLabel: Label = Frame.topmost().getViewById('outputDetails');
+      outputDetailsLabel.text = `Output Size: ${this.formatBytes(tempFile.size)}`;
+      outputDetailsLabel.textWrap = true;
+      outputDetailsLabel.fontSize = 16;
+      outputDetailsLabel.color = new Color('#ffffff');
+    });
   }
 
   processVideo480FR5() {
@@ -55,7 +111,7 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
   processVideo1080() {
     this.processVideo('1080p');
   }
-  count = 0;
+
   processVideo(quality: '480p' | '720p' | '1080p', frameRate?: number) {
     if (!this.pickedFile) {
       return;
