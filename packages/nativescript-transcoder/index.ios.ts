@@ -1,7 +1,5 @@
 import { NativescriptTranscoderCommon, Asset, Segment, Track, VideoConfig } from './common';
 
-const main_queue = dispatch_get_current_queue();
-
 export interface AssetInternal extends Asset {
   avAsset: AVURLAsset | undefined;
   audioTrack: AVAssetTrack | undefined;
@@ -22,6 +20,20 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
   segments: Segment[] = [];
   private _videoConfig: VideoConfig;
 
+  transcode(inputPath: string, outputPath: string): Promise<void> {
+    this.reset();
+    const assetInputName = 'input';
+    this.addAsset({
+      name: assetInputName,
+      path: inputPath,
+      type: 'videoAudio',
+    });
+    this.addSegment({
+      tracks: [{ asset: assetInputName }],
+    });
+    return this.process(outputPath, {});
+  }
+
   addAsset(asset: Asset) {
     if (this.assets[asset.name]) {
       // TODO: maybe error out here?
@@ -41,19 +53,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
   }
 
   addSegment(segment: Segment) {
-    const totalTracks = this.segments.reduce((acc, curr) => {
-      acc += curr.tracks.length;
-      return acc;
-    }, 0);
-    const tracks = segment.tracks.map((track, index) => {
-      // if (!track.id) {
-      //   return {
-      //     ...track,
-      //     id: totalTracks + index + 1,
-      //   };
-      // }
-      return track;
-    });
+    const tracks = segment.tracks;
     this.segments.push({ ...segment, tracks: tracks });
   }
 
@@ -74,15 +74,20 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
         this._videoConfig = DefaultVideoConfig;
       }
 
-      console.log('[process] Start');
-      // let audioVideoError: NSError;
+      this.log('[process] Start');
+
+      const emit = (event: string, data: any) => {
+        this.notify({ eventName: event, object: this, data });
+      };
+
+      emit(NativescriptTranscoderCommon.TRANSCODING_STARTED, {});
+
       if (!this._composition) {
         this._composition = new AVMutableComposition();
       } else {
         for (let trackIndex = 0; trackIndex < this._composition.tracks.count; trackIndex++) {
           const track = this._composition.tracks[trackIndex] as AVCompositionTrack;
           this._composition.removeTrack(track);
-          // this._composition.removeTrack(this._composition.tracks[trackIndex] as AVAssetTrack)
         }
       }
       const compositionTrack = this._composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeVideo, kCMPersistentTrackID_Invalid);
@@ -103,7 +108,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
       let audioTrackIndex = 0;
 
       for (let segmentIndex = 0; segmentIndex < this.segments.length; segmentIndex++) {
-        console.log(`[process] Adding Segment: ${segmentIndex}`);
+        this.log(`[process] Adding Segment: ${segmentIndex}`);
         const currentSegment: Segment & { fadeOutTrackID?: number; start?: number } = this.segments[segmentIndex];
         let segmentDuration = CMTimeMake(currentSegment.duration, 1000);
         let trackDuration: CMTime | undefined = undefined; // will be calaculated for each track
@@ -111,11 +116,11 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
         videoTrackIndex = 0;
         audioTrackIndex = 0;
         const segmentTracks = currentSegment.tracks;
-        console.log(`[process] Adding Segment Tracks: ${JSON.stringify(segmentTracks)}`);
+        this.log(`[process] Adding Segment Tracks: ${JSON.stringify(segmentTracks)}`);
 
         // Loop through the tracks in the segment and add each track to the composition
         for (let trackIndex = 0; trackIndex < currentSegment.tracks.length; trackIndex++) {
-          console.log(`[process] Adding Tracks: ${trackIndex}`);
+          this.log(`[process] Adding Tracks: ${trackIndex}`);
           const currentTrack: Track & { trackID?: number } = currentSegment.tracks[trackIndex];
           const filter = currentTrack.filter;
           const asset = this.assets[currentTrack.asset];
@@ -132,10 +137,8 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
               firstAssetTrack = assetTrack;
             }
 
-            console.log('[process] Processing Asset');
+            this.log('[process] Processing Asset');
             // Start time is the seek requested plus the current position in the track
-            // TODO: what is position?
-            // const trackStartTime = CMTimeMake(currentTrack.seek + asset.position, 1000);
             const trackStartTime = CMTimeMake((currentTrack.seek || 0) + (asset.position || 0), 1000);
 
             // The duration of the track (input) will be either what is specified for the track,
@@ -149,7 +152,6 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
               trackDuration = CMTimeMake(currentSegment.duration, 1000);
             }
 
-            // TODO: check if NO_DURATION === 0
             if (trackDuration.value === 0) {
               trackDuration = CMTimeSubtract(avAsset.duration, trackStartTime);
             }
@@ -162,19 +164,19 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
 
             // Update the position in the track based on the duration
             asset.position = trackStartTime.value + trackDuration.value;
-            console.log('------------------------');
-            console.log('| Track Details');
-            console.log('| Track Duration:', trackDuration.value);
-            console.log('| Track Start Time:', trackStartTime.value);
-            console.log('| Segment Duration:', segmentDuration.value);
-            console.log('------------------------');
+            this.log('------------------------');
+            this.log('| Track Details');
+            this.log('| Track Duration:', trackDuration.value);
+            this.log('| Track Start Time:', trackStartTime.value);
+            this.log('| Segment Duration:', segmentDuration.value);
+            this.log('------------------------');
             // Insert video track segment
             if (segmentDuration.value > 0 && (trackType === 'video' || trackType === 'videoAudio')) {
               // Determine video track to use.  We only need multiple tracks to create multiple layers for transition effects
               // however we need to force separate instructions and the composition login in IOS will consolidate adjacant
               // segments on the same track so we try to put each consectutive segment on a new track
               let videoTrack: AVMutableCompositionTrack | undefined;
-              console.log('[process] Inserting Video Track');
+              this.log('[process] Inserting Video Track');
               if (videoTrackIndex >= videoTracks.count) {
                 videoTrack = this._composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeVideo, kCMPersistentTrackID_Invalid);
                 videoTracks.addObject(videoTrack);
@@ -186,15 +188,14 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
               // Add the input asset to the video track
               // TODO: this has a different signature (error is not part of the call)
               const audioVideoSuccess = videoTrack.insertTimeRangeOfTrackAtTimeError(trackTimeRange, asset.videoTrack, outputPosition);
-              console.log(`[process] Adding Track: ${videoTrack.trackID}`);
-              // TODO: check if this works
+              this.log(`[process] Adding Track: ${videoTrack.trackID}`);
               if (!audioVideoSuccess) {
                 console.error('[process] Ran into an error while inserting video track');
                 return;
               }
 
               if (scaleTime) {
-                console.log('[process] Updating Video Scale');
+                this.log('[process] Updating Video Scale');
                 const outputRange = CMTimeRangeMake(outputPosition, trackTimeRange.duration);
                 videoTrack.scaleTimeRangeToDuration(outputRange, segmentDuration);
               }
@@ -202,7 +203,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
 
               // Record the filter so we can match up later when we get the layer instructions
               if (filter === 'FadeOut') {
-                console.log('[process] Setting FadeOut Filter');
+                this.log('[process] Setting FadeOut Filter');
                 currentSegment.fadeOutTrackID = videoTrack.trackID;
               }
               ++videoTrackIndex;
@@ -245,7 +246,6 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
       // Creating the videoComposition from the composition ensures that we have default intructions and layerInstructions
       const videoComposition: AVMutableVideoComposition = AVMutableVideoComposition.videoCompositionWithPropertiesOfAsset(this._composition);
 
-      // TODO: make this configurable
       let trackFrameRate = firstAssetTrack.nominalFrameRate;
       if (trackFrameRate === 0) {
         trackFrameRate = 30;
@@ -256,7 +256,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
       }
 
       videoComposition.frameDuration = CMTimeMake(1, trackFrameRate);
-      // TODO: make this configurable
+
       // default to 720p
       let targetSize = CGSizeMake(1280.0, 720.0);
       switch (this._videoConfig.quality) {
@@ -288,9 +288,9 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
 
       let layeredSegementsIndex = 0;
       for (let instructionIndex = 0; instructionIndex < videoComposition.instructions.count; instructionIndex++) {
-        console.log('[process] Looping through composition instruction');
+        this.log('[process] Looping through composition instruction');
         if (layeredSegementsIndex >= instructionSegments.count) {
-          console.log('[process] Composition has extra instructions that are being ignored');
+          this.log('[process] Composition has extra instructions that are being ignored');
           // TODO: make sure this doesn't short circuit the whole thing
           continue;
         }
@@ -313,7 +313,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
               const fadeOutTrackID = segment.fadeOutTrackID;
               const transitionLayerInstruction = layerInstruction1.trackID === fadeOutTrackID ? layerInstruction1 : layerInstruction2;
 
-              console.log(`[process] Setting FadeOut TrackId ${fadeOutTrackID}`);
+              this.log(`[process] Setting FadeOut TrackId ${fadeOutTrackID}`);
 
               // Add the opacity ramp for the entire time range of the segment
               transitionLayerInstruction.setOpacityRampFromStartOpacityToEndOpacityTimeRange(1.0, 0.0, transitionRange);
@@ -334,12 +334,10 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
           //   [layerInstruction getTransformRampForTime:transitionRange.start startTransform:NULL endTransform:NULL timeRange:&ir];
 
           const segmentTracks = segment.tracks;
-          // TODO: verify that this is working
           const currentTrack = segmentTracks.find(track => track.id === trackID);
 
           if (currentTrack == null) {
-            console.warn('[process] Cannot find segment track for instruction - layered ignored');
-            // TODO: make sure this doesn't short circuit the whole thing
+            this.log('[process] Cannot find segment track for instruction - layered ignored');
             continue;
           }
           const assetName = currentTrack.asset;
@@ -401,7 +399,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
           let matrix = CGAffineTransformMakeTranslation(transX, transY);
           matrix = CGAffineTransformScale(matrix, ratio, ratio);
           finalTransform = CGAffineTransformConcat(finalTransform, matrix);
-          console.log('[process] Setting transform layer instruction');
+          this.log('[process] Setting transform layer instruction');
           layerInstruction.setTransformAtTime(finalTransform, transitionRange.start);
         }
       }
@@ -414,8 +412,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
       assetExportSession.outputFileType = AVFileTypeMPEG4;
       assetExportSession.outputURL = this.getURLFromFilePath(outputPath);
       assetExportSession.shouldOptimizeForNetworkUse = false;
-      // TODO: need to check if this works
-      console.log('[process] Setting Video Settings');
+      this.log('[process] Setting Video Settings');
       const videoSettings: any = {
         'AVVideoCodecKey': AVVideoCodecH264,
         'AVVideoWidthKey': targetSize.width,
@@ -424,8 +421,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
       assetExportSession.videoSettings = videoSettings as NSDictionary<string, any>;
       assetExportSession.frameRate = this._videoConfig.frameRate;
 
-      // TODO: need to check if this works
-      console.log('[process] Setting Audio Settings');
+      this.log('[process] Setting Audio Settings');
       const audioSettings: any = {
         'AVFormatIDKey': kAudioFormatMPEG4AAC,
         'AVNumberOfChannelsKey': audioChannels,
@@ -435,12 +431,15 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
       assetExportSession.audioSettings = audioSettings as NSDictionary<string, any>;
       assetExportSession.timeRange = CMTimeRangeMake(CMTimeMake(0, 1000), outputPosition);
       assetExportSession.videoComposition = videoComposition;
-      console.log('[process] Starting Encoding');
+      assetExportSession.log = this.log;
+      assetExportSession.emit = emit;
+
+      this.log('[process] Starting Encoding');
 
       // Start encoding
       dispatch_async(dispatch_get_global_queue(qos_class_t.QOS_CLASS_BACKGROUND, 0), () => {
         assetExportSession.exportAsynchronouslyWithCompletionHandler(() => {
-          console.log('[process] Completion Handler');
+          this.log('[process] Completion Handler');
           this.reset();
           resolve();
         });
@@ -451,7 +450,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
 
   getURLFromFilePath(filePath: string): NSURL {
     if (filePath.includes('assets-library://')) {
-      return NSURL.URLWithString(filePath); // :[filePath stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]];
+      return NSURL.URLWithString(filePath);
     } else if (filePath.includes('file://')) {
       return NSURL.URLWithString(filePath);
     }
@@ -477,6 +476,10 @@ class NSAVAssetExportSession {
   outputURL: NSURL;
   outputFileType: string;
 
+  // misc
+  log: (message: string, value?: any) => void;
+  emit: (event: string, data: any) => void;
+
   // audio
   private _audioOutput: AVAssetReaderAudioMixOutput;
   private _audioMix: AVAudioMix;
@@ -496,7 +499,7 @@ class NSAVAssetExportSession {
   }
 
   exportAsynchronouslyWithCompletionHandler(completionHandler: () => void): void {
-    console.log('[exportAsynchronouslyWithCompletionHandler] Start');
+    this.log('[exportAsynchronouslyWithCompletionHandler] Start');
     this.cancelExport();
     this._completionHandler = completionHandler;
     if (!this.outputURL) {
@@ -506,15 +509,15 @@ class NSAVAssetExportSession {
       completionHandler();
       return;
     }
-    console.log('[exportAsynchronouslyWithCompletionHandler] Asset', this._asset);
+    this.log('[exportAsynchronouslyWithCompletionHandler] Asset', this._asset);
     this._reader = AVAssetReader.alloc().initWithAssetError(this._asset);
     if (this._reader.error) {
       this._error = this._reader.error;
       completionHandler();
       return;
     }
-    console.log('[exportAsynchronouslyWithCompletionHandler] outputURL', this.outputURL);
-    console.log('[exportAsynchronouslyWithCompletionHandler] outputFileType', this.outputFileType);
+    this.log('[exportAsynchronouslyWithCompletionHandler] outputURL', this.outputURL);
+    this.log('[exportAsynchronouslyWithCompletionHandler] outputFileType', this.outputFileType);
     this._writer = AVAssetWriter.assetWriterWithURLFileTypeError(this.outputURL, this.outputFileType);
     if (this._writer.error) {
       this._error = this._writer.error;
@@ -534,11 +537,11 @@ class NSAVAssetExportSession {
     } else {
       this._duration = CMTimeGetSeconds(this._asset.duration);
     }
-    console.log('[exportAsynchronouslyWithCompletionHandler] duration', this._duration);
+    this.log('[exportAsynchronouslyWithCompletionHandler] duration', this._duration);
     // Video output
-    console.log('[exportAsynchronouslyWithCompletionHandler] videoTracks', videoTracks);
+    this.log('[exportAsynchronouslyWithCompletionHandler] videoTracks', videoTracks);
     if (videoTracks.count > 0) {
-      console.log('[exportAsynchronouslyWithCompletionHandler] Setting Video Output');
+      this.log('[exportAsynchronouslyWithCompletionHandler] Setting Video Output');
       this._videoOutput = AVAssetReaderVideoCompositionOutput.assetReaderVideoCompositionOutputWithVideoTracksVideoSettings(videoTracks, this._videoInputSettings);
       this._videoOutput.alwaysCopiesSampleData = false;
       // this check is causing the video to not scale down correctly
@@ -548,12 +551,12 @@ class NSAVAssetExportSession {
       //   console.log('[exportAsynchronouslyWithCompletionHandler] Setting Video Composition');
       //   this._videoOutput.videoComposition = this.videoComposition;
       // } else {
-      console.log('[exportAsynchronouslyWithCompletionHandler] Buliding Video Composition');
+      this.log('[exportAsynchronouslyWithCompletionHandler] Buliding Video Composition');
       this._videoOutput.videoComposition = this.buildDefaultVideoComposition();
       // }
 
       if (this._reader.canAddOutput(this._videoOutput)) {
-        console.log('[exportAsynchronouslyWithCompletionHandler] Adding Video Output to Reader');
+        this.log('[exportAsynchronouslyWithCompletionHandler] Adding Video Output to Reader');
         this._reader.addOutput(this._videoOutput);
       }
 
@@ -561,7 +564,7 @@ class NSAVAssetExportSession {
       this._videoInput = AVAssetWriterInput.assetWriterInputWithMediaTypeOutputSettings(AVMediaTypeVideo, this.videoSettings);
       this._videoInput.expectsMediaDataInRealTime = false;
       if (this._writer.canAddInput(this._videoInput)) {
-        console.log('[exportAsynchronouslyWithCompletionHandler] Adding Video Input to Writer');
+        this.log('[exportAsynchronouslyWithCompletionHandler] Adding Video Input to Writer');
         this._writer.addInput(this._videoInput);
       }
 
@@ -585,7 +588,7 @@ class NSAVAssetExportSession {
       this._audioOutput.alwaysCopiesSampleData = false;
       this._audioOutput.audioMix = this._audioMix;
       if (this._reader.canAddOutput(this._audioOutput)) {
-        console.log('[exportAsynchronouslyWithCompletionHandler] Adding Audio Output to Reader');
+        this.log('[exportAsynchronouslyWithCompletionHandler] Adding Audio Output to Reader');
         this._reader.addOutput(this._audioOutput);
       }
     } else {
@@ -598,15 +601,14 @@ class NSAVAssetExportSession {
       this._audioInput = AVAssetWriterInput.assetWriterInputWithMediaTypeOutputSettings(AVMediaTypeAudio, this.audioSettings);
       this._audioInput.expectsMediaDataInRealTime = false;
       if (this._writer.canAddInput(this._audioInput)) {
-        console.log('[exportAsynchronouslyWithCompletionHandler] Adding Audio Input to Writer');
+        this.log('[exportAsynchronouslyWithCompletionHandler] Adding Audio Input to Writer');
         this._writer.addInput(this._audioInput);
       }
     }
 
-    // NSURL. url.startAccessingSecurityScopedResource();
     this._writer.startWriting();
     this._reader.startReading();
-    console.log('[exportAsynchronouslyWithCompletionHandler] Starting Writer Session');
+    this.log('[exportAsynchronouslyWithCompletionHandler] Starting Writer Session');
     this._writer.startSessionAtSourceTime(this.timeRange.start);
 
     let videoCompleted = false;
@@ -615,10 +617,10 @@ class NSAVAssetExportSession {
     this._inputQueue = dispatch_queue_create('VideoEncoderInputQueue', null);
     if (videoTracks.count > 0) {
       this._videoInput.requestMediaDataWhenReadyOnQueueUsingBlock(this._inputQueue, () => {
-        console.log('[exportAsynchronouslyWithCompletionHandler] Queueing Video Encoding');
+        this.log('[exportAsynchronouslyWithCompletionHandler] Queueing Video Encoding');
         if (!this.encodeReadySamplesFromOutputToInput(this._videoOutput, this._videoInput)) {
           videoCompleted = true;
-          console.log('[exportAsynchronouslyWithCompletionHandler] Video Encoding Completed');
+          this.log('[exportAsynchronouslyWithCompletionHandler] Video Encoding Completed');
           if (audioCompleted) {
             this.finish();
           }
@@ -632,10 +634,10 @@ class NSAVAssetExportSession {
       audioCompleted = true;
     } else {
       this._audioInput.requestMediaDataWhenReadyOnQueueUsingBlock(this._inputQueue, () => {
-        console.log('[exportAsynchronouslyWithCompletionHandler] Queueing Audio Encoding');
+        this.log('[exportAsynchronouslyWithCompletionHandler] Queueing Audio Encoding');
         if (!this.encodeReadySamplesFromOutputToInput(this._audioOutput, this._audioInput)) {
           audioCompleted = true;
-          console.log('[exportAsynchronouslyWithCompletionHandler] Audio Encoding Completed');
+          this.log('[exportAsynchronouslyWithCompletionHandler] Audio Encoding Completed');
           if (videoCompleted) {
             this.finish();
           }
@@ -644,43 +646,37 @@ class NSAVAssetExportSession {
     }
   }
   encodeReadySamplesFromOutputToInput(output: AVAssetReaderOutput, input: AVAssetWriterInput): boolean {
-    console.log('[encodeReadySamplesFromOutputToInput] Start');
-    console.log('[encodeReadySamplesFromOutputToInput] Input', input);
-    console.log('[encodeReadySamplesFromOutputToInput] Output', output);
+    this.log('[encodeReadySamplesFromOutputToInput] Start');
+    this.log('[encodeReadySamplesFromOutputToInput] Input', input);
+    this.log('[encodeReadySamplesFromOutputToInput] Output', output);
 
     while (input.readyForMoreMediaData) {
-      // console.log('------------------------');
       const sampleBuffer = output.copyNextSampleBuffer();
-      // console.log('| Sample Buffer:', !!sampleBuffer);
 
       if (sampleBuffer) {
         let handled = false;
         let error = false;
-        // console.log('| Reader Status:', this._reader.status);
-        // console.log('| Writer Status:', this._writer.status);
         if (this._reader.error) {
-          console.log('| Reader error', this._reader.error);
+          this.log('| Reader error', this._reader.error);
         }
         if (this._writer.error) {
-          console.log('| Writer error', this._writer.error);
+          this.log('| Writer error', this._writer.error);
         }
         if (this._reader.status != AVAssetReaderStatus.Reading || this._writer.status != AVAssetWriterStatus.Writing) {
           handled = true;
           error = true;
         }
-        // console.log('| Handled:', handled);
-        // console.log('| Error:', error);
         if (!handled && this._videoOutput == output) {
           this._lastSamplePresentationTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer);
           this._lastSamplePresentationTime = CMTimeSubtract(this._lastSamplePresentationTime, this.timeRange.start);
 
           const progress = this._duration == 0 ? 1 : CMTimeGetSeconds(this._lastSamplePresentationTime) / this._duration;
-          console.log('| Progress', progress);
+          this.log('| Progress', progress);
+          this.emit(NativescriptTranscoderCommon.TRANSCODING_PROGRESS, { progress });
         }
 
         if (!handled) {
           const appendSampleBuffer = input.appendSampleBuffer(sampleBuffer);
-          // console.log('| AppendSampleBuffer:', appendSampleBuffer);
           if (!appendSampleBuffer) {
             error = true;
           }
@@ -691,13 +687,12 @@ class NSAVAssetExportSession {
         // Calling this runs the risk of causing a crash due to the object being already
         // cleaned up by NativeScript
         // CFRelease(sampleBuffer);
-        // console.log('------------------------');
         if (error) {
           return false;
         }
       } else {
         input.markAsFinished();
-        console.log('[encodeReadySamplesFromOutputToInput] Done');
+        this.log('[encodeReadySamplesFromOutputToInput] Done');
         return false;
       }
     }
@@ -773,6 +768,7 @@ class NSAVAssetExportSession {
   cancelExport(): void {
     if (this._inputQueue) {
       dispatch_async(this._inputQueue, () => {
+        this.emit(NativescriptTranscoderCommon.TRANSCODING_CANCELLED, {});
         this._writer.cancelWriting();
         this._reader.cancelReading();
         this.complete(this._completionHandler);
@@ -782,9 +778,7 @@ class NSAVAssetExportSession {
   }
 
   finish(): void {
-    console.log('----- FINISH -------');
-    console.log('-- this._reader', this._reader);
-    console.log('-- this._writer', this._writer);
+    this.log('----- FINISH -------');
     // Synchronized block to ensure we never cancel the writer before calling finishWritingWithCompletionHandler
     if (this._reader?.status == AVAssetReaderStatus.Cancelled || this._writer?.status == AVAssetWriterStatus.Cancelled) {
       return;
@@ -800,7 +794,7 @@ class NSAVAssetExportSession {
         this._writer.endSessionAtSourceTime(this._lastSamplePresentationTime);
       }
       this._writer.finishWritingWithCompletionHandler(() => {
-        console.log('[finishWritingWithCompletionHandler]');
+        this.log('[finishWritingWithCompletionHandler]');
         this.complete(completionHandler);
       });
     }
@@ -808,9 +802,8 @@ class NSAVAssetExportSession {
   }
 
   complete(completionHandler: () => void): void {
-    console.log('----- COMPLETE -------');
-    console.log('-- this._reader', this._reader);
-    console.log('-- this._writer', this._writer);
+    this.log('----- COMPLETE -------');
+    this.emit(NativescriptTranscoderCommon.TRANSCODING_COMPLETE, {});
     if (this._writer?.status == AVAssetWriterStatus.Failed || this._writer?.status == AVAssetWriterStatus.Cancelled) {
       NSFileManager.defaultManager.removeItemAtURLError(this.outputURL);
     }
@@ -821,6 +814,7 @@ class NSAVAssetExportSession {
   }
 
   error(): NSError {
+    this.emit(NativescriptTranscoderCommon.TRANSCODING_ERROR, {});
     if (this._error) {
       return this._error;
     } else {
@@ -829,7 +823,7 @@ class NSAVAssetExportSession {
   }
 
   reset(): void {
-    console.log('------ RESET ------');
+    this.log('------ RESET ------');
     this._error = null;
     this._progress = 0;
     this._reader = null;

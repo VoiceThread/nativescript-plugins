@@ -1,10 +1,29 @@
-import { Observable, EventData, Page, File, Application, Frame, knownFolders, StackLayout, Label, Color, ScrollView, Button, TextField, TextView, isAndroid, Device } from '@nativescript/core';
+import {
+  Observable,
+  EventData,
+  Page,
+  File,
+  Application,
+  Frame,
+  knownFolders,
+  StackLayout,
+  Label,
+  Color,
+  ScrollView,
+  Button,
+  TextField,
+  TextView,
+  isAndroid,
+  Device,
+  Progress,
+} from '@nativescript/core';
 import { DemoSharedNativescriptTranscoder } from '@demo/shared';
 import { TempFile } from '@voicethread/nativescript-filepicker/files';
 import { filePicker, galleryPicker, MediaType, getFreeMBs } from '@voicethread/nativescript-filepicker';
-import { NativescriptTranscoder, Segment, VideoConfig } from '@voicethread/nativescript-transcoder';
+import { MessageData, NativescriptTranscoder, Segment, VideoConfig } from '@voicethread/nativescript-transcoder';
 import { checkMultiple, check as checkPermission, request, request as requestPermission } from '@nativescript-community/perms';
 import { Video } from 'nativescript-videoplayer';
+import { executeOnMainThread, mainThreadify } from '@nativescript/core/utils';
 
 export function navigatingTo(args: EventData) {
   const page = <Page>args.object;
@@ -60,18 +79,10 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
   }
 
   processVideo480() {
-    if (isAndroid) {
-      this.processAndroid();
-    } else {
-      this.processVideo('480p');
-    }
+    this.processVideo('480p');
   }
 
   processAndroid(): void {
-    // currently only working for videos with audio
-    // TODO:
-    // implement transcoding videos without audio:
-    // https://github.com/ypresto/android-transcoder/compare/master...AlexMiniApps:android-transcoder:master
     if (!this.pickedFile) {
       return;
     }
@@ -84,20 +95,44 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
       file.removeSync();
     }
     console.log('[START PROCESSING]');
-    this.transcoder.transcode(this.pickedFile.path, tempPath).then(() => {
-      console.log('[PROCCESSING COMPLETED]');
-      const tempFile = File.fromPath(tempPath);
-      console.log('[outputSize]', tempFile.size);
-      const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
-      video.opacity = 1;
-      video.src = tempPath;
-      video.loop = false;
-      const outputDetailsLabel: Label = Frame.topmost().getViewById('outputDetails');
-      outputDetailsLabel.text = `Output Size: ${this.formatBytes(tempFile.size)}`;
-      outputDetailsLabel.textWrap = true;
-      outputDetailsLabel.fontSize = 16;
-      outputDetailsLabel.color = new Color('#ffffff');
+    const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
+    video.visibility = 'collapsed';
+    const outputDetailsLabel: Label = Frame.topmost().getViewById('outputDetails');
+    outputDetailsLabel.visibility = 'collapsed';
+    const progressBar = Frame.topmost().currentPage.getViewById('transcodingProgress') as Progress;
+    progressBar.value = 0;
+    this.transcoder.on(NativescriptTranscoder.TRANSCODING_PROGRESS, (payload: MessageData) => {
+      executeOnMainThread(() => {
+        progressBar.value = payload.data.progress * 100;
+      });
     });
+
+    // remove the next line or set it to "none" if we dont want any logs :)
+    // this.transcoder.setLogLevel('verbose');
+    this.transcoder
+      .transcode(this.pickedFile.path, tempPath)
+      .then(() => {
+        progressBar.value = 100;
+        console.log('[PROCCESSING COMPLETED]');
+        const tempFile = File.fromPath(tempPath);
+        console.log('[outputSize]', tempFile.size);
+        video.visibility = 'visible';
+        video.opacity = 1;
+        video.src = tempPath;
+        video.loop = false;
+        const outputDetailsLabel: Label = Frame.topmost().getViewById('outputDetails');
+        outputDetailsLabel.text = `Output Size: ${this.formatBytes(tempFile.size)}`;
+        outputDetailsLabel.textWrap = true;
+        outputDetailsLabel.fontSize = 16;
+        outputDetailsLabel.color = new Color('#ffffff');
+      })
+      .catch(error => {
+        const outputDetailsLabel: Label = Frame.topmost().getViewById('outputDetails');
+        outputDetailsLabel.text = `Error: ${error}`;
+        outputDetailsLabel.textWrap = true;
+        outputDetailsLabel.fontSize = 16;
+        outputDetailsLabel.color = new Color('#C70300');
+      });
   }
 
   processVideo480FR5() {
@@ -116,18 +151,9 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
     if (!this.pickedFile) {
       return;
     }
-    this.transcoder.reset();
-    this.transcoder.setLogLevel('verbose');
-    this.transcoder.addAsset({
-      name: this.pickedFile.name,
-      path: this.pickedFile.path,
-      type: 'videoAudio',
-    });
-    this.transcoder.addSegment({
-      tracks: [{ asset: this.pickedFile.name }],
-    });
-    // IMPORTANT - specified duration cannot be greater than the video's duration
-    // this will cause a crash
+    if (isAndroid && quality !== '720p') {
+      return;
+    }
     const tempPath = knownFolders.documents().getFile(`video-copy-${this.count}.mp4`).path;
     this.count += 1;
     if (File.exists(tempPath)) {
@@ -135,24 +161,50 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
       file.removeSync();
     }
     console.log('[PROCESSING STARTED]');
+    const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
+    video.visibility = 'collapsed';
+    const outputDetailsLabel: Label = Frame.topmost().getViewById('outputDetails');
+    outputDetailsLabel.visibility = 'collapsed';
+    const progressBar = Frame.topmost().currentPage.getViewById('transcodingProgress') as Progress;
+    progressBar.value = 0;
+    this.transcoder.on(NativescriptTranscoder.TRANSCODING_PROGRESS, (payload: MessageData) => {
+      executeOnMainThread(() => {
+        progressBar.value = payload.data.progress * 100;
+      });
+    });
+    // android doesn't support passing videoconfig
     this.transcoder
-      .process(tempPath, {
-        quality: quality,
-        frameRate: frameRate || 30,
-      })
+      .transcode(
+        this.pickedFile.path,
+        tempPath,
+        isAndroid
+          ? {}
+          : {
+              quality: quality,
+              frameRate: frameRate || 30,
+            }
+      )
       .then(() => {
+        progressBar.value = 100;
         console.log('[PROCCESSING COMPLETED]');
         const tempFile = File.fromPath(tempPath);
         console.log('[outputSize]', tempFile.size);
-        const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
+        video.visibility = 'visible';
         video.opacity = 1;
         video.src = tempPath;
         video.loop = false;
-        const outputDetailsLabel: Label = Frame.topmost().getViewById('outputDetails');
+        outputDetailsLabel.visibility = 'visible';
         outputDetailsLabel.text = `Output Size: ${this.formatBytes(tempFile.size)}`;
         outputDetailsLabel.textWrap = true;
         outputDetailsLabel.fontSize = 16;
         outputDetailsLabel.color = new Color('#ffffff');
+      })
+      .catch(error => {
+        outputDetailsLabel.visibility = 'visible';
+        outputDetailsLabel.text = `Error: ${error}`;
+        outputDetailsLabel.textWrap = true;
+        outputDetailsLabel.fontSize = 16;
+        outputDetailsLabel.color = new Color('#C70300');
       });
   }
 

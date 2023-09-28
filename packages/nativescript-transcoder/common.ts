@@ -1,4 +1,4 @@
-import { Observable } from '@nativescript/core';
+import { EventData, Observable } from '@nativescript/core';
 
 export class NativescriptTranscoderCommon extends Observable {
   private _logLevel: LogLevel = 'none';
@@ -6,7 +6,7 @@ export class NativescriptTranscoderCommon extends Observable {
     this._logLevel = logLevel;
   }
 
-  log(message: string, value?: any): void {
+  log = (message: string, value?: any): void => {
     if (this._logLevel === 'none') {
       return;
     }
@@ -15,17 +15,23 @@ export class NativescriptTranscoderCommon extends Observable {
     } else {
       console.log(`[TRANSCODER] ${message}`);
     }
-  }
+  };
+
+  public static TRANSCODING_STARTED = 'transcoding-started';
+  public static TRANSCODING_PROGRESS = 'transcoding-progress';
+  public static TRANSCODING_COMPLETE = 'transcoding-complete';
+  public static TRANSCODING_ERROR = 'transcoding-error';
+  public static TRANSCODING_CANCELLED = 'transcoding-cancelled';
 }
 
 export type LogLevel = 'none' | 'verbose';
 
 export interface VideoConfig {
-  quality?: '480p' | '720p' | '1080p';
-  frameRate?: number;
-  audioChannels?: number;
-  audioSampleRate?: number;
-  audioBitRate?: number;
+  quality?: '480p' | '720p' | '1080p'; // iOS only
+  frameRate?: number; // iOS only
+  audioChannels?: number; // iOS only
+  audioSampleRate?: number; // iOS only
+  audioBitRate?: number; // iOS only
 }
 
 export interface Asset {
@@ -36,7 +42,7 @@ export interface Asset {
 
 export interface Segment {
   // name: string; // used for referencing the asset later
-  duration: number;
+  duration?: number;
   tracks: Track[];
 }
 
@@ -48,3 +54,5 @@ export interface Track {
   seek?: number;
   duration?: number;
 }
+
+export type MessageData = EventData & { data: { progress?: number } };
