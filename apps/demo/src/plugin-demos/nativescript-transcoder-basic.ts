@@ -82,59 +82,6 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
     this.processVideo('480p');
   }
 
-  processAndroid(): void {
-    if (!this.pickedFile) {
-      return;
-    }
-
-    // we need the absolute path for Android, so we need to use the method below
-    const tempPath = TempFile.getPath(`video-copy-${this.count}`, 'mp4');
-    this.count += 1;
-    if (File.exists(tempPath)) {
-      const file = File.fromPath(tempPath);
-      file.removeSync();
-    }
-    console.log('[START PROCESSING]');
-    const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
-    video.visibility = 'collapsed';
-    const outputDetailsLabel: Label = Frame.topmost().getViewById('outputDetails');
-    outputDetailsLabel.visibility = 'collapsed';
-    const progressBar = Frame.topmost().currentPage.getViewById('transcodingProgress') as Progress;
-    progressBar.value = 0;
-    this.transcoder.on(NativescriptTranscoder.TRANSCODING_PROGRESS, (payload: MessageData) => {
-      executeOnMainThread(() => {
-        progressBar.value = payload.data.progress * 100;
-      });
-    });
-
-    // remove the next line or set it to "none" if we dont want any logs :)
-    // this.transcoder.setLogLevel('verbose');
-    this.transcoder
-      .transcode(this.pickedFile.path, tempPath)
-      .then(() => {
-        progressBar.value = 100;
-        console.log('[PROCCESSING COMPLETED]');
-        const tempFile = File.fromPath(tempPath);
-        console.log('[outputSize]', tempFile.size);
-        video.visibility = 'visible';
-        video.opacity = 1;
-        video.src = tempPath;
-        video.loop = false;
-        const outputDetailsLabel: Label = Frame.topmost().getViewById('outputDetails');
-        outputDetailsLabel.text = `Output Size: ${this.formatBytes(tempFile.size)}`;
-        outputDetailsLabel.textWrap = true;
-        outputDetailsLabel.fontSize = 16;
-        outputDetailsLabel.color = new Color('#ffffff');
-      })
-      .catch(error => {
-        const outputDetailsLabel: Label = Frame.topmost().getViewById('outputDetails');
-        outputDetailsLabel.text = `Error: ${error}`;
-        outputDetailsLabel.textWrap = true;
-        outputDetailsLabel.fontSize = 16;
-        outputDetailsLabel.color = new Color('#C70300');
-      });
-  }
-
   processVideo480FR5() {
     this.processVideo('480p', 5);
   }

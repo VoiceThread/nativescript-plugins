@@ -1,22 +1,5 @@
 /// <reference path="android-declarations.d.ts"/>
 
-// declare module net {
-//   export module ypresto {
-//     export module androidtranscoder {
-//       export class BuildConfig {
-//         public static class: java.lang.Class<net.ypresto.androidtranscoder.BuildConfig>;
-//         public static DEBUG: boolean;
-//         public static APPLICATION_ID: string;
-//         public static BUILD_TYPE: string;
-//         public static FLAVOR: string;
-//         public static VERSION_CODE: number;
-//         public static VERSION_NAME: string;
-//         public constructor();
-//       }
-//     }
-//   }
-// }
-
 declare module net {
   export module ypresto {
     export module androidtranscoder {
