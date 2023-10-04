@@ -33,7 +33,8 @@ public class PassThroughTrackTranscoder implements TrackTranscoder {
     private ByteBuffer mBuffer;
     private boolean mIsEOS;
     private MediaFormat mActualOutputFormat;
-    private long mWrittenPresentationTimeUs;
+    private long mOutputPresentationTimeExtractedUs;
+    private long mOutputPresentationTimeEncodedUs = 0;
 
     public PassThroughTrackTranscoder(MediaExtractor extractor, int trackIndex,
                                       QueuedMuxer muxer, QueuedMuxer.SampleType sampleType) {
@@ -49,7 +50,12 @@ public class PassThroughTrackTranscoder implements TrackTranscoder {
     }
 
     @Override
-    public void setup() {
+    public void setupDecoders(TimeLine.Segment segment, MediaTranscoderEngine.TranscodeThrottle throttle, int outputRotation, int width, int height) {
+    }
+
+    @Override
+    public void setupEncoder () {
+
     }
 
     @Override
@@ -59,13 +65,14 @@ public class PassThroughTrackTranscoder implements TrackTranscoder {
 
     @SuppressLint("Assert")
     @Override
-    public boolean stepPipeline() {
+    public boolean stepPipeline(TimeLine.Segment segment, MediaTranscoderEngine.TranscodeThrottle throttle) {
         if (mIsEOS) return false;
         int trackIndex = mExtractor.getSampleTrackIndex();
         if (trackIndex < 0) {
             mBuffer.clear();
             mBufferInfo.set(0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
             mMuxer.writeSampleData(mSampleType, mBuffer, mBufferInfo);
+            mOutputPresentationTimeEncodedUs = mBufferInfo.presentationTimeUs;
             mIsEOS = true;
             return true;
         }
@@ -78,22 +85,34 @@ public class PassThroughTrackTranscoder implements TrackTranscoder {
         int flags = isKeyFrame ? MediaCodec.BUFFER_FLAG_SYNC_FRAME : 0;
         mBufferInfo.set(0, sampleSize, mExtractor.getSampleTime(), flags);
         mMuxer.writeSampleData(mSampleType, mBuffer, mBufferInfo);
-        mWrittenPresentationTimeUs = mBufferInfo.presentationTimeUs;
+        mOutputPresentationTimeEncodedUs = mBufferInfo.presentationTimeUs;
+        mOutputPresentationTimeExtractedUs = mBufferInfo.presentationTimeUs;
 
         mExtractor.advance();
         return true;
     }
 
     @Override
-    public long getWrittenPresentationTimeUs() {
-        return mWrittenPresentationTimeUs;
-    }
+    public long getOutputPresentationTimeDecodedUs() { return mOutputPresentationTimeExtractedUs; }
 
     @Override
-    public boolean isFinished() {
+    public long getOutputPresentationTimeEncodedUs() {return mOutputPresentationTimeEncodedUs;}
+
+    @Override
+    public void setOutputPresentationTimeDecodedUs(long presentationTimeDecodedUs) {
+        mOutputPresentationTimeExtractedUs = presentationTimeDecodedUs;
+    }
+    @Override
+    public boolean isSegmentFinished() {
         return mIsEOS;
     }
 
+    @Override
+    public void releaseEncoder() {
+    }
+    @Override
+    public void releaseDecoders() {
+    }
     @Override
     public void release() {
     }

@@ -16,9 +16,6 @@
 package net.ypresto.androidtranscoder.format;
 
 public class MediaFormatStrategyPresets {
-    public static final int AUDIO_BITRATE_AS_IS = -1;
-    public static final int AUDIO_CHANNELS_AS_IS = -1;
-
     /**
      * @deprecated Use {@link #createExportPreset960x540Strategy()}.
      */
@@ -27,8 +24,10 @@ public class MediaFormatStrategyPresets {
 
     /**
      * Preset based on Nexus 4 camera recording with 720p quality.
-     * This preset is ensured to work on any Android &gt;=4.3 devices by Android CTS (if codec is available).
-     * Default bitrate is 8Mbps. {@link #createAndroid720pStrategy(int)} to specify bitrate.
+     * This preset is ensured to work on any Android &gt;=4.3 devices by Android CTS
+     * (if codec is available).
+     * Default bitrate is 8Mbps. {@link #createAndroid720pStrategy(int)} to specify
+     * bitrate.
      */
     public static MediaFormatStrategy createAndroid720pStrategy() {
         return new Android720pFormatStrategy();
@@ -36,7 +35,8 @@ public class MediaFormatStrategyPresets {
 
     /**
      * Preset based on Nexus 4 camera recording with 720p quality.
-     * This preset is ensured to work on any Android &gt;=4.3 devices by Android CTS (if codec is available).
+     * This preset is ensured to work on any Android &gt;=4.3 devices by Android CTS
+     * (if codec is available).
      * Audio track will be copied as-is.
      *
      * @param bitrate Preferred bitrate for video encoding.
@@ -47,8 +47,8 @@ public class MediaFormatStrategyPresets {
 
     /**
      * Preset based on Nexus 4 camera recording with 720p quality.
-     * This preset is ensured to work on any Android &gt;=4.3 devices by Android CTS (if codec is available).
-     * <br>
+     * This preset is ensured to work on any Android &gt;=4.3 devices by Android CTS
+     * (if codec is available).
      * Note: audio transcoding is experimental feature.
      *
      * @param bitrate       Preferred bitrate for video encoding.
@@ -60,9 +60,47 @@ public class MediaFormatStrategyPresets {
     }
 
     /**
+     *
+     * @param audioBitrate  Preferred bitrate for audio encoding.
+     * @param audioChannels Output audio channels.
+     */
+    public static MediaFormatStrategy createAndroid16x9Strategy720P(int audioBitrate, int audioChannels) {
+        return new Android16By9FormatStrategy(720, 8000000, audioBitrate, audioChannels);
+    }
+
+    /**
+     *
+     * @param audioBitrate  Preferred bitrate for audio encoding.
+     * @param audioChannels Output audio channels.
+     */
+    public static MediaFormatStrategy createAndroid16x9Strategy1080P(int audioBitrate, int audioChannels) {
+        return new Android16By9FormatStrategy(1080, 10000000, audioBitrate, audioChannels);
+    }
+
+    /**
+     *
+     * @param audioBitrate  Preferred bitrate for audio encoding.
+     * @param audioChannels Output audio channels.
+     */
+    public static MediaFormatStrategy createAndroidStrategy720P(int audioBitrate, int audioChannels) {
+        return new AndroidFormatStrategy(720, 8000000, audioBitrate, audioChannels);
+    }
+
+    /**
+     *
+     * @param audioBitrate  Preferred bitrate for audio encoding.
+     * @param audioChannels Output audio channels.
+     */
+    public static MediaFormatStrategy createAndroidStrategy1080P(int audioBitrate, int audioChannels) {
+        return new AndroidFormatStrategy(1080, 10000000, audioBitrate, audioChannels);
+    }
+
+    /**
      * Preset similar to iOS SDK's AVAssetExportPreset960x540.
-     * Note that encoding resolutions of this preset are not supported in all devices e.g. Nexus 4.
-     * On unsupported device encoded video stream will be broken without any exception.
+     * Note that encoding resolutions of this preset are not supported in all
+     * devices e.g. Nexus 4.
+     * On unsupported device encoded video stream will be broken without any
+     * exception.
      */
     public static MediaFormatStrategy createExportPreset960x540Strategy() {
         return new ExportPreset960x540Strategy();

@@ -15,25 +15,62 @@
  */
 package net.ypresto.androidtranscoder.engine;
 
+import android.media.MediaCodecInfo;
+import android.media.MediaCodecList;
 import android.media.MediaFormat;
 
-import net.ypresto.androidtranscoder.format.MediaFormatExtraConstants;
+public class MediaFormatValidator {
+    // Refer: http://en.wikipedia.org/wiki/H.264/MPEG-4_AVC#Profiles
+    private static final byte PROFILE_IDC_BASELINE = 66;
 
-class MediaFormatValidator {
 
     public static void validateVideoOutputFormat(MediaFormat format) {
         String mime = format.getString(MediaFormat.KEY_MIME);
         // Refer: http://developer.android.com/guide/appendix/media-formats.html#core
         // Refer: http://en.wikipedia.org/wiki/MPEG-4_Part_14#Data_streams
-        if (!MediaFormatExtraConstants.MIMETYPE_VIDEO_AVC.equals(mime)) {
-            throw new InvalidOutputFormatException("Video codecs other than AVC is not supported, actual mime type: " + mime);
-        }
+        if (!validateEncoderMimeType(mime))
+            throw new InvalidOutputFormatException("Video codecs not supported, actual mime type: " + mime);
     }
 
     public static void validateAudioOutputFormat(MediaFormat format) {
         String mime = format.getString(MediaFormat.KEY_MIME);
-        if (!MediaFormatExtraConstants.MIMETYPE_AUDIO_AAC.equals(mime)) {
-            throw new InvalidOutputFormatException("Audio codecs other than AAC is not supported, actual mime type: " + mime);
+        if (!validateEncoderMimeType(mime))
+            throw new InvalidOutputFormatException("Audio codecs not supported, actual mime type: " + mime);
+    }
+
+    private static boolean validateEncoderMimeType(String mime) {
+        // See https://developer.android.com/reference/android/media/MediaCodecInfo
+        // Code on that page was updated to use getCodecInfos rather than deprecated getCodeInfoAt()
+        MediaCodecList list = new MediaCodecList(MediaCodecList.ALL_CODECS);
+        MediaCodecInfo[] codecInfos = list.getCodecInfos();
+        for (MediaCodecInfo info : codecInfos) {
+            if (info.isEncoder()) {
+                String[] types = info.getSupportedTypes();
+                for (int j = 0; j < types.length; j++) {
+                    if (types[j].equalsIgnoreCase(mime)) {
+                        return true;
+                    }
+                }
+            }
         }
+        return false;
+    }
+    public static boolean validateResolution(int width, int height) {
+        // See https://developer.android.com/reference/android/media/MediaCodecInfo
+        // Code on that page was updated to use getCodecInfos rather than deprecated getCodeInfoAt()
+        MediaCodecList list = new MediaCodecList(MediaCodecList.ALL_CODECS);
+        MediaCodecInfo[] codecInfos = list.getCodecInfos();
+        for (MediaCodecInfo info : codecInfos) {
+            if (info.isEncoder()) {
+                String[] types = info.getSupportedTypes();
+                for (int j = 0; j < types.length; j++) {
+                    MediaCodecInfo.CodecCapabilities cap = info.getCapabilitiesForType(types[j]);
+                    MediaCodecInfo.VideoCapabilities vcap = cap != null ? cap.getVideoCapabilities() : null;
+                    if (vcap != null && vcap.isSizeSupported(width, height))
+                        return true;
+                }
+            }
+        }
+        return false;
     }
 }

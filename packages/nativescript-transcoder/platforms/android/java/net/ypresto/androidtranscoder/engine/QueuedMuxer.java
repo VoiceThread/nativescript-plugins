@@ -18,7 +18,7 @@ package net.ypresto.androidtranscoder.engine;
 import android.media.MediaCodec;
 import android.media.MediaFormat;
 import android.media.MediaMuxer;
-import android.util.Log;
+import net.ypresto.androidtranscoder.TLog;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -30,7 +30,7 @@ import java.util.List;
  */
 public class QueuedMuxer {
     private static final String TAG = "QueuedMuxer";
-    private static final int BUFFER_SIZE = 64 * 1024; // I have no idea whether this value is appropriate or not...
+    private static final int BUFFER_SIZE = 512 * 1024; // I have no idea whether this value is appropriate or not...
     private final MediaMuxer mMuxer;
     private final Listener mListener;
     private MediaFormat mVideoFormat;
@@ -40,11 +40,13 @@ public class QueuedMuxer {
     private ByteBuffer mByteBuffer;
     private final List<SampleInfo> mSampleInfoList;
     private boolean mStarted;
-    private final boolean mIsAudioTrackExists;
+    private boolean mHasVideo;
+    private boolean mHasAudio;
 
-    public QueuedMuxer(MediaMuxer muxer, boolean isAudioTrackExists, Listener listener) {
+    public QueuedMuxer(MediaMuxer muxer, boolean hasVideo, boolean hasAudio, Listener listener) {
+        mHasAudio = hasAudio;
+        mHasVideo = hasVideo;
         mMuxer = muxer;
-        mIsAudioTrackExists = isAudioTrackExists;
         mListener = listener;
         mSampleInfoList = new ArrayList<>();
     }
@@ -64,17 +66,17 @@ public class QueuedMuxer {
     }
 
     private void onSetOutputFormat() {
-        if (mVideoFormat == null || (mIsAudioTrackExists && mAudioFormat == null))
+        if ((mHasVideo && mVideoFormat == null) || (mHasAudio && mAudioFormat == null))
             return;
         mListener.onDetermineOutputFormat();
 
-        mVideoTrackIndex = mMuxer.addTrack(mVideoFormat);
-        Log.v(TAG, "Added track #" + mVideoTrackIndex + " with " + mVideoFormat.getString(MediaFormat.KEY_MIME)
-                + " to muxer");
-        if (mAudioFormat != null) {
+        if (mHasVideo) {
+            mVideoTrackIndex = mMuxer.addTrack(mVideoFormat);
+            TLog.v(TAG, "Added track #" + mVideoTrackIndex + " with " + mVideoFormat.getString(MediaFormat.KEY_MIME) + " to muxer");
+        }
+        if (mHasAudio) {
             mAudioTrackIndex = mMuxer.addTrack(mAudioFormat);
-            Log.v(TAG, "Added track #" + mAudioTrackIndex + " with " + mAudioFormat.getString(MediaFormat.KEY_MIME)
-                    + " to muxer");
+            TLog.v(TAG, "Added track #" + mAudioTrackIndex + " with " + mAudioFormat.getString(MediaFormat.KEY_MIME) + " to muxer");
         }
         mMuxer.start();
         mStarted = true;
@@ -83,7 +85,7 @@ public class QueuedMuxer {
             mByteBuffer = ByteBuffer.allocate(0);
         }
         mByteBuffer.flip();
-        Log.v(TAG, "Output format determined, writing " + mSampleInfoList.size() +
+        TLog.v(TAG, "Output format determined, writing " + mSampleInfoList.size() +
                 " samples / " + mByteBuffer.limit() + " bytes to muxer.");
         MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
         int offset = 0;
@@ -121,9 +123,7 @@ public class QueuedMuxer {
         }
     }
 
-    public enum SampleType {
-        VIDEO, AUDIO
-    }
+    public enum SampleType {VIDEO, AUDIO}
 
     private static class SampleInfo {
         private final SampleType mSampleType;

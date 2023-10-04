@@ -18,27 +18,24 @@ package net.ypresto.androidtranscoder.format;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.util.Log;
+import net.ypresto.androidtranscoder.engine.MediaFormatValidator;
 
-public class Android720pFormatStrategy implements MediaFormatStrategy {
+public class AndroidFormatStrategy implements MediaFormatStrategy {
+
     public static final int AUDIO_BITRATE_AS_IS = -1;
     public static final int AUDIO_CHANNELS_AS_IS = -1;
-    private static final String TAG = "720pFormatStrategy";
-    private static final int LONGER_LENGTH = 1280;
-    private static final int SHORTER_LENGTH = 720;
-    public static final int DEFAULT_VIDEO_BITRATE = 8000 * 1000; // From Nexus 4 Camera in 720p
+    private static final String TAG = "Android16By9FmtStrategy";
+    private int mPSize;
     private final int mVideoBitrate;
     private final int mAudioBitrate;
     private final int mAudioChannels;
 
-    public Android720pFormatStrategy() {
-        this(DEFAULT_VIDEO_BITRATE);
+    public AndroidFormatStrategy(int scale, int videoBitrate) {
+        this(scale, videoBitrate, AUDIO_BITRATE_AS_IS, AUDIO_CHANNELS_AS_IS);
     }
 
-    public Android720pFormatStrategy(int videoBitrate) {
-        this(videoBitrate, AUDIO_BITRATE_AS_IS, AUDIO_CHANNELS_AS_IS);
-    }
-
-    public Android720pFormatStrategy(int videoBitrate, int audioBitrate, int audioChannels) {
+    public AndroidFormatStrategy(int pSize, int videoBitrate, int audioBitrate, int audioChannels) {
+        mPSize = pSize;
         mVideoBitrate = videoBitrate;
         mAudioBitrate = audioBitrate;
         mAudioChannels = audioChannels;
@@ -52,20 +49,29 @@ public class Android720pFormatStrategy implements MediaFormatStrategy {
         if (width >= height) {
             longer = width;
             shorter = height;
-            outWidth = LONGER_LENGTH;
-            outHeight = SHORTER_LENGTH;
+            outWidth = mPSize * width / height;
+            outHeight = mPSize;
         } else {
             shorter = width;
             longer = height;
-            outWidth = SHORTER_LENGTH;
-            outHeight = LONGER_LENGTH;
+            outWidth = mPSize;
+            outHeight = mPSize * height / width;
         }
-        if (longer * 9 != shorter * 16) {
-            throw new OutputFormatUnavailableException(
-                    "This video is not 16:9, and is not able to transcode. (" + width + "x" + height + ")");
-        }
-        if (allowPassthru && shorter <= SHORTER_LENGTH) {
-            Log.d(TAG, "This video is less or equal to 720p, pass-through. (" + width + "x" + height + ")");
+
+        boolean isSupported = MediaFormatValidator.validateResolution(outWidth, outHeight);
+
+        // Mostly ultrawide is only supported at 1080 so try that if 720 not supported
+        // if (!isSupported)
+        // if (mPSize == 720) {
+        // mPSize = 1080;
+        // return createVideoOutputFormat(inputFormat, allowPassthru);
+        // } else
+        // throw new OutputFormatUnavailableException("The output height (" + outHeight
+        // + ") and width (" + outWidth + ") cannot be transcoded");
+
+        if (allowPassthru && shorter <= mPSize) {
+            Log.d(TAG, "This video's height is less or equal to " + mPSize + ", pass-through. (" + width + "x" + height
+                    + ")");
             return null;
         }
         MediaFormat format = MediaFormat.createVideoFormat("video/avc", outWidth, outHeight);
@@ -81,6 +87,7 @@ public class Android720pFormatStrategy implements MediaFormatStrategy {
     public MediaFormat createAudioOutputFormat(MediaFormat inputFormat, boolean allowPassthru) {
         if (allowPassthru && mAudioBitrate == AUDIO_BITRATE_AS_IS && mAudioChannels == AUDIO_CHANNELS_AS_IS)
             return null;
+
         // Use original sample rate, as resampling is not supported yet.
         final MediaFormat format = MediaFormat.createAudioFormat(MediaFormatExtraConstants.MIMETYPE_AUDIO_AAC,
                 inputFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE),

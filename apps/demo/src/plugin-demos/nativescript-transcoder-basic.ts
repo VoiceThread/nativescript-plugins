@@ -1,29 +1,10 @@
-import {
-  Observable,
-  EventData,
-  Page,
-  File,
-  Application,
-  Frame,
-  knownFolders,
-  StackLayout,
-  Label,
-  Color,
-  ScrollView,
-  Button,
-  TextField,
-  TextView,
-  isAndroid,
-  Device,
-  Progress,
-} from '@nativescript/core';
+import { EventData, Page, File, Frame, knownFolders, Label, Color, isAndroid, Device, Progress } from '@nativescript/core';
 import { DemoSharedNativescriptTranscoder } from '@demo/shared';
-import { TempFile } from '@voicethread/nativescript-filepicker/files';
-import { filePicker, galleryPicker, MediaType, getFreeMBs } from '@voicethread/nativescript-filepicker';
-import { MessageData, NativescriptTranscoder, Segment, VideoConfig } from '@voicethread/nativescript-transcoder';
-import { checkMultiple, check as checkPermission, request, request as requestPermission } from '@nativescript-community/perms';
+import { filePicker, galleryPicker, MediaType } from '@voicethread/nativescript-filepicker';
+import { MessageData, NativescriptTranscoder } from '@voicethread/nativescript-transcoder';
+import { check as checkPermission, request, request as requestPermission } from '@nativescript-community/perms';
 import { Video } from 'nativescript-videoplayer';
-import { executeOnMainThread, mainThreadify } from '@nativescript/core/utils';
+import { executeOnMainThread } from '@nativescript/core/utils';
 
 export function navigatingTo(args: EventData) {
   const page = <Page>args.object;
@@ -41,6 +22,7 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
   constructor() {
     super();
     this.transcoder = new NativescriptTranscoder();
+    this.transcoder.setLogLevel('verbose');
   }
 
   async pickVideo() {
@@ -98,7 +80,8 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
     if (!this.pickedFile) {
       return;
     }
-    if (isAndroid && quality !== '720p') {
+    // android doesn't support 480p
+    if (isAndroid && quality === '480p') {
       return;
     }
     const tempPath = knownFolders.documents().getFile(`video-copy-${this.count}.mp4`).path;
@@ -119,23 +102,29 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
         progressBar.value = payload.data.progress * 100;
       });
     });
-    // android doesn't support passing videoconfig
+    const timeStarted = new Date().getTime();
     this.transcoder
       .transcode(
         this.pickedFile.path,
         tempPath,
         isAndroid
-          ? {}
+          ? {
+              quality: quality,
+            }
           : {
               quality: quality,
               frameRate: frameRate || 30,
             }
       )
       .then(() => {
+        const timeTaken = (new Date().getTime() - timeStarted) / 1000;
         progressBar.value = 100;
         console.log('[PROCCESSING COMPLETED]');
         const tempFile = File.fromPath(tempPath);
-        console.log('[outputSize]', tempFile.size);
+        console.log('[Original Size]', this.formatBytes(this.pickedFile.size));
+        console.log('[Transcoded Size]', this.formatBytes(tempFile.size));
+        console.log('[Percentage Reduced]', `${(((this.pickedFile.size - tempFile.size) / this.pickedFile.size) * 100).toFixed(2)}%`);
+        console.log('[Time Taken]', `${timeTaken} seconds`);
         video.visibility = 'visible';
         video.opacity = 1;
         video.src = tempPath;

@@ -18,9 +18,10 @@ package net.ypresto.androidtranscoder;
 import android.media.MediaFormat;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
+import net.ypresto.androidtranscoder.TLog;
 
 import net.ypresto.androidtranscoder.engine.MediaTranscoderEngine;
+import net.ypresto.androidtranscoder.engine.TimeLine;
 import net.ypresto.androidtranscoder.format.MediaFormatPresets;
 import net.ypresto.androidtranscoder.format.MediaFormatStrategy;
 
@@ -42,13 +43,20 @@ public class MediaTranscoder {
     private ThreadPoolExecutor mExecutor;
 
     private MediaTranscoder() {
+        Looper looper = Looper.myLooper();
+        if (looper == null)
+            looper = Looper.getMainLooper();
+        final int priority = looper.getThread().getPriority();
         mExecutor = new ThreadPoolExecutor(
                 0, MAXIMUM_THREAD, 60, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<Runnable>(),
                 new ThreadFactory() {
                     @Override
                     public Thread newThread(Runnable r) {
-                        return new Thread(r, "MediaTranscoder-Worker");
+                        Thread thread = new Thread(r, "MediaTranscoder-Worker");
+                        TLog.d(TAG, "creating MediaTranscoder-Worker thread at priority " + priority);
+                        thread.setPriority(priority - 1);
+                        return thread;
                     }
                 });
     }
@@ -77,12 +85,12 @@ public class MediaTranscoder {
     public Future<Void> transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final Listener listener) {
         return transcodeVideo(inFileDescriptor, outPath, new MediaFormatStrategy() {
             @Override
-            public MediaFormat createVideoOutputFormat(MediaFormat inputFormat) {
+            public MediaFormat createVideoOutputFormat(MediaFormat inputFormat, boolean allowPassthru) {
                 return MediaFormatPresets.getExportPreset960x540();
             }
 
             @Override
-            public MediaFormat createAudioOutputFormat(MediaFormat inputFormat) {
+            public MediaFormat createAudioOutputFormat(MediaFormat inputFormat, boolean allowPassthru) {
                 return null;
             }
         }, listener);
@@ -109,7 +117,7 @@ public class MediaTranscoder {
                 try {
                     fileInputStream.close();
                 } catch (IOException eClose) {
-                    Log.e(TAG, "Can't close input stream: ", eClose);
+                    TLog.e(TAG, "Can't close input stream: ", eClose);
                 }
             }
             throw e;
@@ -143,12 +151,11 @@ public class MediaTranscoder {
                 try {
                     finalFileInputStream.close();
                 } catch (IOException e) {
-                    Log.e(TAG, "Can't close input stream: ", e);
+                    TLog.e(TAG, "Can't close input stream: ", e);
                 }
             }
         });
     }
-
     /**
      * Transcodes video file asynchronously.
      * Audio track will be kept unchanged.
@@ -159,6 +166,22 @@ public class MediaTranscoder {
      * @param listener          Listener instance for callback.
      */
     public Future<Void> transcodeVideo(final FileDescriptor inFileDescriptor, final String outPath, final MediaFormatStrategy outFormatStrategy, final Listener listener) {
+        TimeLine timeLine = (new TimeLine())
+            .addChannel("default", inFileDescriptor)
+            .createSegment()
+                .output("default")
+            .timeLine();
+        return transcodeVideo(timeLine, outPath, outFormatStrategy, listener);
+    }
+    /**
+     * Transcodes video file asynchronously.
+     * Audio track will be kept unchanged.
+     *
+     * @param outPath           File path for output.
+     * @param outFormatStrategy Strategy for output video format.
+     * @param listener          Listener instance for callback.
+     */
+    public Future<Void> transcodeVideo(final TimeLine timeLine, final String outPath, final MediaFormatStrategy outFormatStrategy, final Listener listener) {
         Looper looper = Looper.myLooper();
         if (looper == null) looper = Looper.getMainLooper();
         final Handler handler = new Handler(looper);
@@ -166,53 +189,52 @@ public class MediaTranscoder {
         final Future<Void> createdFuture = mExecutor.submit(new Callable<Void>() {
             @Override
             public Void call() throws Exception {
-                Exception caughtException = null;
-                try {
-                    MediaTranscoderEngine engine = new MediaTranscoderEngine();
-                    engine.setProgressCallback(new MediaTranscoderEngine.ProgressCallback() {
-                        @Override
-                        public void onProgress(final double progress) {
-                            handler.post(new Runnable() { // TODO: reuse instance
-                                @Override
-                                public void run() {
-                                    listener.onTranscodeProgress(progress);
-                                }
-                            });
-                        }
-                    });
-                    engine.setDataSource(inFileDescriptor);
-                    engine.transcodeVideo(outPath, outFormatStrategy);
-                } catch (IOException e) {
-                    Log.w(TAG, "Transcode failed: input file (fd: " + inFileDescriptor.toString() + ") not found"
-                            + " or could not open output file ('" + outPath + "') .", e);
-                    caughtException = e;
-                } catch (InterruptedException e) {
-                    Log.i(TAG, "Cancel transcode video file.", e);
-                    caughtException = e;
-                } catch (RuntimeException e) {
-                    Log.e(TAG, "Fatal error while transcoding, this might be invalid format or bug in engine or Android.", e);
-                    caughtException = e;
-                }
-
-                final Exception exception = caughtException;
-                handler.post(new Runnable() {
+            Exception caughtException = null;
+            try {
+                MediaTranscoderEngine engine = new MediaTranscoderEngine();
+                engine.setProgressCallback(new MediaTranscoderEngine.ProgressCallback() {
                     @Override
-                    public void run() {
-                        if (exception == null) {
-                            listener.onTranscodeCompleted();
-                        } else {
-                            Future<Void> future = futureReference.get();
-                            if (future != null && future.isCancelled()) {
-                                listener.onTranscodeCanceled();
-                            } else {
-                                listener.onTranscodeFailed(exception);
+                    public void onProgress(final double progress) {
+                        handler.post(new Runnable() { // TODO: reuse instance
+                            @Override
+                            public void run() {
+                                listener.onTranscodeProgress(progress);
                             }
-                        }
+                        });
                     }
                 });
+                engine.transcodeVideo(timeLine, outPath, outFormatStrategy);
+            } catch (IOException e) {
+                TLog.w(TAG, "Transcode failed: input file not found"
+                        + " or could not open output file ('" + outPath + "') .", e);
+                caughtException = e;
+            } catch (InterruptedException e) {
+                TLog.i(TAG, "Cancel transcode video file.", e);
+                caughtException = e;
+            } catch (RuntimeException e) {
+                TLog.e(TAG, "Fatal error while transcoding, this might be invalid format or bug in engine or Android.", e);
+                caughtException = e;
+            }
 
-                if (exception != null) throw exception;
-                return null;
+            final Exception exception = caughtException;
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (exception == null) {
+                        listener.onTranscodeCompleted();
+                    } else {
+                        Future<Void> future = futureReference.get();
+                        if (future != null && future.isCancelled()) {
+                            listener.onTranscodeCanceled();
+                        } else {
+                            listener.onTranscodeFailed(exception);
+                        }
+                    }
+                }
+            });
+
+            //if (exception != null) throw exception;
+            return null;
             }
         });
         futureReference.set(createdFuture);
@@ -240,7 +262,7 @@ public class MediaTranscoder {
         /**
          * Called when transcode failed.
          *
-         * @param exception Exception thrown from {@link MediaTranscoderEngine#transcodeVideo(String, MediaFormatStrategy)}.
+         * @param exception Exception thrown from {@link MediaTranscoderEngine#transcodeVideo(TimeLine, String, MediaFormatStrategy)}.
          *                  Note that it IS NOT {@link java.lang.Throwable}. This means {@link java.lang.Error} won't be caught.
          */
         void onTranscodeFailed(Exception exception);

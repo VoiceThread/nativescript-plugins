@@ -22,10 +22,10 @@ import android.util.Log;
 * Created by yuya.tanaka on 2014/11/20.
 */
 class ExportPreset960x540Strategy implements MediaFormatStrategy {
-    private static final String TAG = "ExportPreset960x540Strategy";
+    private static final String TAG = "ExportPst960x540Strat";
 
     @Override
-    public MediaFormat createVideoOutputFormat(MediaFormat inputFormat) {
+    public MediaFormat createVideoOutputFormat(MediaFormat inputFormat, boolean allowPassthru) {
         // TODO: detect non-baseline profile and throw exception
         int width = inputFormat.getInteger(MediaFormat.KEY_WIDTH);
         int height = inputFormat.getInteger(MediaFormat.KEY_HEIGHT);
@@ -37,7 +37,7 @@ class ExportPreset960x540Strategy implements MediaFormatStrategy {
     }
 
     @Override
-    public MediaFormat createAudioOutputFormat(MediaFormat inputFormat) {
+    public MediaFormat createAudioOutputFormat(MediaFormat inputFormat, boolean allowPassthru) {
         // TODO
         return null;
     }

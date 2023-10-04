@@ -20,7 +20,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
   segments: Segment[] = [];
   private _videoConfig: VideoConfig;
 
-  transcode(inputPath: string, outputPath: string): Promise<void> {
+  transcode(inputPath: string, outputPath: string, videoConfig: VideoConfig): Promise<void> {
     this.reset();
     const assetInputName = 'input';
     this.addAsset({
@@ -31,7 +31,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
     this.addSegment({
       tracks: [{ asset: assetInputName }],
     });
-    return this.process(outputPath, {});
+    return this.process(outputPath, videoConfig);
   }
 
   addAsset(asset: Asset) {

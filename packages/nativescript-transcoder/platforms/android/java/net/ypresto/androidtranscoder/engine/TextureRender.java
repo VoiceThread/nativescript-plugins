@@ -22,11 +22,16 @@ import android.graphics.SurfaceTexture;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
-import android.util.Log;
+import net.ypresto.androidtranscoder.TLog;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.util.ArrayList;
+import java.util.List;
+
+import static android.opengl.GLES20.GL_COLOR_BUFFER_BIT;
+
 /**
  * Code for rendering a texture onto a surface using OpenGL ES 2.0.
  */
@@ -59,36 +64,55 @@ class TextureRender {
                     "precision mediump float;\n" +      // highp here doesn't seem to matter
                     "varying vec2 vTextureCoord;\n" +
                     "uniform samplerExternalOES sTexture;\n" +
+                    "uniform float uAlpha;\n" +
                     "void main() {\n" +
-                    "  gl_FragColor = texture2D(sTexture, vTextureCoord);\n" +
+                    "      gl_FragColor = texture2D(sTexture, vTextureCoord);\n" +
+                    "      gl_FragColor.a *= uAlpha;\n" +
                     "}\n";
     private float[] mMVPMatrix = new float[16];
     private float[] mSTMatrix = new float[16];
     private int mProgram;
-    private int mTextureID = -12345;
     private int muMVPMatrixHandle;
     private int muSTMatrixHandle;
     private int maPositionHandle;
     private int maTextureHandle;
-    public TextureRender() {
+    private int muAlphaHandle;
+
+    List<OutputSurface> mOutputSurfaces;
+ 
+
+    public TextureRender(List<OutputSurface> outputSurfaces, OutputSurface overlaySurface) {
+
+        mOutputSurfaces = new ArrayList<>(outputSurfaces);
+        if (overlaySurface != null)
+            mOutputSurfaces.add(overlaySurface);
+
         mTriangleVertices = ByteBuffer.allocateDirect(
                 mTriangleVerticesData.length * FLOAT_SIZE_BYTES)
                 .order(ByteOrder.nativeOrder()).asFloatBuffer();
         mTriangleVertices.put(mTriangleVerticesData).position(0);
         Matrix.setIdentityM(mSTMatrix, 0);
     }
-    public int getTextureId() {
-        return mTextureID;
-    }
-    public void drawFrame(SurfaceTexture st) {
+
+    public void drawFrame() {
+
         checkGlError("onDrawFrame start");
-        st.getTransformMatrix(mSTMatrix);
-        GLES20.glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
-        GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT | GLES20.GL_COLOR_BUFFER_BIT);
+
+        // Get first surface texture which will be used as the reference orientation
+
+
+        // Set up GLES
+        GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
         GLES20.glUseProgram(mProgram);
         checkGlError("glUseProgram");
-        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
-        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mTextureID);
+        GLES20.glUniform1f(muAlphaHandle, 0.5f);
+
+        // Allow transparent blending
+        GLES20.glEnable(GLES20.GL_BLEND);
+        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+
+        // Setup vertices
         mTriangleVertices.position(TRIANGLE_VERTICES_DATA_POS_OFFSET);
         GLES20.glVertexAttribPointer(maPositionHandle, 3, GLES20.GL_FLOAT, false,
                 TRIANGLE_VERTICES_DATA_STRIDE_BYTES, mTriangleVertices);
@@ -101,12 +125,54 @@ class TextureRender {
         checkGlError("glVertexAttribPointer maTextureHandle");
         GLES20.glEnableVertexAttribArray(maTextureHandle);
         checkGlError("glEnableVertexAttribArray maTextureHandle");
-        Matrix.setIdentityM(mMVPMatrix, 0);
-        GLES20.glUniformMatrix4fv(muMVPMatrixHandle, 1, false, mMVPMatrix, 0);
-        GLES20.glUniformMatrix4fv(muSTMatrixHandle, 1, false, mSTMatrix, 0);
-        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
-        checkGlError("glDrawArrays");
+
+         //if (mOutputSurfaces.get(0).getFlip())
+        //    Matrix.rotateM(mMVPMatrix, 0, 180, 0, 0, 1);
+
+
+        // Draw each texture
+        for (int textureIndex = 0; textureIndex < mOutputSurfaces.size(); ++textureIndex) {
+
+            OutputSurface outputSurface = mOutputSurfaces.get(textureIndex);
+
+            // The default matrix when rotating is to stretch the image full width or full height
+            // So we have to un-stretch it to the correct aspect ratio.
+            Matrix.setIdentityM(mMVPMatrix, 0);
+
+            if (outputSurface.getDestRect().width() != outputSurface.getSourceRect().width()) {
+                float inputWidth = outputSurface.getSourceRect().width();
+                float inputHeight = outputSurface.getSourceRect().height();
+                float outputWidth = outputSurface.getDestRect().width();
+                float outputHeight = outputSurface.getDestRect().height();
+                if (outputSurface.getDestRect().width() > outputSurface.getDestRect().height()) {
+                    float aspectRatio = inputWidth / inputHeight;
+                    float width = outputHeight * aspectRatio;
+                    float widthScale = width / outputWidth;
+                    Matrix.scaleM(mMVPMatrix, 0, widthScale, 1.0f, 1.0f);
+                } else {
+                    float aspectRatio = inputWidth / inputHeight;
+                    float height = outputWidth * aspectRatio;
+                    float heightScale = height / outputHeight;
+                    Matrix.scaleM(mMVPMatrix, 0, 1.0F, heightScale, 1.0f);
+                }
+            }
+            outputSurface.getSurfaceTexture().getTransformMatrix(mSTMatrix);
+
+            GLES20.glUniformMatrix4fv(muMVPMatrixHandle, 1, false, mMVPMatrix, 0);
+            GLES20.glUniformMatrix4fv(muSTMatrixHandle, 1, false, mSTMatrix, 0);
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, outputSurface.getTextureID());
+            GLES20.glUniform1f(muAlphaHandle, mOutputSurfaces.get(textureIndex).getAlpha());
+            GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+            checkGlError("glDrawArrays");
+        }
+
+        GLES20.glDisable(GLES20.GL_BLEND);
         GLES20.glFinish();
+
+        for (int textureIndex = 0; textureIndex < mOutputSurfaces.size(); ++textureIndex) {
+            mOutputSurfaces.get(textureIndex).clearTextureReady();
+        }
     }
     /**
      * Initializes GL state.  Call this after the EGL surface has been created and made current.
@@ -136,37 +202,36 @@ class TextureRender {
         if (muSTMatrixHandle == -1) {
             throw new RuntimeException("Could not get attrib location for uSTMatrix");
         }
-        int[] textures = new int[1];
-        GLES20.glGenTextures(1, textures, 0);
-        mTextureID = textures[0];
-        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mTextureID);
-        checkGlError("glBindTexture mTextureID");
-        GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER,
-                GLES20.GL_LINEAR);
-        GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER,
-                GLES20.GL_LINEAR);
-        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S,
-                GLES20.GL_CLAMP_TO_EDGE);
-        GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T,
-                GLES20.GL_CLAMP_TO_EDGE);
-        checkGlError("glTexParameter");
-    }
-    /**
-     * Replaces the fragment shader.
-     */
-    public void changeFragmentShader(String fragmentShader) {
-        throw new UnsupportedOperationException("Not implemented");
+        muAlphaHandle = GLES20.glGetUniformLocation(mProgram, "uAlpha");
+
+        for (int textureIndex = 0; textureIndex < mOutputSurfaces.size(); ++textureIndex) {
+
+            OutputSurface outputSurface = mOutputSurfaces.get(textureIndex);
+
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+            GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, outputSurface.getTextureID());
+            GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER,
+                    GLES20.GL_LINEAR);
+            GLES20.glTexParameterf(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MAG_FILTER,
+                    GLES20.GL_LINEAR);
+            GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_S,
+                    GLES20.GL_CLAMP_TO_EDGE);
+            GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_WRAP_T,
+                    GLES20.GL_CLAMP_TO_EDGE);
+            checkGlError("glTexParameter");
+        }
     }
     private int loadShader(int shaderType, String source) {
         int shader = GLES20.glCreateShader(shaderType);
         checkGlError("glCreateShader type=" + shaderType);
+        GLES20.glClearColor(0,0,0, 1);
         GLES20.glShaderSource(shader, source);
         GLES20.glCompileShader(shader);
         int[] compiled = new int[1];
         GLES20.glGetShaderiv(shader, GLES20.GL_COMPILE_STATUS, compiled, 0);
         if (compiled[0] == 0) {
-            Log.e(TAG, "Could not compile shader " + shaderType + ":");
-            Log.e(TAG, " " + GLES20.glGetShaderInfoLog(shader));
+            TLog.e(TAG, "Could not compile shader " + shaderType + ":");
+            TLog.e(TAG, " " + GLES20.glGetShaderInfoLog(shader));
             GLES20.glDeleteShader(shader);
             shader = 0;
         }
@@ -184,7 +249,7 @@ class TextureRender {
         int program = GLES20.glCreateProgram();
         checkGlError("glCreateProgram");
         if (program == 0) {
-            Log.e(TAG, "Could not create program");
+            TLog.e(TAG, "Could not create program");
         }
         GLES20.glAttachShader(program, vertexShader);
         checkGlError("glAttachShader");
@@ -194,8 +259,8 @@ class TextureRender {
         int[] linkStatus = new int[1];
         GLES20.glGetProgramiv(program, GLES20.GL_LINK_STATUS, linkStatus, 0);
         if (linkStatus[0] != GLES20.GL_TRUE) {
-            Log.e(TAG, "Could not link program: ");
-            Log.e(TAG, GLES20.glGetProgramInfoLog(program));
+            TLog.e(TAG, "Could not link program: ");
+            TLog.e(TAG, GLES20.glGetProgramInfoLog(program));
             GLES20.glDeleteProgram(program);
             program = 0;
         }
@@ -204,7 +269,7 @@ class TextureRender {
     public void checkGlError(String op) {
         int error;
         while ((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR) {
-            Log.e(TAG, op + ": glError " + error);
+            TLog.e(TAG, op + ": glError " + error);
             throw new RuntimeException(op + ": glError " + error);
         }
     }
