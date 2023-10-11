@@ -11,9 +11,6 @@ export function navigatingTo(args: EventData) {
   page.bindingContext = new DemoModel();
 }
 
-// TODO: everything works
-// just need to restart the app completely on every session or it'll crash [IMPORTANT]
-
 export class DemoModel extends DemoSharedNativescriptTranscoder {
   pickedFile: File | undefined = undefined;
   transcoder: NativescriptTranscoder;
@@ -116,21 +113,24 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
               frameRate: frameRate || 30,
             }
       )
-      .then(() => {
+      .then(transcodedFile => {
         const timeTaken = (new Date().getTime() - timeStarted) / 1000;
         progressBar.value = 100;
         console.log('[PROCCESSING COMPLETED]');
-        const tempFile = File.fromPath(tempPath);
-        console.log('[Original Size]', this.formatBytes(this.pickedFile.size));
-        console.log('[Transcoded Size]', this.formatBytes(tempFile.size));
-        console.log('[Percentage Reduced]', `${(((this.pickedFile.size - tempFile.size) / this.pickedFile.size) * 100).toFixed(2)}%`);
+        console.log('[Original Size]', this.transcoder.getVideoSizeString(this.pickedFile.path));
+        const originalResolution = this.transcoder.getVideoResolution(this.pickedFile.path);
+        console.log('[Original Resolution]', `${originalResolution.width}x${originalResolution.height}`);
+        console.log('[Transcoded Size]', this.transcoder.getVideoSizeString(transcodedFile.path));
+        console.log('[Percentage Reduced]', `${(((this.pickedFile.size - transcodedFile.size) / this.pickedFile.size) * 100).toFixed(2)}%`);
+        const resolution = this.transcoder.getVideoResolution(tempPath);
+        console.log('[Transcoded Resolution]', `${resolution.width}x${resolution.height}`);
         console.log('[Time Taken]', `${timeTaken} seconds`);
         video.visibility = 'visible';
         video.opacity = 1;
         video.src = tempPath;
         video.loop = false;
         outputDetailsLabel.visibility = 'visible';
-        outputDetailsLabel.text = `Output Size: ${this.formatBytes(tempFile.size)}`;
+        outputDetailsLabel.text = `Output Size: ${this.transcoder.getVideoSizeString(transcodedFile.path)}`;
         outputDetailsLabel.textWrap = true;
         outputDetailsLabel.fontSize = 16;
         outputDetailsLabel.color = new Color('#ffffff');
@@ -142,17 +142,5 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
         outputDetailsLabel.fontSize = 16;
         outputDetailsLabel.color = new Color('#C70300');
       });
-  }
-
-  private formatBytes(bytes: number, decimals = 2): string {
-    if (!bytes) return '0 Bytes';
-
-    const k = 1024;
-    const dm = decimals < 0 ? 0 : decimals;
-    const sizes = ['Bytes', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'];
-
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
   }
 }

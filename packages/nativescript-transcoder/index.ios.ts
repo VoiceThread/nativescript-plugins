@@ -1,4 +1,5 @@
-import { NativescriptTranscoderCommon, Asset, Segment, Track, VideoConfig } from './common';
+import { File } from '@nativescript/core';
+import { NativescriptTranscoderCommon, Asset, Segment, Track, VideoConfig, VideoResolution } from './common';
 
 export interface AssetInternal extends Asset {
   avAsset: AVURLAsset | undefined;
@@ -20,7 +21,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
   segments: Segment[] = [];
   private _videoConfig: VideoConfig;
 
-  transcode(inputPath: string, outputPath: string, videoConfig: VideoConfig): Promise<void> {
+  transcode(inputPath: string, outputPath: string, videoConfig: VideoConfig): Promise<File> {
     this.reset();
     const assetInputName = 'input';
     this.addAsset({
@@ -31,7 +32,9 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
     this.addSegment({
       tracks: [{ asset: assetInputName }],
     });
-    return this.process(outputPath, videoConfig);
+    return this.process(outputPath, videoConfig).then(() => {
+      return File.fromPath(outputPath);
+    });
   }
 
   addAsset(asset: Asset) {
@@ -186,7 +189,6 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
                 videoTrack = videoTracks[videoTrackIndex];
               }
               // Add the input asset to the video track
-              // TODO: this has a different signature (error is not part of the call)
               const audioVideoSuccess = videoTrack.insertTimeRangeOfTrackAtTimeError(trackTimeRange, asset.videoTrack, outputPosition);
               this.log(`[process] Adding Track: ${videoTrack.trackID}`);
               if (!audioVideoSuccess) {
@@ -291,7 +293,6 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
         this.log('[process] Looping through composition instruction');
         if (layeredSegementsIndex >= instructionSegments.count) {
           this.log('[process] Composition has extra instructions that are being ignored');
-          // TODO: make sure this doesn't short circuit the whole thing
           continue;
         }
         const compositionInstruction = videoComposition.instructions[instructionIndex] as AVMutableVideoCompositionInstruction;
@@ -328,10 +329,6 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
 
           let ir: CMTimeRange;
           layerInstruction.getTransformRampForTimeStartTransformEndTransformTimeRange(transitionRange.start, null, null, null);
-          // TODO: ir isn't correct
-          // layerInstruction.getTransformRampForTimeStartTransformEndTransformTimeRange(transitionRange.start, null, null, ir)
-          //   CMTimeRange ir;
-          //   [layerInstruction getTransformRampForTime:transitionRange.start startTransform:NULL endTransform:NULL timeRange:&ir];
 
           const segmentTracks = segment.tracks;
           const currentTrack = segmentTracks.find(track => track.id === trackID);
@@ -456,6 +453,24 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
     }
     return NSURL.fileURLWithPath(filePath);
   }
+
+  // utilities
+  getVideoResolution(videoPath: string): VideoResolution {
+    const filePath = NSURL.fileURLWithPath(videoPath);
+    const avAsset = AVURLAsset.assetWithURL(filePath);
+    const track = avAsset.tracksWithMediaType(AVMediaTypeVideo).firstObject;
+    if (!track) {
+      return {
+        width: 0,
+        height: 0,
+      };
+    }
+    const size = track.naturalSize;
+    return {
+      width: size.width,
+      height: size.height,
+    };
+  }
 }
 
 class NSAVAssetExportSession {
@@ -530,8 +545,6 @@ class NSAVAssetExportSession {
 
     const videoTracks = this._asset.tracksWithMediaType(AVMediaTypeVideo);
 
-    // TODO: find equivalent in NS
-    // if (CMTIME_IS_VALID(this.timeRange.duration) && !CMTIME_IS_POSITIVE_INFINITY(this.timeRange.duration))
     if (this.timeRange.duration) {
       this._duration = CMTimeGetSeconds(this.timeRange.duration);
     } else {

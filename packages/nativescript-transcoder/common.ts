@@ -1,4 +1,4 @@
-import { EventData, Observable } from '@nativescript/core';
+import { EventData, File, Observable } from '@nativescript/core';
 
 export class NativescriptTranscoderCommon extends Observable {
   private _logLevel: LogLevel = 'none';
@@ -22,6 +22,28 @@ export class NativescriptTranscoderCommon extends Observable {
   public static TRANSCODING_COMPLETE = 'transcoding-complete';
   public static TRANSCODING_ERROR = 'transcoding-error';
   public static TRANSCODING_CANCELLED = 'transcoding-cancelled';
+
+  // utilities
+  getVideoSize(videoPath: string): number {
+    const file = File.fromPath(videoPath);
+    return file?.size || 0;
+  }
+  getVideoSizeString(videoPath: string): string {
+    const fileSize = this.getVideoSize(videoPath);
+    return this.formatBytes(fileSize);
+  }
+
+  private formatBytes(bytes: number, decimals = 2): string {
+    if (!bytes) return '0 Bytes';
+
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'];
+
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+  }
 }
 
 export type LogLevel = 'none' | 'verbose';
@@ -56,3 +78,8 @@ export interface Track {
 }
 
 export type MessageData = EventData & { data: { progress?: number } };
+
+export interface VideoResolution {
+  width: number;
+  height: number;
+}

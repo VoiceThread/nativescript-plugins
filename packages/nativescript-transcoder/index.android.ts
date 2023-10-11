@@ -1,7 +1,8 @@
-import { NativescriptTranscoderCommon, VideoConfig } from './common';
+import { File } from '@nativescript/core';
+import { NativescriptTranscoderCommon, VideoConfig, VideoResolution } from './common';
 
 export class NativescriptTranscoder extends NativescriptTranscoderCommon {
-  transcode(inputPath: string, outputPath: string, videoConfig: VideoConfig): Promise<void> {
+  transcode(inputPath: string, outputPath: string, videoConfig: VideoConfig): Promise<File> {
     return new Promise((resolve, reject) => {
       const emit = (event: string, data: any) => {
         this.notify({ eventName: event, object: this, data });
@@ -12,21 +13,21 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
 
       const listener = new net.ypresto.androidtranscoder.MediaTranscoder.Listener({
         onTranscodeProgress: (progress: number) => {
-          this.log('[Transcoder] Progress', progress);
+          this.log('[transcode] Progress', progress);
           emit(NativescriptTranscoderCommon.TRANSCODING_PROGRESS, { progress });
         },
         onTranscodeCompleted: () => {
-          this.log('[Transcoder] Completed');
+          this.log('[transcode] Completed');
           emit(NativescriptTranscoderCommon.TRANSCODING_COMPLETE, {});
-          resolve();
+          resolve(File.fromPath(outputPath));
         },
         onTranscodeCanceled: () => {
-          this.log('[Transcoder] Cancelled');
+          this.log('[transcode] Cancelled');
           emit(NativescriptTranscoderCommon.TRANSCODING_CANCELLED, {});
           reject('canceled');
         },
         onTranscodeFailed: (exception: any) => {
-          this.log('[Transcoder] Failed', exception);
+          this.log('[transcode] Failed', exception);
           emit(NativescriptTranscoderCommon.TRANSCODING_ERROR, {});
           reject(exception);
         },
@@ -56,5 +57,15 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
       const timeline = new net.ypresto.androidtranscoder.engine.TimeLine().addChannel('A', parcelFileDescriptor.getFileDescriptor()).createSegment().output('A').timeLine();
       net.ypresto.androidtranscoder.MediaTranscoder.getInstance().transcodeVideo(timeline, outputPath, strategy, listener); //.get();
     });
+  }
+
+  // utilities
+  getVideoResolution(videoPath: string): VideoResolution {
+    const metaRetriever = new android.media.MediaMetadataRetriever();
+    metaRetriever.setDataSource(videoPath);
+    return {
+      width: +metaRetriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH),
+      height: +metaRetriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT),
+    };
   }
 }
