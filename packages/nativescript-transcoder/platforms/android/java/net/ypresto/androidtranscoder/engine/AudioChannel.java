@@ -155,13 +155,16 @@ class AudioChannel {
         mInputChannelCount = mActualDecodedFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
         mOutputChannelCount = mEncodeFormat.getInteger(MediaFormat.KEY_CHANNEL_COUNT);
 
-        if (mInputChannelCount != 1 && mInputChannelCount != 2) {
-            throw new UnsupportedOperationException("Input channel count (" + mInputChannelCount + ") not supported.");
-        }
+        // skip checks for audio channel count
+        // if (mInputChannelCount != 1 && mInputChannelCount != 2) {
+        // throw new UnsupportedOperationException("Input channel count (" +
+        // mInputChannelCount + ") not supported.");
+        // }
 
-        if (mOutputChannelCount != 1 && mOutputChannelCount != 2) {
-            throw new UnsupportedOperationException("Output channel count (" + mOutputChannelCount + ") not supported.");
-        }
+        // if (mOutputChannelCount != 1 && mOutputChannelCount != 2) {
+        // throw new UnsupportedOperationException(
+        // "Output channel count (" + mOutputChannelCount + ") not supported.");
+        // }
 
         if (mInputChannelCount > mOutputChannelCount) {
             mRemixer = AudioRemixer.DOWNMIX;
