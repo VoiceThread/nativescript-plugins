@@ -1,4 +1,5 @@
-import { Observable, Frame } from '@nativescript/core';
+import { Observable, Frame, alert } from '@nativescript/core';
+import { checkMultiple, check as checkPermission, request } from '@nativescript-community/perms';
 
 export class MainViewModel extends Observable {
   viewCustomRotors() {
@@ -29,9 +30,59 @@ export class MainViewModel extends Observable {
       moduleName: 'plugin-demos/nativescript-audio-recorder',
     });
   }
-  viewCamera() {
-    Frame.topmost().navigate({
-      moduleName: 'plugin-demos/nativescript-camera',
-    });
+  async viewCamera() {
+    //check for permissions first before routing
+    try {
+      await checkPermission('camera').then(async permres => {
+        console.log('checked permission', permres);
+        if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
+          console.log('requesting permission to camera');
+          await request('camera').then(async result => {
+            console.log('request result', result);
+            if (result[0] == 'authorized') {
+              // if (!this.cam) {
+              // this.cam = new CameraPlus();
+              // Frame.topmost().navigate({
+              //   moduleName: 'plugin-demos/nativescript-camera',
+              // });
+              // this.cam.visibility = 'visible';
+              // }
+              // this.cam.takePicture({ saveToGallery: true });
+            } else {
+              alert('No permission for camera, cannot open camera demo!');
+              return;
+            }
+          });
+        } else alert('No permission for camera! Grant this permission in app settings first');
+      });
+    } catch (err) {
+      console.error(err);
+    }
+    try {
+      await checkPermission('micriphone').then(async permres => {
+        console.log('checked permission', permres);
+        if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
+          console.log('requesting permission to micriphone');
+          await request('micriphone').then(async result => {
+            console.log('request result', result);
+            if (result[0] == 'authorized') {
+              // if (!this.cam) {
+              // this.cam = new CameraPlus();
+              Frame.topmost().navigate({
+                moduleName: 'plugin-demos/nativescript-camera',
+              });
+              // this.cam.visibility = 'visible';
+              // }
+              // this.cam.takePicture({ saveToGallery: true });
+            } else alert('No permission for micriphone, cannot open camera demo!');
+          });
+        } else alert('No permission for micriphone! Grant this permission in app settings first');
+      });
+    } catch (err) {
+      console.error(err);
+    }
+    // Frame.topmost().navigate({
+    //   moduleName: 'plugin-demos/nativescript-camera',
+    // });
   }
 }

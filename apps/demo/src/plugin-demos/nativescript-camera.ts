@@ -12,27 +12,27 @@ export function navigatingTo(args: EventData) {
 export async function onLoaded(args) {
   // page.on('loaded', async args => {
   console.log('page loaded');
-  try {
-    await checkPermission('camera').then(async permres => {
-      console.log('checked permission', permres);
-      if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
-        console.log('requesting permission to camera');
-        await request('camera').then(async result => {
-          console.log('request result', result);
-          if (result[0] == 'authorized') {
-            // if (!this.cam) {
-            // this.cam = new CameraPlus();
-            this.cam = args.object.getViewById('camPlus') as CameraPlus;
-            // this.cam.visibility = 'visible';
-            // }
-            // this.cam.takePicture({ saveToGallery: true });
-          } else alert('No permission for camera, cannot take a photo!');
-        });
-      } else alert('No permission for camera! Grant this permission in app settings first');
-    });
-  } catch (err) {
-    console.error(err);
-  }
+  // try {
+  //   await checkPermission('camera').then(async permres => {
+  //     console.log('checked permission', permres);
+  //     if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
+  //       console.log('requesting permission to camera');
+  //       await request('camera').then(async result => {
+  //         console.log('request result', result);
+  //         if (result[0] == 'authorized') {
+  //           // if (!this.cam) {
+  //           // this.cam = new CameraPlus();
+  //           this.cam = args.object.getViewById('camPlus') as CameraPlus;
+  //           // this.cam.visibility = 'visible';
+  //           // }
+  //           // this.cam.takePicture({ saveToGallery: true });
+  //         } else alert('No permission for camera, cannot take a photo!');
+  //       });
+  //     } else alert('No permission for camera! Grant this permission in app settings first');
+  //   });
+  // } catch (err) {
+  //   console.error(err);
+  // }
   // });
 }
 
