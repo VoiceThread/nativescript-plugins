@@ -114,6 +114,8 @@ export class MySwifty extends SwiftyCamViewController {
   private _imageConfirmBg: UIView;
   private _flashEnabled: boolean;
   private _flashBtn: UIButton;
+  private _cameraBtn: ASCameraButton;
+  private _blurView: UIView;
   public _swiftyDelegate: any;
   // private _pickerDelegate: any;
   private _resized: boolean;
@@ -167,6 +169,80 @@ export class MySwifty extends SwiftyCamViewController {
     this._swiftyDelegate = <any>SwiftyDelegate.initWithOwner(new WeakRef(this));
     this.cameraDelegate = this._swiftyDelegate;
     CLog('this.cameraDelegate:', this.cameraDelegate);
+
+    this._cameraBtn = ASCameraButton.alloc().init();
+    //register tap handlers
+    // this.register(this._cameraBtn)
+    this._cameraBtn.translatesAutoresizingMaskIntoConstraints = false;
+
+    // this._cameraBtn.longPressGestureRecognizer?.addTarget(self, action: #selector(handleLongPress(_:)))
+    // this._cameraBtn.longPressGestureRecognizer?.addTargetAction(this, 'handleLongPress');
+    // view.addSubview(captureButton)
+
+    CLog('this._cameraBtn:', this._cameraBtn);
+
+    let widthRule = this._cameraBtn.widthAnchor.constraintEqualToConstant(20);
+    widthRule.active = true;
+    // this._cameraBtn.addConstraint(this._cameraBtn.widthAnchor.constraintEqualToConstant(20));
+    console.log('Added widthAnchor');
+    let heightRule = this._cameraBtn.heightAnchor.constraintEqualToConstant(20);
+    heightRule.active = true;
+    // this._cameraBtn.addConstraint(this._cameraBtn.heightAnchor.constraintEqualToConstant(20));
+    console.log('Added heightAnchor');
+
+    this.view.addSubview(this._cameraBtn);
+    this.view.bringSubviewToFront(this._cameraBtn);
+    console.log('drawing button');
+
+    let centerRule = this._cameraBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor);
+    centerRule.active = true;
+
+    // let bottomRule = this._cameraBtn.bottomAnchor.constraintEqualToAnchor(this.view.bottomAnchor);
+    let bottomRule = this._cameraBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.safeAreaLayoutGuide.bottomAnchor, -40);
+    bottomRule.active = true;
+    let blurEffect = UIBlurEffect.effectWithStyle(UIBlurEffectStyle.Dark);
+    // this._blurView = UIVisualEffectView(effect: blurEffect)
+    this._blurView = new UIVisualEffectView({ effect: blurEffect });
+    this._blurView.frame = this.view.bounds;
+    this._blurView.alpha = 0;
+    this.view.addSubview(this._blurView);
+    this.view.addSubview(this._cameraBtn);
+    this.view.bringSubviewToFront(this._cameraBtn);
+    // this._cameraBtn.changeToSquare();
+    // this.register(this._cameraBtn)
+
+    // this._cameraBtn = CameraButton.alloc().init();
+    // //register tap handlers
+    // // this.register(this._cameraBtn)
+    // this._cameraBtn.translatesAutoresizingMaskIntoConstraints = false;
+
+    // // this._cameraBtn.longPressGestureRecognizer?.addTarget(self, action: #selector(handleLongPress(_:)))
+    // this._cameraBtn.longPressGestureRecognizer?.addTargetAction(this, 'handleLongPress');
+    // // view.addSubview(captureButton)
+    // this.view.addSubview(this._cameraBtn);
+    // CLog('this._cameraBtn:', this._cameraBtn);
+    // // this._cameraBtn.centerXAnchor.constraint(equalTo: view.centerXAnchor, constant: 0).isActive = true
+    // this._cameraBtn.centerXAnchor.constraintEqualToAnchorConstant(this.view.centerXAnchor, 0);
+    // // this._cameraBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.safeAreaLayoutGuide.bottomAnchor, -40);
+    // this._cameraBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.bottomAnchor, 0);
+    // this._cameraBtn.widthAnchor.constraintEqualToConstant(40);
+    // this._cameraBtn.heightAnchor.constraintEqualToConstant(40);
+
+    // //this._cameraBtn.bottomAnchor.constraint(
+    // //      equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40).isActive = true
+    // // this._cameraBtn.widthAnchor.constraint(equalToConstant: 40).isActive = true
+    // // this._cameraBtn.heightAnchor.constraint(equalTo: this._cameraBtn.widthAnchor).isActive = true
+
+    // let blurEffect = UIBlurEffect.effectWithStyle(UIBlurEffectStyle.Dark);
+    // // this._blurView = UIVisualEffectView(effect: blurEffect)
+    // this._blurView = new UIVisualEffectView({ effect: blurEffect });
+    // this._blurView.frame = this.view.bounds;
+    // this._blurView.alpha = 0;
+    // this.view.addSubview(this._blurView);
+
+    // this.view.bringSubviewToFront(this._cameraBtn);
+    // this._cameraBtn.changeToSquare();
+    console.log('done with viewDidLoad');
   }
 
   doLayout() {
@@ -180,6 +256,7 @@ export class MySwifty extends SwiftyCamViewController {
   viewDidLayoutSubviews() {
     CLog('MySwifty viewDidLayoutSubviews');
     super.viewDidLayoutSubviews();
+    // this.drawButton();
   }
 
   viewDidAppear(animated: boolean) {
@@ -200,6 +277,8 @@ export class MySwifty extends SwiftyCamViewController {
       this.previewLayer.videoPreviewLayer.connection.videoOrientation = this.getPreviewLayerOrientation();
     }
   }
+
+  // public drawButton() {}
 
   public resize(width?: any, height?: any) {
     if (typeof width !== 'number') {
@@ -460,17 +539,55 @@ export class MySwifty extends SwiftyCamViewController {
     }
 
     this._flashBtnHandler();
+    /*
+    this._cameraBtn = ASCameraButton.alloc().init();
+    this._cameraBtn.translatesAutoresizingMaskIntoConstraints = false;
+    CLog('this._cameraBtn:', this._cameraBtn);
+    let widthRule = this._cameraBtn.widthAnchor.constraintEqualToConstant(20);
+    widthRule.active = true;
+    console.log('Added widthAnchor');
+    let heightRule = this._cameraBtn.heightAnchor.constraintEqualToConstant(20);
+    heightRule.active = true;
+    console.log('Added heightAnchor');
 
-    if (this._owner.get().showCaptureIcon) {
-      CLog('adding showCaptureIcon...');
-      const heightOffset = this._owner.get().isIPhoneX ? 200 : 110;
-      const picOutline = createButton(this, CGRectMake(width / 2 - 20, height - heightOffset, 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('picOutline'));
-      picOutline.transform = CGAffineTransformMakeScale(1.5, 1.5);
-      this.view.addSubview(picOutline);
-      const takePicBtn = createButton(this, CGRectMake(width / 2 - 21.5, height - (heightOffset + 0.7), 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('takePic'));
-      // takePicBtn.transform = CGAffineTransformMakeScale(1.5, 1.5);
-      this.view.addSubview(takePicBtn);
-    }
+    // this._cameraBtn.centerXAnchor.constraint(equalTo: view.centerXAnchor, constant: 0).isActive = true
+    // this._cameraBtn.addConstraint(this._cameraBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor));
+    // console.log('Added centerXAnchor');
+    // let centerRule = this._cameraBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor);
+    // centerRule.active = true;
+    // this._cameraBtn.addConstraint(this._cameraBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.safeAreaLayoutGuide.bottomAnchor, -40));
+    // console.log('Added bottomAnchor');
+
+    // this._cameraBtn.addConstraint(this._cameraBtn.heightAnchor.constraintEqualToAnchor(this._cameraBtn.widthAnchor.));
+    //this._cameraBtn.bottomAnchor.constraint(
+    //      equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40).isActive = true
+    // this._cameraBtn.widthAnchor.constraint(equalToConstant: 40).isActive = true
+    // this._cameraBtn.heightAnchor.constraint(equalTo: this._cameraBtn.widthAnchor).isActive = true
+
+    let blurEffect = UIBlurEffect.effectWithStyle(UIBlurEffectStyle.Dark);
+    // this._blurView = UIVisualEffectView(effect: blurEffect)
+    this._blurView = new UIVisualEffectView({ effect: blurEffect });
+    this._blurView.frame = this.view.bounds;
+    this._blurView.alpha = 0;
+    this.view.addSubview(this._blurView);
+    this.view.addSubview(this._cameraBtn);
+    this.view.bringSubviewToFront(this._cameraBtn);
+    console.log('drawing button');
+    // this._cameraBtn.drawButton();
+    // this._cameraBtn.changeToSquare();
+    // this._cameraBtn.layoutIfNeeded();
+    */
+    // CLog('this._cameraBtn done with init');
+    // if (this._owner.get().showCaptureIcon) {
+    //   CLog('adding showCaptureIcon...');
+    //   const heightOffset = this._owner.get().isIPhoneX ? 200 : 110;
+    //   const picOutline = createButton(this, CGRectMake(width / 2 - 20, height - heightOffset, 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('picOutline'));
+    //   picOutline.transform = CGAffineTransformMakeScale(1.5, 1.5);
+    //   this.view.addSubview(picOutline);
+    //   const takePicBtn = createButton(this, CGRectMake(width / 2 - 21.5, height - (heightOffset + 0.7), 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('takePic'));
+    //   // takePicBtn.transform = CGAffineTransformMakeScale(1.5, 1.5);
+    //   this.view.addSubview(takePicBtn);
+    // }
   }
 
   private _flashBtnHandler() {

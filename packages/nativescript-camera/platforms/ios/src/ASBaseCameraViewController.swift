@@ -125,7 +125,7 @@ public typealias ASCameraLocation = AVCaptureDevice.Position
     if #available(iOS 11.1, *) {
       self.addSystemObervers()
     } else {
-      print("[msCamera]: iOS 11.1+ required for observers")
+      NSLog("[msCamera]: iOS 11.1+ required for observers")
     }
 
     self.sessionPrimaryQueue.setSpecific(key: self.sessionPrimaryQueueSpecificKey, value: ())
@@ -152,7 +152,7 @@ extension ASBaseCameraViewController {
   private func configureSessionQuality() {
     let preset = self.videoQuality
     guard self.session.canSetSessionPreset(preset) else {
-      print(
+      NSLog(
         "[ASCamera]: Error could not set session preset to \(preset), which enables custom video quality control. Defaulting to \(session.sessionPreset)"
       )
       return
@@ -165,7 +165,7 @@ extension ASBaseCameraViewController {
   /// Todo: Make this functionality optional.
   private func configureFrameRate(toframeRate: Int? = nil) {
     guard let videoDevice = captureDevice else {
-      print("[ASCamera]: Cannot configure frame rate. Reason: Capture Device is nil")
+      NSLog("[ASCamera]: Cannot configure frame rate. Reason: Capture Device is nil")
       return
     }
 
@@ -190,12 +190,12 @@ extension ASBaseCameraViewController {
     }
 
     if desiredFrameRate > maxFrameRate {
-      print(
+      NSLog(
         "[ASCamera]: Desired frame rate is higher than supported frame rates. setting to \(maxFrameRate) instead."
       )
       frameRate = maxFrameRate
     } else if desiredFrameRate < minFrameRate {
-      print(
+      NSLog(
         "[ASCamera]: Desired frame rate is lower than supported frame rates. setting to \(minFrameRate) instead."
       )
       frameRate = minFrameRate
@@ -215,7 +215,7 @@ extension ASBaseCameraViewController {
 
       self.frameRate = frameRate
     } catch {
-      print("[ASCamera]: Could not lock device for configuration: \(error)")
+      NSLog("[ASCamera]: Could not lock device for configuration: \(error)")
     }
   }
 
@@ -230,11 +230,11 @@ extension ASBaseCameraViewController {
       self.addSystemObervers()
     } else {
       // Fallback on earlier versions
-      print("[msCamera]: iOS 11.1+ required for observers")
+      NSLog("[msCamera]: iOS 11.1+ required for observers")
     }
 
     guard let videoDevice = self.captureDevice else {
-      print("[ASCamera]: Could not add video device input to the session")
+      NSLog("[ASCamera]: Could not add video device input to the session")
       return
     }
 
@@ -244,10 +244,10 @@ extension ASBaseCameraViewController {
         self.session.addInput(videoDeviceInput)
         self.videoInput = videoDeviceInput
       } else {
-        print("[ASCamera]: Could not add video device input to the session")
+        NSLog("[ASCamera]: Could not add video device input to the session")
       }
     } catch {
-      print("[ASCamera]: Could not create video device input: \(error)")
+      NSLog("[ASCamera]: Could not create video device input: \(error)")
     }
   }
 
@@ -269,7 +269,7 @@ extension ASBaseCameraViewController {
 
   private func addAudioInput() {
     guard let audioDevice = AVCaptureDevice.default(for: AVMediaType.audio) else {
-      print("[ASCamera]: Could not add audio device input to the session")
+      NSLog("[ASCamera]: Could not add audio device input to the session")
       return
     }
     do {
@@ -278,10 +278,10 @@ extension ASBaseCameraViewController {
         self.session.addInput(audioDeviceInput)
         self.audioInput = audioDeviceInput
       } else {
-        print("[ASCamera]: Could not add audio device input to the session")
+        NSLog("[ASCamera]: Could not add audio device input to the session")
       }
     } catch {
-      print("[ASCamera]: Could not create audio device input: \(error)")
+      NSLog("[ASCamera]: Could not create audio device input: \(error)")
     }
   }
 
@@ -327,7 +327,7 @@ extension ASBaseCameraViewController {
       try audioSession.setActive(true)
 
     } catch {
-      print("[ASCamera]: Failed to set background audio preference \(error.localizedDescription)")
+      NSLog("[ASCamera]: Failed to set background audio preference \(error.localizedDescription)")
     }
   }
 }
@@ -392,7 +392,7 @@ extension ASBaseCameraViewController {
           try self.assetWriter ?? AVAssetWriter(outputURL: outputFileUrl, fileType: fileType)
         self.assetWriter = assetWriter
       } catch {
-        print("[ASCamera]: error setting up avassetwrtter: \(error)")
+        NSLog("[ASCamera]: error setting up avassetwrtter: \(error)")
         return
       }
 
@@ -420,7 +420,7 @@ extension ASBaseCameraViewController {
       if assetWriter.canAdd(assetWriterVideoInput) {
         assetWriter.add(assetWriterVideoInput)
       } else {
-        print("[ASCamera]: Could not add VideoWriterInput to VideoWriter")
+        NSLog("[ASCamera]: Could not add VideoWriterInput to VideoWriter")
       }
 
       self.assetWriterVideoInput = assetWriterVideoInput
@@ -437,7 +437,7 @@ extension ASBaseCameraViewController {
         if assetWriter.canAdd(assetWriterAudioInput) {
           assetWriter.add(assetWriterAudioInput)
         } else {
-          print("[ASCamera]: Could not add AudioWriterInput to VideoWriter")
+          NSLog("[ASCamera]: Could not add AudioWriterInput to VideoWriter")
         }
         self.assetWriterAudioInput = assetWriterAudioInput
       }
@@ -592,7 +592,7 @@ extension ASBaseCameraViewController {
         self.captureDevice?.videoZoomFactor = zoomScale
         self.captureDevice?.unlockForConfiguration()
       } catch {
-        print("[ASCamera]: Error locking configuration")
+        NSLog("[ASCamera]: Error locking configuration")
       }
 
       self.isSwitchingCameras = false
@@ -677,7 +677,7 @@ extension ASBaseCameraViewController: AVCaptureVideoDataOutputSampleBufferDelega
     from connection: AVCaptureConnection
   ) {
 
-    print("[ASCamera]: Dropped \(output == self.audioOutput ? "audio" : "video") Frame")
+    NSLog("[ASCamera]: Dropped \(output == self.audioOutput ? "audio" : "video") Frame")
   }
 
   public func captureOutput(
@@ -795,7 +795,7 @@ extension ASBaseCameraViewController: AVCaptureVideoDataOutputSampleBufferDelega
   private func handlePhotoCapture(_ sampleBuffer: CMSampleBuffer) {
     let isDataReady = CMSampleBufferDataIsReady(sampleBuffer)
     guard isDataReady else {
-      print("[ASCamera]: SampleBuffer was not ready")
+      NSLog("[ASCamera]: SampleBuffer was not ready")
       return
     }
 
@@ -1071,16 +1071,16 @@ extension ASBaseCameraViewController {
       switch pressureLevel {
       case .serious, .critical:
         if self.isRecording {
-          print(
+          NSLog(
             "[ASCamera]: Reached elevated system pressure level: \(pressureLevel). Throttling frame rate."
           )
           self.configureFrameRate(toframeRate: 20)
         }
       case .shutdown:
-        print("[ASCamera]: Session stopped running due to shutdown system pressure level.")
+        NSLog("[ASCamera]: Session stopped running due to shutdown system pressure level.")
       default:
         if self.isRecording {
-          print(
+          NSLog(
             "[ASCamera]: Reached normal system pressure level: \(pressureLevel). Resetting frame rate."
           )
           self.configureFrameRate()
@@ -1102,13 +1102,13 @@ extension ASBaseCameraViewController {
   }
 
   @objc open func handleSessionRuntimeError(_ notification: Notification) {
-    print("[ASCamera]: SessionRuntimeError: \(String(describing: notification.userInfo))")
+    NSLog("[ASCamera]: SessionRuntimeError: \(String(describing: notification.userInfo))")
     if let error = notification.userInfo?[AVCaptureSessionErrorKey] as? AVError {
       switch error.code {
       case .deviceIsNotAvailableInBackground:
-        print("Media services are not available in the background")
+        NSLog("Media services are not available in the background")
       case .mediaServicesWereReset:
-        print("Media services were reset")
+        NSLog("Media services were reset")
       //self.session.startRunning()
       default:
         break

@@ -520,10 +520,10 @@ import UIKit
      */
 
   @objc public func switchCamera() {
-    print("viewcontroller switchCamera()")
+    NSLog("viewcontroller switchCamera()")
     guard isVideoRecording != true else {
       // TODO: Look into switching camera during video recording
-      print("[SwiftyCam]: Switching between cameras while recording video is not supported")
+      NSLog("[SwiftyCam]: Switching between cameras while recording video is not supported")
       return
     }
 
@@ -565,7 +565,7 @@ import UIKit
   /// Configure session, add inputs and outputs
 
   fileprivate func configureSession() {
-    print("viewcontroller configureSession()")
+    NSLog("viewcontroller configureSession()")
     guard setupResult == .success else {
       return
     }
@@ -591,7 +591,7 @@ import UIKit
   /// Add inputs after changing camera()
 
   fileprivate func addInputs() {
-    print("viewcontroller addInputs()")
+    NSLog("viewcontroller addInputs()")
     session.beginConfiguration()
     configureVideoPreset()
     addVideoInput()
@@ -653,7 +653,7 @@ import UIKit
 
         device.unlockForConfiguration()
       } catch {
-        print("[SwiftyCam]: Error locking configuration")
+        NSLog("[SwiftyCam]: Error locking configuration")
       }
     }
 
@@ -664,14 +664,14 @@ import UIKit
         session.addInput(videoDeviceInput)
         self.videoDeviceInput = videoDeviceInput
       } else {
-        print("[SwiftyCam]: Could not add video device input to the session")
+        NSLog("[SwiftyCam]: Could not add video device input to the session")
         print(session.canSetSessionPreset(videoInputPresetFromVideoQuality(quality: videoQuality)))
         setupResult = .configurationFailed
         session.commitConfiguration()
         return
       }
     } catch {
-      print("[SwiftyCam]: Could not create video device input: \(error)")
+      NSLog("[SwiftyCam]: Could not create video device input: \(error)")
       setupResult = .configurationFailed
       return
     }
@@ -693,10 +693,10 @@ import UIKit
       if session.canAddInput(audioDeviceInput) {
         session.addInput(audioDeviceInput)
       } else {
-        print("[SwiftyCam]: Could not add audio device input to the session")
+        NSLog("[SwiftyCam]: Could not add audio device input to the session")
       }
     } catch {
-      print("[SwiftyCam]: Could not create audio device input: \(error)")
+      NSLog("[SwiftyCam]: Could not create audio device input: \(error)")
     }
   }
 
@@ -902,7 +902,7 @@ import UIKit
       if #available(iOS 9.0, *) {
         return AVCaptureSession.Preset.hd4K3840x2160
       } else {
-        print("[SwiftyCam]: Resolution 3840x2160 not supported")
+        NSLog("[SwiftyCam]: Resolution 3840x2160 not supported")
         return AVCaptureSession.Preset.high
       }
     }
@@ -927,7 +927,7 @@ import UIKit
       device.flashMode = mode
       device.unlockForConfiguration()
     } catch {
-      print("[SwiftyCam]: \(error)")
+      NSLog("[SwiftyCam]: \(error)")
     }
   }
 
@@ -968,12 +968,12 @@ import UIKit
             try device?.setTorchModeOn(level: 1.0)
             isCameraTorchOn = true
           } catch {
-            print("[SwiftyCam]: \(error)")
+            NSLog("[SwiftyCam]: \(error)")
           }
         }
         device?.unlockForConfiguration()
       } catch {
-        print("[SwiftyCam]: \(error)")
+        NSLog("[SwiftyCam]: \(error)")
       }
     }
   }
@@ -992,7 +992,7 @@ import UIKit
 
       session.automaticallyConfiguresApplicationAudioSession = false
     } catch {
-      print("[SwiftyCam]: Failed to set background audio preference")
+      NSLog("[SwiftyCam]: Failed to set background audio preference")
     }
   }
 }
@@ -1007,28 +1007,28 @@ import UIKit
   /// Set UITapGesture to take photo
 
   public func buttonWasTapped() {
-    print("cambutton buttonWasTapped")
+    NSLog("cambutton buttonWasTapped")
     takePhoto()
   }
 
   /// Set UILongPressGesture start to begin video
 
   public func buttonDidBeginLongPress() {
-    print("cambutton buttonDidBeginLongPress")
+    NSLog("cambutton buttonDidBeginLongPress")
     startVideoRecording()
   }
 
   /// Set UILongPressGesture begin to begin end video
 
   public func buttonDidEndLongPress() {
-    print("cambutton buttonDidEndLongPress")
+    NSLog("cambutton buttonDidEndLongPress")
     stopVideoRecording()
   }
 
   /// Called if maximum duration is reached
 
   public func longPressDidReachMaximumDuration() {
-    print("cambutton longPressDidReachMaximumDuration")
+    NSLog("cambutton longPressDidReachMaximumDuration")
     stopVideoRecording()
   }
 }
@@ -1040,7 +1040,7 @@ extension SwiftyCamViewController: AVCaptureFileOutputRecordingDelegate {
     _ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL,
     from connections: [AVCaptureConnection], error: Error?
   ) {
-    print("empty stub for fileOutput")
+    NSLog("empty stub for fileOutput")
   }
 
   /// Process newly captured video and write it to temporary directory
@@ -1057,7 +1057,7 @@ extension SwiftyCamViewController: AVCaptureFileOutputRecordingDelegate {
       }
     }
     if error != nil {
-      print("[SwiftyCam]: Movie file finishing error: \(String(describing: error))")
+      NSLog("[SwiftyCam]: Movie file finishing error: \(String(describing: error))")
     } else {
       // Call delegate function with the URL of the outputfile
       DispatchQueue.main.async {
@@ -1073,10 +1073,10 @@ extension SwiftyCamViewController {
   /// Handle pinch gesture
 
   @objc fileprivate func zoomGesture(pinch: UIPinchGestureRecognizer) {
-    print("view zoomGesture")
+    NSLog("view zoomGesture")
     guard pinchToZoom == true, currentCamera == .rear else {
       // ignore pinch
-      print("back camera or option disabled, ignoring")
+      NSLog("back camera or option disabled, ignoring")
       return
     }
     do {
@@ -1097,7 +1097,7 @@ extension SwiftyCamViewController {
       captureDevice?.unlockForConfiguration()
 
     } catch {
-      print("[SwiftyCam]: Error locking configuration")
+      NSLog("[SwiftyCam]: Error locking configuration")
     }
   }
 
@@ -1188,7 +1188,7 @@ extension SwiftyCamViewController {
       captureDevice?.unlockForConfiguration()
 
     } catch {
-      print("[SwiftyCam]: Error locking configuration")
+      NSLog("[SwiftyCam]: Error locking configuration")
     }
 
     if pan.state == .ended || pan.state == .failed || pan.state == .cancelled {

@@ -110,6 +110,14 @@ declare class ASCameraButton extends UIView {
   static appearanceWhenContainedInInstancesOfClasses(containerTypes: NSArray<typeof NSObject> | typeof NSObject[]): ASCameraButton; // inherited from UIAppearance
 
   static new(): ASCameraButton; // inherited from NSObject
+
+  isEnabled: boolean;
+
+  longPressGestureRecognizer: UILongPressGestureRecognizer;
+  changeToCircle(): void;
+  drawButton(): void;
+
+  changeToSquare(): void;
 }
 
 interface ASCameraDelegate {
@@ -239,6 +247,29 @@ declare class ASCameraViewController extends ASBaseCameraViewController implemen
   zoomToWithRate(factor: number, rate: number): void;
 }
 
+declare class CameraButton extends ASCameraButton {
+  static alloc(): CameraButton; // inherited from NSObject
+
+  static appearance(): CameraButton; // inherited from UIAppearance
+
+  static appearanceForTraitCollection(trait: UITraitCollection): CameraButton; // inherited from UIAppearance
+
+  static appearanceForTraitCollectionWhenContainedIn(trait: UITraitCollection, ContainerClass: typeof NSObject): CameraButton; // inherited from UIAppearance
+
+  static appearanceForTraitCollectionWhenContainedInInstancesOfClasses(trait: UITraitCollection, containerTypes: NSArray<typeof NSObject> | typeof NSObject[]): CameraButton; // inherited from UIAppearance
+
+  static appearanceWhenContainedIn(ContainerClass: typeof NSObject): CameraButton; // inherited from UIAppearance
+
+  static appearanceWhenContainedInInstancesOfClasses(containerTypes: NSArray<typeof NSObject> | typeof NSObject[]): CameraButton; // inherited from UIAppearance
+
+  static new(): CameraButton; // inherited from NSObject
+
+  changeToCircle(): void;
+  drawButton(): void;
+
+  changeToSquare(): void;
+}
+
 declare const enum CameraSelection {
   Rear = 0,
 
@@ -322,10 +353,7 @@ declare var SwiftyCamButtonDelegate: {
   prototype: SwiftyCamButtonDelegate;
 };
 
-declare class SwiftyCamViewController
-  extends UIViewController
-  implements AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAudioDataOutputSampleBufferDelegate, SwiftyCamButtonDelegate, UIGestureRecognizerDelegate
-{
+declare class SwiftyCamViewController extends UIViewController implements AVCaptureFileOutputRecordingDelegate, SwiftyCamButtonDelegate, UIGestureRecognizerDelegate {
   static alloc(): SwiftyCamViewController; // inherited from NSObject
 
   static deviceWithMediaTypePreferringPosition(mediaType: string, position: AVCaptureDevicePosition): AVCaptureDevice;
