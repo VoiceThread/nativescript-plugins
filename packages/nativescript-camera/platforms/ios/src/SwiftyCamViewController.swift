@@ -520,6 +520,7 @@ import UIKit
      */
 
   @objc public func switchCamera() {
+    print("viewcontroller switchCamera()")
     guard isVideoRecording != true else {
       // TODO: Look into switching camera during video recording
       print("[SwiftyCam]: Switching between cameras while recording video is not supported")
@@ -564,6 +565,7 @@ import UIKit
   /// Configure session, add inputs and outputs
 
   fileprivate func configureSession() {
+    print("viewcontroller configureSession()")
     guard setupResult == .success else {
       return
     }
@@ -589,6 +591,7 @@ import UIKit
   /// Add inputs after changing camera()
 
   fileprivate func addInputs() {
+    print("viewcontroller addInputs()")
     session.beginConfiguration()
     configureVideoPreset()
     addVideoInput()
@@ -994,7 +997,7 @@ import UIKit
   }
 }
 
-extension SwiftyCamViewController: SwiftyCamButtonDelegate {
+@objc extension SwiftyCamViewController: SwiftyCamButtonDelegate {
   /// Sets the maximum duration of the SwiftyCamButton
 
   public func setMaxiumVideoDuration() -> Double {
@@ -1004,24 +1007,28 @@ extension SwiftyCamViewController: SwiftyCamButtonDelegate {
   /// Set UITapGesture to take photo
 
   public func buttonWasTapped() {
+    print("cambutton buttonWasTapped")
     takePhoto()
   }
 
   /// Set UILongPressGesture start to begin video
 
   public func buttonDidBeginLongPress() {
+    print("cambutton buttonDidBeginLongPress")
     startVideoRecording()
   }
 
   /// Set UILongPressGesture begin to begin end video
 
   public func buttonDidEndLongPress() {
+    print("cambutton buttonDidEndLongPress")
     stopVideoRecording()
   }
 
   /// Called if maximum duration is reached
 
   public func longPressDidReachMaximumDuration() {
+    print("cambutton longPressDidReachMaximumDuration")
     stopVideoRecording()
   }
 }
@@ -1066,8 +1073,10 @@ extension SwiftyCamViewController {
   /// Handle pinch gesture
 
   @objc fileprivate func zoomGesture(pinch: UIPinchGestureRecognizer) {
+    print("view zoomGesture")
     guard pinchToZoom == true, currentCamera == .rear else {
       // ignore pinch
+      print("back camera or option disabled, ignoring")
       return
     }
     do {

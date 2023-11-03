@@ -115,7 +115,7 @@ export class MySwifty extends SwiftyCamViewController {
   private _flashEnabled: boolean;
   private _flashBtn: UIButton;
   public _swiftyDelegate: any;
-  private _pickerDelegate: any;
+  // private _pickerDelegate: any;
   private _resized: boolean;
 
   public static initWithOwner(owner: WeakRef<CameraPlus>, defaultCamera: CameraTypes = 'rear') {
@@ -140,15 +140,15 @@ export class MySwifty extends SwiftyCamViewController {
     this._enableVideo = value;
   }
 
-  public set pickerDelegate(value: any) {
-    this._pickerDelegate = value;
-  }
+  // public set pickerDelegate(value: any) {
+  //   this._pickerDelegate = value;
+  // }
 
-  public closePicker() {
-    rootVC().dismissViewControllerAnimatedCompletion(true, () => {
-      this.pickerDelegate = null;
-    });
-  }
+  // public closePicker() {
+  //   rootVC().dismissViewControllerAnimatedCompletion(true, () => {
+  //     this.pickerDelegate = null;
+  //   });
+  // }
 
   viewDidLoad() {
     CLog('MySwifty viewdidload');
@@ -324,7 +324,7 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   public switchCam() {
-    CLog('CameraPlus switchCam');
+    CLog('CameraPlus switchCam, calling native lib swithcCamera()');
     this.switchCamera();
   }
 
@@ -439,6 +439,7 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   public didSwitchCamera(camera: CameraSelection) {
+    console.log('didSwitchCamera()', camera);
     this._owner.get().sendEvent(CameraPlus.toggleCameraEvent, camera);
   }
 
@@ -461,8 +462,9 @@ export class MySwifty extends SwiftyCamViewController {
     this._flashBtnHandler();
 
     if (this._owner.get().showCaptureIcon) {
+      CLog('adding showCaptureIcon...');
       const heightOffset = this._owner.get().isIPhoneX ? 200 : 110;
-      const picOutline = createButton(this, CGRectMake(width / 2 - 20, height - heightOffset, 50, 50), null, null, null, createIcon('picOutline'));
+      const picOutline = createButton(this, CGRectMake(width / 2 - 20, height - heightOffset, 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('picOutline'));
       picOutline.transform = CGAffineTransformMakeScale(1.5, 1.5);
       this.view.addSubview(picOutline);
       const takePicBtn = createButton(this, CGRectMake(width / 2 - 21.5, height - (heightOffset + 0.7), 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('takePic'));
@@ -472,6 +474,7 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   private _flashBtnHandler() {
+    CLog('adding _flashBtn ...');
     if (this._owner.get().showFlashIcon) {
       if (this._flashBtn) this._flashBtn.removeFromSuperview();
       if (this.flashEnabled) {
@@ -634,10 +637,10 @@ export class CameraPlus extends CameraPlusBase {
 
   onLoaded() {
     super.onLoaded();
-    console.log('calling this._swifty.viewDidAppear(true)');
+    console.log('CameraPlus calling this._swifty.viewDidAppear(true)');
 
     this._swifty.viewDidAppear(true);
-    console.log('Adding buttons', this._swifty);
+    console.log('CameraPlus Adding buttons', this._swifty);
     this._swifty.addButtons();
     // this._swifty.addButtons();
   }
@@ -655,6 +658,7 @@ export class CameraPlus extends CameraPlusBase {
    * Toggle Camera front/back
    */
   public toggleCamera() {
+    console.log('CameraPlus toggleCamera()');
     this._swifty.switchCam();
   }
 
@@ -662,6 +666,7 @@ export class CameraPlus extends CameraPlusBase {
    * Toggle flash mode
    */
   public toggleFlash() {
+    console.log('CameraPlus toggleFlash()');
     this._swifty.toggleFlash();
   }
 
@@ -676,6 +681,7 @@ export class CameraPlus extends CameraPlusBase {
    * Snap photo and display confirm save
    */
   public takePicture(options?: ICameraOptions): void {
+    console.log('CameraPlus takePicture', options);
     this._updatePhotoQuality();
     this._swifty.snapPicture(options);
   }
@@ -684,6 +690,7 @@ export class CameraPlus extends CameraPlusBase {
    * Record video
    */
   public record(options?: IVideoOptions): Promise<any> {
+    console.log('CameraPlus record', options);
     this._swifty.recordVideo(options);
     return Promise.resolve();
   }
@@ -692,6 +699,7 @@ export class CameraPlus extends CameraPlusBase {
    * Stop recording video
    */
   public stop(): void {
+    console.log('CameraPlus stop');
     if (this.isVideoEnabled()) {
       this._swifty.stopVideoRecording();
     }
@@ -753,6 +761,7 @@ const rootVC = function () {
 };
 
 const createButton = function (target: any, frame: CGRect, label: string, eventName: string, align?: string, img?: UIImage, imgSelected?: UIImage): UIButton {
+  console.log('createButton()', label, eventName);
   let btn: UIButton;
   if (frame) {
     btn = UIButton.alloc().initWithFrame(frame);

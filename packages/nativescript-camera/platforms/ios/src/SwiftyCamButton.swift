@@ -73,6 +73,7 @@ import UIKit
   /// UITapGestureRecognizer Function
 
   @objc fileprivate func Tap() {
+    print("Button Tap()")
     self.delegate?.buttonWasTapped()
   }
 
@@ -118,6 +119,7 @@ import UIKit
   // Add Tap and LongPress gesture recognizers
 
   fileprivate func createGestureRecognizers() {
+    print("CamButton createGestureRecognizers()")
     let tapGesture = UITapGestureRecognizer(target: self, action: #selector(SwiftyCamButton.Tap))
     let longGesture = UILongPressGestureRecognizer(
       target: self, action: #selector(SwiftyCamButton.LongPress))

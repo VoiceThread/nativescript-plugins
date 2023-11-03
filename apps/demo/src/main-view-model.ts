@@ -36,10 +36,15 @@ export class MainViewModel extends Observable {
       await checkPermission('camera').then(async permres => {
         console.log('checked permission', permres);
         if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
+          if (permres[0] == 'authorized' && permres[1] == true) {
+            console.log('authorized');
+            return;
+          }
           console.log('requesting permission to camera');
           await request('camera').then(async result => {
             console.log('request result', result);
-            if (result[0] == 'authorized') {
+            if (result[0] == 'authorized' && permres[1] == true) {
+              console.log('authorized');
               // if (!this.cam) {
               // this.cam = new CameraPlus();
               // Frame.topmost().navigate({
@@ -59,13 +64,20 @@ export class MainViewModel extends Observable {
       console.error(err);
     }
     try {
-      await checkPermission('micriphone').then(async permres => {
+      await checkPermission('microphone').then(async permres => {
         console.log('checked permission', permres);
         if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
-          console.log('requesting permission to micriphone');
-          await request('micriphone').then(async result => {
+          if (permres[0] == 'authorized' && permres[1] == true) {
+            console.log('authorized');
+            Frame.topmost().navigate({
+              moduleName: 'plugin-demos/nativescript-camera',
+            });
+            return;
+          }
+          console.log('requesting permission to microphone');
+          await request('microphone').then(async result => {
             console.log('request result', result);
-            if (result[0] == 'authorized') {
+            if (result[0] == 'authorized' && permres[1] == true) {
               // if (!this.cam) {
               // this.cam = new CameraPlus();
               Frame.topmost().navigate({
@@ -74,9 +86,9 @@ export class MainViewModel extends Observable {
               // this.cam.visibility = 'visible';
               // }
               // this.cam.takePicture({ saveToGallery: true });
-            } else alert('No permission for micriphone, cannot open camera demo!');
+            } else alert('No permission for microphone, cannot open camera demo!');
           });
-        } else alert('No permission for micriphone! Grant this permission in app settings first');
+        } else alert('No permission for microphone! Grant this permission in app settings first');
       });
     } catch (err) {
       console.error(err);
