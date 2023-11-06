@@ -174,6 +174,7 @@ export class MySwifty extends SwiftyCamViewController {
     this._cameraBtn = ASCameraButton.alloc().init();
     //register tap handlers
     // this.register(this._cameraBtn)
+    this.register(this._cameraBtn);
 
     this._cameraBtn.translatesAutoresizingMaskIntoConstraints = false;
 

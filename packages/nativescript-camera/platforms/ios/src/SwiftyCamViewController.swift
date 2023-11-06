@@ -233,6 +233,30 @@ import UIKit
     return false
   }
 
+  @objc private var shouldResetZoom = false
+  /// Used ignore gesture calls after video is done recording.
+  @objc private var shouldIgnore = false
+  //
+  @objc private var timer: Timer?
+  //
+  @objc private var timePassed = 0.0
+  //
+  @objc private var shouldStop = false
+  //
+  @objc private var shouldCreateTimer = false
+
+  @objc private var cameraButton: ASCameraButton?
+  // delegate
+  // public weak var delegate: ASCameraDelegate?
+  /// The time interval in which didUpdateRecordingDurationTo is called
+  @objc public var videoTimeInterval = 0.1
+  // In seconds
+  @objc public var asmaximumVideoDuration = 100000.0
+  //
+  @objc public var photoCaptureThreshold = 2.0 {
+    willSet { assert(newValue > 0, "[asCamera]: photoCaptureThreshold should be positive") }
+  }
+
   //MARL: init()
   // public init() {
   //   super.init()
@@ -997,7 +1021,7 @@ import UIKit
   }
 }
 
-@objc extension SwiftyCamViewController: SwiftyCamButtonDelegate {
+/*@objc extension SwiftyCamViewController: SwiftyCamButtonDelegate {
   /// Sets the maximum duration of the SwiftyCamButton
 
   public func setMaxiumVideoDuration() -> Double {
@@ -1032,7 +1056,7 @@ import UIKit
     stopVideoRecording()
   }
 }
-
+*/
 // MARK: AVCaptureFileOutputRecordingDelegate
 
 extension SwiftyCamViewController: AVCaptureFileOutputRecordingDelegate {
@@ -1231,13 +1255,270 @@ extension SwiftyCamViewController {
 
 // MARK: UIGestureRecognizerDelegate
 
-extension SwiftyCamViewController: UIGestureRecognizerDelegate {
-  /// Set beginZoomScale when pinch begins
+// extension SwiftyCamViewController: UIGestureRecognizerDelegate {
+//   /// Set beginZoomScale when pinch begins
 
-  public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-    if gestureRecognizer.isKind(of: UIPinchGestureRecognizer.self) {
-      beginZoomScale = zoomScale
+//   public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+//     if gestureRecognizer.isKind(of: UIPinchGestureRecognizer.self) {
+//       beginZoomScale = zoomScale
+//     }
+//     return true
+//   }
+// }
+
+// Button related stuff
+@objc extension SwiftyCamViewController {
+  public func register(_ button: ASCameraButton) {
+    self.cameraButton = button
+    NSLog("register()")
+    let longPressGestureRecognizer = LongPressGestureRecognizer()
+    longPressGestureRecognizer.addTarget(self, action: #selector(self.handleButtonZoomPan(_:)))
+    longPressGestureRecognizer.addTarget(self, action: #selector(self.handleButtonLongPress(_:)))
+    longPressGestureRecognizer.minimumPressDuration = 0.0
+    longPressGestureRecognizer.delegate = self
+    button.addGestureRecognizer(longPressGestureRecognizer)
+    button.longPressGestureRecognizer = longPressGestureRecognizer
+    NSLog("done registering gesture handlers")
+  }
+
+  // Please Keep in mind that this function is called first by the gesture recognizer
+  @objc private func handleButtonZoomPan(_ sender: LongPressGestureRecognizer) {
+    // guard self.isPanToZoomEnabled else { return }
+    // guard self.isSessionRunning, let videoDevice = self.captureDevice else { return }
+    NSLog("handleButtonZoomPan")
+    switch sender.state {
+    case .began:
+      // if !self.isRecording {
+      //   self.startingZoomScale = videoDevice.videoZoomFactor
+      //   self.shouldResetZoom = true
+      // }
+      fallthrough
+    case .changed, .ended:
+      // guard !self.shouldIgnore else { return }
+
+      let location = sender.location(in: sender.view)
+
+      // if location.y >= 0 {
+      //   sender.setTranslation(.zero, in: nil)
+      // }
+
+      // let translation = sender.translation(in: nil)
+      // let mulitiplier: CGFloat = min(
+      //   max(1.0, self.maxZoomScale), videoDevice.activeFormat.videoMaxZoomFactor)
+      // let senderScale = (-1 * translation.y / self.zoomPanMaxLength) * mulitiplier  // + 1.0
+      // let scale = min(
+      //   self.maxZoomScale, max(self.minZoomScale, self.startingZoomScale * senderScale))
+      // let adjustedScale = min(videoDevice.activeFormat.videoMaxZoomFactor, max(1.0, scale))
+      // self.zoom(to: adjustedScale)
+      NSLog("changed/ended")
+    case .cancelled:
+      NSLog("cancelled")
+    // if self.shouldResetZoom {
+    // self.zoom(to: self.startingZoomScale, withRate: -1)
+    // self.shouldResetZoom = false
+    // }
+    default: break
     }
+  }
+
+  // Please Keep in mind that this function is called second by the gesture recognizer
+  @objc fileprivate func handleButtonLongPress(_ sender: UILongPressGestureRecognizer) {
+    NSLog("handleButtonLongPress")
+    // print("sender.state", sender.state)
+    switch sender.state {
+    case .began:
+      // if !self.shouldStartWritingSession {
+      //   self.start()
+      // } else {
+      //   self.shouldStop = true
+      // }
+      NSLog("began")
+      self.cameraButton?.changeToSquare()
+    case .ended:
+      NSLog("ended")
+      guard !self.shouldIgnore else {
+        self.shouldIgnore = false
+        return
+      }
+
+      //            if self.timePassed <= self.photoCaptureThreshold {
+      //                // Take photo and discard Video
+      //                self.capturePhoto()
+      //
+      //                let shouldUnlockFlash = self.isFlashLocked == false
+      //                let shouldUnlockZoom = self.isZoomLocked == false
+      //                self.lockFlash()
+      //                self.lockZoom()
+      //
+      //                self.cancel()
+      //
+      //                self.executeAsync {
+      //                    DispatchQueue.main.async { [weak self] in
+      //                        if shouldUnlockFlash {
+      //                            self?.unlockFlash()
+      //                        }
+      //                        if shouldUnlockZoom {
+      //                            self?.unlockZoom()
+      //                        }
+      //                    }
+      //                }
+      //            } else
+      // if self.stopsRecordingOnTouchUp, self.isRecording {
+      //   self.stop()
+      // } else if self.shouldStop {
+      //   self.stop()
+      //   self.shouldStop = false
+      // }
+      if self.isVideoRecording {
+        //stop
+        self.isVideoRecording = false
+        self.cameraButton?.changeToCircle()
+      } else {
+        //start
+        self.isVideoRecording = true
+        self.cameraButton?.changeToSquare()
+      }
+    case .cancelled:
+      NSLog("cancelled")
+      guard !self.shouldIgnore else {
+        self.shouldIgnore = false
+        return
+      }
+    // self.cancel()
+    default:
+      break
+    }
+  }
+
+  // private func start() {
+  //   self.shouldCreateTimer = true
+  //   self.startRecording()
+  // }
+
+  // private func stop() {
+  //   self.shouldCreateTimer = false
+  //   self.invalidateTimer()
+  //   self.stopRecording()
+  // }
+
+  // private func cancel() {
+  //   self.shouldCreateTimer = false
+  //   self.invalidateTimer()
+  //   self.cancelRecording()
+  // }
+
+  @objc private func updateTimer() {
+    self.timePassed += 0.1
+    // self.delegate?.asCamera?(self, didUpdateRecordingDurationTo: self.timePassed)
+
+    if self.timePassed >= self.asmaximumVideoDuration {
+      DispatchQueue.main.async { [weak self] in
+        self?.shouldIgnore = true
+        // self?.stop()
+        print("max duration passed, issuing stop")
+        self?.invalidateTimer()
+      }
+    }
+  }
+
+  private func startTimer() {
+    print("startTimer")
+    guard self.shouldCreateTimer else { return }
+    self.timer = Timer.scheduledTimer(
+      timeInterval: self.videoTimeInterval, target: self,
+      selector: #selector(self.updateTimer), userInfo: nil, repeats: true)
+  }
+
+  private func invalidateTimer() {
+    self.timer?.invalidate()
+    self.timer = nil
+    self.timePassed = 0.0
+    print("invalidateTimer")
+    // self.delegate?.asCamera?(self, didUpdateRecordingDurationTo: self.timePassed)
+  }
+}
+
+@objc extension SwiftyCamViewController: UIGestureRecognizerDelegate {
+  public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+    // if gestureRecognizer == self.pinchGestureRecognizer {
+    //   // return self.isPinchToZoomEnabled
+    //   return true
+    // }
+
+    // if gestureRecognizer == self.singleTapGestureRecognizer {
+    //   // return self.isTapToFocusEnabled
+    //   return true
+    // }
+
+    // if gestureRecognizer == self.doubleTapGestureRecognizer {
+    //   NSLog("doubletap seen")
+    //   // return self.isDoubleTapToSwitchCameraEnabled
+    //   return true
+    // }
+
+    // if gestureRecognizer is UILongPressGestureRecognizer && gestureRecognizer.view is ASCameraButton
+    // {
+    //   return true
+    // }
+
+    // return false
     return true
+  }
+
+  public func gestureRecognizer(
+    _ gestureRecognizer: UIGestureRecognizer, shouldReceive press: UIPress
+  ) -> Bool {
+    return false
+  }
+
+  public func gestureRecognizer(
+    _ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch
+  ) -> Bool {
+    return true
+  }
+
+  public func gestureRecognizer(
+    _ gestureRecognizer: UIGestureRecognizer,
+    shouldRequireFailureOf otherGestureRecognizer: UIGestureRecognizer
+  ) -> Bool {
+    return false
+  }
+
+  public func gestureRecognizer(
+    _ gestureRecognizer: UIGestureRecognizer,
+    shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer
+  ) -> Bool {
+    return false
+  }
+
+  public func gestureRecognizer(
+    _ gestureRecognizer: UIGestureRecognizer,
+    shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+  ) -> Bool {
+    return false
+  }
+}
+
+private class LongPressGestureRecognizer: UILongPressGestureRecognizer {
+  override var state: UIGestureRecognizer.State {
+    didSet {
+      if self.state == .began {
+        self.startingLocation = self.location(in: self.view)
+      }
+    }
+  }
+
+  var startingLocation: CGPoint = .zero
+
+  func translation(in view: UIView?) -> CGPoint {
+    let startingLocation =
+      self.view?.convert(self.startingLocation, to: view) ?? self.startingLocation
+    let currentLocation = self.location(in: view)
+    return CGPoint(
+      x: currentLocation.x - startingLocation.x, y: currentLocation.y - startingLocation.y)
+  }
+
+  func setTranslation(_ translation: CGPoint, in view: UIView?) {
+    self.startingLocation = self.location(in: self.view)
   }
 }

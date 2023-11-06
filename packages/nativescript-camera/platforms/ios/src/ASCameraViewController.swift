@@ -480,6 +480,7 @@ import UIKit
 // Button related stuff
 @objc extension ASCameraViewController {
   public func register(_ button: ASCameraButton) {
+    NSLog("ASCameraViewController register()")
     let longPressGestureRecognizer = LongPressGestureRecognizer()
     longPressGestureRecognizer.addTarget(self, action: #selector(self.handleButtonZoomPan(_:)))
     longPressGestureRecognizer.addTarget(self, action: #selector(self.handleButtonLongPress(_:)))
@@ -491,6 +492,7 @@ import UIKit
 
   // Please Keep in mind that this function is called first by the gesture recognizer
   @objc private func handleButtonZoomPan(_ sender: LongPressGestureRecognizer) {
+    NSLog("handleButtonZoomPan")
     guard self.isPanToZoomEnabled else { return }
     guard self.isSessionRunning, let videoDevice = self.captureDevice else { return }
 
@@ -529,7 +531,9 @@ import UIKit
 
   // Please Keep in mind that this function is called second by the gesture recognizer
   @objc fileprivate func handleButtonLongPress(_ sender: UILongPressGestureRecognizer) {
-    print("sender.state", sender.state)
+    NSLog("handleButtonLongPress")
+    // NSLog("sender.state")
+    // NSLog( sender.state)
     switch sender.state {
     case .began:
       if !self.shouldStartWritingSession {

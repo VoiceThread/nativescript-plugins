@@ -114,10 +114,12 @@ declare class ASCameraButton extends UIView {
   isEnabled: boolean;
 
   longPressGestureRecognizer: UILongPressGestureRecognizer;
+
   changeToCircle(): void;
-  drawButton(): void;
 
   changeToSquare(): void;
+
+  drawButton(): void;
 }
 
 interface ASCameraDelegate {
@@ -247,29 +249,6 @@ declare class ASCameraViewController extends ASBaseCameraViewController implemen
   zoomToWithRate(factor: number, rate: number): void;
 }
 
-declare class CameraButton extends ASCameraButton {
-  static alloc(): CameraButton; // inherited from NSObject
-
-  static appearance(): CameraButton; // inherited from UIAppearance
-
-  static appearanceForTraitCollection(trait: UITraitCollection): CameraButton; // inherited from UIAppearance
-
-  static appearanceForTraitCollectionWhenContainedIn(trait: UITraitCollection, ContainerClass: typeof NSObject): CameraButton; // inherited from UIAppearance
-
-  static appearanceForTraitCollectionWhenContainedInInstancesOfClasses(trait: UITraitCollection, containerTypes: NSArray<typeof NSObject> | typeof NSObject[]): CameraButton; // inherited from UIAppearance
-
-  static appearanceWhenContainedIn(ContainerClass: typeof NSObject): CameraButton; // inherited from UIAppearance
-
-  static appearanceWhenContainedInInstancesOfClasses(containerTypes: NSArray<typeof NSObject> | typeof NSObject[]): CameraButton; // inherited from UIAppearance
-
-  static new(): CameraButton; // inherited from NSObject
-
-  changeToCircle(): void;
-  drawButton(): void;
-
-  changeToSquare(): void;
-}
-
 declare const enum CameraSelection {
   Rear = 0,
 
@@ -353,7 +332,7 @@ declare var SwiftyCamButtonDelegate: {
   prototype: SwiftyCamButtonDelegate;
 };
 
-declare class SwiftyCamViewController extends UIViewController implements AVCaptureFileOutputRecordingDelegate, SwiftyCamButtonDelegate, UIGestureRecognizerDelegate {
+declare class SwiftyCamViewController extends UIViewController implements AVCaptureFileOutputRecordingDelegate, UIGestureRecognizerDelegate {
   static alloc(): SwiftyCamViewController; // inherited from NSObject
 
   static deviceWithMediaTypePreferringPosition(mediaType: string, position: AVCaptureDevicePosition): AVCaptureDevice;
@@ -361,6 +340,8 @@ declare class SwiftyCamViewController extends UIViewController implements AVCapt
   static new(): SwiftyCamViewController; // inherited from NSObject
 
   allowBackgroundAudio: boolean;
+
+  asmaximumVideoDuration: number;
 
   beginZoomScale: number;
 
@@ -392,6 +373,8 @@ declare class SwiftyCamViewController extends UIViewController implements AVCapt
 
   movieFileOutput: AVCaptureMovieFileOutput;
 
+  photoCaptureThreshold: number;
+
   photoFileOutput: AVCaptureStillImageOutput;
 
   pinchToZoom: boolean;
@@ -420,6 +403,8 @@ declare class SwiftyCamViewController extends UIViewController implements AVCapt
 
   videoQuality: VideoQuality;
 
+  videoTimeInterval: number;
+
   zoomScale: number;
 
   readonly debugDescription: string; // inherited from NSObjectProtocol
@@ -433,12 +418,6 @@ declare class SwiftyCamViewController extends UIViewController implements AVCapt
   readonly superclass: typeof NSObject; // inherited from NSObjectProtocol
 
   readonly; // inherited from NSObjectProtocol
-
-  buttonDidBeginLongPress(): void;
-
-  buttonDidEndLongPress(): void;
-
-  buttonWasTapped(): void;
 
   captureOutputDidFinishRecordingToOutputFileAtURLFromConnectionsError(
     output: AVCaptureFileOutput,
@@ -489,8 +468,6 @@ declare class SwiftyCamViewController extends UIViewController implements AVCapt
 
   isMemberOfClass(aClass: typeof NSObject): boolean;
 
-  longPressDidReachMaximumDuration(): void;
-
   performSelector(aSelector: string): any;
 
   performSelectorWithObject(aSelector: string, object: any): any;
@@ -501,6 +478,8 @@ declare class SwiftyCamViewController extends UIViewController implements AVCapt
 
   promptToAppSettings(): void;
 
+  register(button: ASCameraButton): void;
+
   respondsToSelector(aSelector: string): boolean;
 
   retainCount(): number;
@@ -508,8 +487,6 @@ declare class SwiftyCamViewController extends UIViewController implements AVCapt
   self(): this;
 
   setBackgroundAudioPreference(): void;
-
-  setMaxiumVideoDuration(): number;
 
   startVideoRecording(): void;
 
