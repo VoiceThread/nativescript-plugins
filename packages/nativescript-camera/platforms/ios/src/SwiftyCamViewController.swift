@@ -1369,15 +1369,21 @@ extension SwiftyCamViewController {
       //   self.stop()
       //   self.shouldStop = false
       // }
-      if self.isVideoRecording {
-        //stop
-        self.isVideoRecording = false
-        self.cameraButton?.changeToCircle()
-      } else {
-        //start
-        self.isVideoRecording = true
-        self.cameraButton?.changeToSquare()
-      }
+
+      // if self.isVideoRecording {
+      //   //stop
+      //   self.isVideoRecording = false
+      //   self.cameraButton?.changeToCircle()
+      // } else {
+      //   //start
+      //   self.isVideoRecording = true
+      //   self.cameraButton?.changeToSquare()
+      // }
+      self.cameraButton?.changeToCircle()
+      //and trigger the takePhoto
+      // self.takePhoto()
+      takePhoto()
+
     case .cancelled:
       NSLog("cancelled")
       guard !self.shouldIgnore else {

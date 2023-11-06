@@ -438,7 +438,17 @@ export class MySwifty extends SwiftyCamViewController {
   public tookPhoto(photo: UIImage) {
     this._photoToSave = photo;
     CLog('tookPhoto!');
+    if (!this._snapPicOptions)
+      this._snapPicOptions = {
+        confirm: true,
+        confirmRetakeText: 'no',
+        confirmSaveText: 'ok',
+        saveToGallery: true,
+        autoSquareCrop: false,
+      };
+
     if (this._snapPicOptions && this._snapPicOptions.autoSquareCrop) {
+      console.log('autoSquareCrop enabled, preparing');
       const width = photo.size.width;
       const height = photo.size.height;
       let originalWidth = width;
@@ -460,6 +470,7 @@ export class MySwifty extends SwiftyCamViewController {
     }
 
     if (this._snapPicOptions && this._snapPicOptions.confirm) {
+      console.log('photo confirmation enabled, preparing');
       // show the confirmation
       const width = this.view.bounds.size.width;
       const height = this.view.bounds.size.height;
@@ -481,7 +492,9 @@ export class MySwifty extends SwiftyCamViewController {
       this._imageConfirmBg.addSubview(saveBtn);
       this.view.addSubview(this._imageConfirmBg);
       this._owner.get().sendEvent(CameraPlus.confirmScreenShownEvent);
+      // this._owner.get().sendEvent(CameraPlus.photoCapturedEvent);
     } else {
+      console.log('no confirmation, just saving');
       // no confirmation - just save
       this.savePhoto();
       return;
@@ -489,6 +502,7 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   public resetPreview() {
+    console.log('resetPreview()');
     if (this._imageConfirmBg) {
       this._imageConfirmBg.removeFromSuperview();
       this._imageConfirmBg = null;
@@ -497,6 +511,7 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   public savePhoto() {
+    console.log('savePhoto()');
     if (this._photoToSave) {
       const asset = new ImageAsset(this._photoToSave);
       const useCameraOptions = this._snapPicOptions ? this._snapPicOptions.useCameraOptions : false;
