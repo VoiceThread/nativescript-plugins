@@ -520,7 +520,7 @@ import UIKit
      */
 
   @objc public func switchCamera() {
-    NSLog("viewcontroller switchCamera()")
+    NSLog("SWC viewcontroller switchCamera()")
     guard isVideoRecording != true else {
       // TODO: Look into switching camera during video recording
       NSLog("[SwiftyCam]: Switching between cameras while recording video is not supported")

@@ -114,6 +114,7 @@ export class MySwifty extends SwiftyCamViewController {
   private _imageConfirmBg: UIView;
   private _flashEnabled: boolean;
   private _flashBtn: UIButton;
+  private _switchBtn: UIButton;
   private _cameraBtn: ASCameraButton;
   private _blurView: UIView;
   public _swiftyDelegate: any;
@@ -173,6 +174,7 @@ export class MySwifty extends SwiftyCamViewController {
     this._cameraBtn = ASCameraButton.alloc().init();
     //register tap handlers
     // this.register(this._cameraBtn)
+
     this._cameraBtn.translatesAutoresizingMaskIntoConstraints = false;
 
     // this._cameraBtn.longPressGestureRecognizer?.addTarget(self, action: #selector(handleLongPress(_:)))
@@ -208,7 +210,15 @@ export class MySwifty extends SwiftyCamViewController {
     this.view.addSubview(this._blurView);
     this.view.addSubview(this._cameraBtn);
     this.view.bringSubviewToFront(this._cameraBtn);
-    // this._cameraBtn.changeToSquare();
+
+    // let that = this;
+    // setTimeout(() => {
+    //   that._cameraBtn.changeToSquare();
+    // }, 1000);
+    // setTimeout(() => {
+    //   that._cameraBtn.changeToCircle();
+    // }, 2000);
+
     // this.register(this._cameraBtn)
 
     // this._cameraBtn = CameraButton.alloc().init();
@@ -403,11 +413,14 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   public switchCam() {
-    CLog('CameraPlus switchCam, calling native lib swithcCamera()');
-    this.switchCamera();
+    console.log('index.ios switchCam()');
+    // CLog('CameraPlus switchCam, calling native lib switchCamera()');
+    // this._swiftyDelegate.switchCamera();
+    //  this.switchCamera();
   }
 
   public toggleFlash() {
+    console.log('index.ios toggleFlash()');
     this._flashEnabled = !this._flashEnabled;
     this.flashEnabled = this._flashEnabled; // super class behavior
     CLog('CameraPlus flash enabled:', this._flashEnabled);
@@ -519,6 +532,7 @@ export class MySwifty extends SwiftyCamViewController {
 
   public didSwitchCamera(camera: CameraSelection) {
     console.log('didSwitchCamera()', camera);
+
     this._owner.get().sendEvent(CameraPlus.toggleCameraEvent, camera);
   }
 
@@ -532,9 +546,11 @@ export class MySwifty extends SwiftyCamViewController {
     const height = this.view.bounds.size.height;
 
     if (this._owner.get().showToggleIcon) {
+      if (this._switchBtn) this._switchBtn.removeFromSuperview();
       CLog('adding toggle/switch camera button...');
-      const switchCameraBtn = createButton(this, CGRectMake(width - 100, 20, 100, 50), null, 'switchCam', null, createIcon('toggle', CGSizeMake(65, 50)));
-      switchCameraBtn.transform = CGAffineTransformMakeScale(0.75, 0.75);
+      const switchCameraBtn = createButton(this, CGRectMake(width - 100, 20, 100, 50), null, 'switchCamera', null, createIcon('toggle', CGSizeMake(65, 50)));
+      switchCameraBtn.transform = CGAffineTransformMakeScale(0.7, 0.7);
+      this._switchBtn = switchCameraBtn;
       this.view.addSubview(switchCameraBtn);
     }
 
@@ -774,18 +790,18 @@ export class CameraPlus extends CameraPlusBase {
   /**
    * Toggle Camera front/back
    */
-  public toggleCamera() {
-    console.log('CameraPlus toggleCamera()');
-    this._swifty.switchCam();
-  }
+  // public toggleCamera() {
+  //   console.log('CameraPlus toggleCamera()');
+  //   this._swifty.switchCam();
+  // }
 
   /**
    * Toggle flash mode
    */
-  public toggleFlash() {
-    console.log('CameraPlus toggleFlash()');
-    this._swifty.toggleFlash();
-  }
+  // public toggleFlash() {
+  //   console.log('CameraPlus toggleFlash()');
+  //   this._swifty.toggleFlash();
+  // }
 
   /**
    * Return the current flash mode (either 'on' or 'off' for iOS)
