@@ -35,7 +35,7 @@ import UIKit
   }
 
   /// Enumeration for video quality of the capture session. Corresponds to a AVCaptureSessionPreset
-
+  // private var d: AVCaptureSession.Preset
   @objc public enum VideoQuality: Int {
     /// AVCaptureSessionPresetHigh
     case high
@@ -167,25 +167,26 @@ import UIKit
 
   /// Current Capture Session
 
-  @objc public let session = AVCaptureSession()
+  @objc public let session: AVCaptureSession = AVCaptureSession()
 
   /// Serial queue used for setting up session
 
-  @objc public let sessionQueue = DispatchQueue(label: "session queue", attributes: [])
+  @objc public let sessionQueue: DispatchQueue = DispatchQueue(
+    label: "session queue", attributes: [])
 
   // MARK: Private Variable Declarations
 
   /// Variable for storing current zoom scale
 
-  @objc public var zoomScale = CGFloat(1.0)
+  @objc public var zoomScale: CGFloat = CGFloat(1.0)
 
   /// Variable for storing initial zoom scale before Pinch to Zoom begins
 
-  @objc public var beginZoomScale = CGFloat(1.0)
+  @objc public var beginZoomScale: CGFloat = CGFloat(1.0)
 
   /// Returns true if the torch (flash) is currently enabled
 
-  @objc public var isCameraTorchOn = false
+  @objc public var isCameraTorchOn: Bool = false
 
   /// Variable to store result of capture session setup
 
@@ -198,6 +199,16 @@ import UIKit
   /// Video Input variable
 
   @objc public var videoDeviceInput: AVCaptureDeviceInput!
+
+  @objc public var videoOutput: AVCaptureVideoDataOutput?
+
+  //ASCamera variables start
+  public var audioInput: AVCaptureDeviceInput?
+  public var audioOutput: AVCaptureAudioDataOutput?
+  public var assetWriter: AVAssetWriter?
+  public var assetWriterVideoInput: AVAssetWriterInput?
+  public var assetWriterAudioInput: AVAssetWriterInput?
+  //ASCamera variables end
 
   /// Movie File Output variable
 
@@ -233,6 +244,51 @@ import UIKit
     return false
   }
 
+  //ASCamera variables start
+  private let sessionPrimaryQueueIdentifier = "ASCamera_sessionPrimaryQueue"
+  private let sessionPrimaryQueueSpecificKey = DispatchSpecificKey<()>()
+  // Serial queue used for setting up session
+  private var sessionPrimaryQueue: DispatchQueue
+  //
+  private let sessionSecondaryQueueIdentifier = "ASCamera_sessionSecondaryQueue"
+  private let sessionSecondaryQueueSpecificKey = DispatchSpecificKey<()>()
+  // Serial queue used for setting up session
+  private var sessionSecondaryQueue: DispatchQueue
+  // BackgroundID variable for video recording
+  private var backgroundTaskID: UIBackgroundTaskIdentifier.RawValue.IntegerLiteralType?
+  //
+  private var didStartWritingSession = false
+  //
+  private var systemObserver: NSKeyValueObservation?
+  //
+  private var assetWriterInputPixelBufferAdator: AVAssetWriterInputPixelBufferAdaptor?
+  //
+  private var previousPresentationTimeStamp: CMTime = .zero
+  //
+  private var startingPresentationTimeStamp: CMTime = .zero
+  //
+  private var frameRate: Int = 0
+  //
+  private var frameCount = 0
+  //
+  private var shouldCapturePhotoFromDataOutput = false
+  //
+  private var willStartWritingSession = false
+  //
+  private(set) internal var shouldStartWritingSession = false
+  //
+  private var lastVideoSampleDate: Date = Date()
+  // Returns true if video is currently being recorded
+  public var isRecording: Bool {
+    return self.didStartWritingSession
+  }
+  public var desiredFrameRate: Int = 30 {
+    didSet {
+      self.configureFrameRate()
+    }
+  }
+  //ASCamera variables end
+
   /*
   @objc private var shouldResetZoom = false
   /// Used ignore gesture calls after video is done recording.
@@ -263,13 +319,49 @@ import UIKit
   //   super.init()
   // }
 
+  //ASCamera
+  public init() {
+    self.sessionPrimaryQueue = DispatchQueue(
+      label: self.sessionPrimaryQueueIdentifier, qos: .userInitiated, target: DispatchQueue.global()
+    )
+    self.sessionSecondaryQueue = DispatchQueue(
+      label: self.sessionSecondaryQueueIdentifier, qos: .utility, target: DispatchQueue.global())
+
+    super.init(nibName: nil, bundle: nil)
+
+    self.addApplicationObservers()
+    self.addSessionObservers()
+    if #available(iOS 11.1, *) {
+      self.addSystemObervers()
+    } else {
+      NSLog("[msCamera]: iOS 11.1+ required for observers")
+    }
+
+    self.sessionPrimaryQueue.setSpecific(key: self.sessionPrimaryQueueSpecificKey, value: ())
+    self.sessionSecondaryQueue.setSpecific(key: self.sessionSecondaryQueueSpecificKey, value: ())
+
+    self.session.automaticallyConfiguresApplicationAudioSession = false
+  }
+  required public init?(coder aDecoder: NSCoder) {
+    fatalError("init(coder:) has not been implemented")
+  }
+
+  //ASCamera
+  deinit {
+    if self.session.isRunning {
+      self.session.stopRunning()
+    }
+    removeApplicationObservers()
+    removeSessionObservers()
+    removeSystemObservers()
+  }
   // required public init?(coder aDecoder: NSCoder) {
   //   fatalError("init(coder:) has not been implemented")
   // }
   // MARK: ViewDidLoad
 
   /// ViewDidLoad Implementation
-
+  //SwiftyCamera
   @objc override open func viewDidLoad() {
     super.viewDidLoad()
     previewLayer = PreviewView(
@@ -314,7 +406,7 @@ import UIKit
   // MARK: ViewDidLayoutSubviews
 
   /// ViewDidLayoutSubviews() Implementation
-
+  //SwiftyCamera
   @objc override open func viewDidLayoutSubviews() {
     previewLayer.frame = CGRect(
       x: 0.0, y: 0.0, width: view.bounds.width, height: view.bounds.height)
@@ -324,7 +416,7 @@ import UIKit
   // MARK: ViewDidAppear
 
   /// ViewDidAppear(_ animated:) Implementation
-
+  //SwiftyCamera
   @objc override open func viewDidAppear(_ animated: Bool) {
     super.viewDidAppear(animated)
 
@@ -375,7 +467,7 @@ import UIKit
   // MARK: ViewDidDisappear
 
   /// ViewDidDisappear(_ animated:) Implementation
-
+  //SwiftyCamera
   @objc override open func viewDidDisappear(_ animated: Bool) {
     super.viewDidDisappear(animated)
 
@@ -850,7 +942,10 @@ import UIKit
   }
 
   @objc public func capturePhotoAsyncronously(completionHandler: @escaping (Bool) -> Void) {
-    if let videoConnection = photoFileOutput?.connection(with: AVMediaType.video) {
+
+    if let videoConnection: AVCaptureConnection = photoFileOutput?.connection(
+      with: AVMediaType.video)
+    {
       photoFileOutput?.captureStillImageAsynchronously(
         from: videoConnection,
         completionHandler: { sampleBuffer, _ in
@@ -1538,3 +1633,304 @@ private class LongPressGestureRecognizer: UILongPressGestureRecognizer {
   }
 }
 */
+
+extension SwiftyCamViewController {
+  private func addApplicationObservers() {
+    NotificationCenter.default.addObserver(
+      self, selector: #selector(handleApplicationWillResignActive(_:)),
+      name: UIApplication.willResignActiveNotification, object: nil)
+    NotificationCenter.default.addObserver(
+      self, selector: #selector(handleApplicationDidBecomeActive(_:)),
+      name: UIApplication.didBecomeActiveNotification, object: nil)
+  }
+
+  private func removeApplicationObservers() {
+    NotificationCenter.default.removeObserver(
+      self, name: UIApplication.willResignActiveNotification, object: nil)
+    NotificationCenter.default.removeObserver(
+      self, name: UIApplication.didBecomeActiveNotification, object: nil)
+  }
+
+  private func addSessionObservers() {
+    NotificationCenter.default.addObserver(
+      self, selector: #selector(handleSessionRuntimeError(_:)),
+      name: NSNotification.Name.AVCaptureSessionRuntimeError, object: self.session)
+    NotificationCenter.default.addObserver(
+      self, selector: #selector(handleSessionWasInterrupted(_:)),
+      name: NSNotification.Name.AVCaptureSessionWasInterrupted, object: self.session)
+    NotificationCenter.default.addObserver(
+      self, selector: #selector(handleSessionInterruptionEnded(_:)),
+      name: NSNotification.Name.AVCaptureSessionInterruptionEnded, object: self.session)
+    NotificationCenter.default.addObserver(
+      self, selector: #selector(handleSessionDidStartRunning(_:)),
+      name: NSNotification.Name.AVCaptureSessionDidStartRunning, object: self.session)
+  }
+
+  private func removeSessionObservers() {
+    NotificationCenter.default.removeObserver(
+      self, name: NSNotification.Name.AVCaptureSessionRuntimeError, object: self.session)
+    NotificationCenter.default.removeObserver(
+      self, name: NSNotification.Name.AVCaptureSessionWasInterrupted, object: self.session)
+    NotificationCenter.default.removeObserver(
+      self, name: NSNotification.Name.AVCaptureSessionInterruptionEnded, object: self.session)
+    NotificationCenter.default.removeObserver(
+      self, name: NSNotification.Name.AVCaptureSessionDidStartRunning, object: self.session)
+  }
+
+  @available(iOS 11.1, *)
+  private func addSystemObervers() {
+    guard let videoDevice: AVCaptureDevice = self.videoDevice else { return }
+    systemObserver = videoDevice.observe(
+      \AVCaptureDevice.systemPressureState, options: [.new]
+    ) { [weak self] (_, change) in
+      guard let self = self else { return }
+      guard let systemPressureState = change.newValue else { return }
+      let pressureLevel = systemPressureState.level
+      switch pressureLevel {
+      case .serious, .critical:
+        if self.isRecording {
+          NSLog(
+            "[ASCamera]: Reached elevated system pressure level: \(pressureLevel). Throttling frame rate."
+          )
+          self.configureFrameRate(toframeRate: 20)
+        }
+      case .shutdown:
+        NSLog("[ASCamera]: Session stopped running due to shutdown system pressure level.")
+      default:
+        if self.isRecording {
+          NSLog(
+            "[ASCamera]: Reached normal system pressure level: \(pressureLevel). Resetting frame rate."
+          )
+          self.configureFrameRate()
+        }
+      }
+    }
+  }
+
+  private func removeSystemObservers() {
+    systemObserver = nil
+  }
+
+  @objc open func handleApplicationWillResignActive(_ notification: Notification) {
+
+  }
+
+  @objc open func handleApplicationDidBecomeActive(_ notification: Notification) {
+
+  }
+
+  @objc open func handleSessionRuntimeError(_ notification: Notification) {
+    NSLog("[ASCamera]: SessionRuntimeError: \(String(describing: notification.userInfo))")
+    if let error = notification.userInfo?[AVCaptureSessionErrorKey] as? AVError {
+      switch error.code {
+      case .deviceIsNotAvailableInBackground:
+        NSLog("Media services are not available in the background")
+      case .mediaServicesWereReset:
+        NSLog("Media services were reset")
+      //self.session.startRunning()
+      default:
+        break
+      }
+    }
+  }
+
+  @objc open func handleSessionWasInterrupted(_ notification: Notification) {
+
+  }
+
+  @objc open func handleSessionInterruptionEnded(_ notification: Notification) {
+
+  }
+
+  @objc open func handleSessionDidStartRunning(_ notification: Notification) {
+
+  }
+}
+extension SwiftyCamViewController {
+  private func configureSessionQuality() {
+    let preset: AVCaptureSession.Preset
+    switch self.videoQuality {
+    case .high:
+      preset = AVCaptureSession.Preset.high
+      // NSLog("Setting session quality high")
+      break
+    case .medium:
+      preset = AVCaptureSession.Preset.medium
+    case .low:
+      preset = AVCaptureSession.Preset.low
+    case .resolution352x288:
+      preset = AVCaptureSession.Preset.cif352x288
+    case .resolution640x480:
+      preset = AVCaptureSession.Preset.vga640x480
+    case .resolution1280x720:
+      preset = AVCaptureSession.Preset.hd1280x720
+    case .resolution1920x1080:
+      preset = AVCaptureSession.Preset.hd1920x1080
+    case .resolution3840x2160:
+      preset = AVCaptureSession.Preset.hd4K3840x2160
+    case .iframe960x540:
+      preset = AVCaptureSession.Preset.iFrame960x540
+    case .iframe1280x720:
+      preset = AVCaptureSession.Preset.iFrame1280x720
+    default:
+      preset = AVCaptureSession.Preset.medium
+      break
+    }
+
+    guard self.session.canSetSessionPreset(preset) else {
+      NSLog(
+        "[ASCamera]: Error could not set session preset to \(preset), which enables custom video quality control. Defaulting to \(session.sessionPreset)"
+      )
+      return
+    }
+    // session.sessionPreset = videoInputPresetFromVideoQuality(quality: preset)
+    session.sessionPreset = preset
+
+    self.configureFrameRate()
+  }
+  /// Fixing framerate does effect low light capture performance
+  /// Todo: Make this functionality optional.
+  private func configureFrameRate(toframeRate: Int? = nil) {
+    guard let videoDevice = self.videoDevice else {
+      NSLog("[ASCamera]: Cannot configure frame rate. Reason: Video Capture Device is nil")
+      return
+    }
+
+    let desiredFrameRate = toframeRate ?? self.desiredFrameRate
+    var frameRate: Int = desiredFrameRate
+
+    let ranges = videoDevice.activeFormat.videoSupportedFrameRateRanges
+
+    let maxFrameRates = ranges.map({ return $0.maxFrameRate })
+
+    let minFrameRates = ranges.map({ return $0.minFrameRate })
+
+    var maxFrameRate = -1
+    var minFrameRate = -1
+
+    maxFrameRates.forEach { (rate) in
+      maxFrameRate = rate > Double(maxFrameRate) ? Int(rate) : maxFrameRate
+    }
+
+    minFrameRates.forEach { (rate) in
+      minFrameRate = rate > Double(minFrameRate) ? Int(rate) : minFrameRate
+    }
+
+    if desiredFrameRate > maxFrameRate {
+      NSLog(
+        "[ASCamera]: Desired frame rate is higher than supported frame rates. setting to \(maxFrameRate) instead."
+      )
+      frameRate = maxFrameRate
+    } else if desiredFrameRate < minFrameRate {
+      NSLog(
+        "[ASCamera]: Desired frame rate is lower than supported frame rates. setting to \(minFrameRate) instead."
+      )
+      frameRate = minFrameRate
+    }
+
+    guard videoDevice.activeVideoMinFrameDuration.timescale != frameRate,
+      videoDevice.activeVideoMaxFrameDuration.timescale != frameRate
+    else { return }
+
+    do {
+      try videoDevice.lockForConfiguration()
+      videoDevice.activeVideoMinFrameDuration = CMTime.init(
+        value: 1, timescale: CMTimeScale(frameRate))
+      videoDevice.activeVideoMaxFrameDuration = CMTime.init(
+        value: 1, timescale: CMTimeScale(frameRate))
+      videoDevice.unlockForConfiguration()
+
+      self.frameRate = frameRate
+    } catch {
+      NSLog("[ASCamera]: Could not lock device for configuration: \(error)")
+    }
+  }
+
+  // private func addVideoInput() {
+  //   self.captureDevice =
+  //     AVCaptureDevice.DiscoverySession(
+  //       deviceTypes: [captureDeviceType], mediaType: AVMediaType.video, position: cameraLocation
+  //     ).devices.first
+
+  //   self.removeSystemObservers()
+  //   if #available(iOS 11.1, *) {
+  //     self.addSystemObervers()
+  //   } else {
+  //     // Fallback on earlier versions
+  //     NSLog("[msCamera]: iOS 11.1+ required for observers")
+  //   }
+
+  //   guard let videoDevice = self.captureDevice else {
+  //     NSLog("[ASCamera]: Could not add video device input to the session")
+  //     return
+  //   }
+
+  //   do {
+  //     let videoDeviceInput = try AVCaptureDeviceInput(device: videoDevice)
+  //     if self.session.canAddInput(videoDeviceInput) {
+  //       self.session.addInput(videoDeviceInput)
+  //       self.videoInput = videoDeviceInput
+  //     } else {
+  //       NSLog("[ASCamera]: Could not add video device input to the session")
+  //     }
+  //   } catch {
+  //     NSLog("[ASCamera]: Could not create video device input: \(error)")
+  //   }
+  // }
+
+  // private func addVideoOutput() {
+  //   let dataOutput = AVCaptureVideoDataOutput.init()
+  //   dataOutput.setSampleBufferDelegate(self, queue: self.sessionSecondaryQueue)
+
+  //   if self.session.canAddOutput(dataOutput) {
+  //     self.session.addOutput(dataOutput)
+  //   }
+
+  //   let connection = dataOutput.connection(with: AVMediaType.video)
+  //   if connection?.isVideoOrientationSupported == true {
+  //     connection?.videoOrientation = self.orientation
+  //   }
+
+  //   self.videoOutput = dataOutput
+  // }
+
+  // private func addAudioInput() {
+  //   guard let audioDevice = AVCaptureDevice.default(for: AVMediaType.audio) else {
+  //     NSLog("[ASCamera]: Could not add audio device input to the session")
+  //     return
+  //   }
+  //   do {
+  //     let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice)
+  //     if self.session.canAddInput(audioDeviceInput) {
+  //       self.session.addInput(audioDeviceInput)
+  //       self.audioInput = audioDeviceInput
+  //     } else {
+  //       NSLog("[ASCamera]: Could not add audio device input to the session")
+  //     }
+  //   } catch {
+  //     NSLog("[ASCamera]: Could not create audio device input: \(error)")
+  //   }
+  // }
+
+  // private func addAudioOutput() {
+  //   let dataOutput = AVCaptureAudioDataOutput.init()
+  //   dataOutput.setSampleBufferDelegate(self, queue: self.sessionSecondaryQueue)
+
+  //   if self.session.canAddOutput(dataOutput) {
+  //     self.session.addOutput(dataOutput)
+  //     self.audioOutput = dataOutput
+  //   }
+  // }
+
+  // private func removeAudioOutput() {
+  //   guard let audioOutput = self.audioOutput else { return }
+  //   self.session.removeOutput(audioOutput)
+  //   self.audioOutput = nil
+  // }
+
+  // private func removeAudioInput() {
+  //   guard let audioInput = self.audioInput else { return }
+  //   self.session.removeInput(audioInput)
+  //   self.audioInput = nil
+  // }
+}
