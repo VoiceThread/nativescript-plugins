@@ -87,23 +87,23 @@ export class SwiftyDelegate extends NSObject implements SwiftyCamViewControllerD
 
 @NativeClass
 export class MySwifty extends SwiftyCamViewController {
-  // public static ObjCExposedMethods = {
-  //   switchCam: { returns: interop.types.void },
-  //   resetPreview: { returns: interop.types.void },
-  //   savePhoto: { returns: interop.types.void },
-  //   snapPicture: { returns: interop.types.void },
-  //   toggleFlash: { returns: interop.types.void },
-  //   recordVideo: { returns: interop.types.void },
-  //   videoDidFinishSavingWithErrorContextInfo: {
-  //     returns: interop.types.void,
-  //     params: [NSString, NSError, interop.Pointer],
-  //   },
-  //   // 'deviceDidRotate': { returns: interop.types.void }
-  //   // 'thisImage:hasBeenSavedInPhotoAlbumWithError:usingContextInfo:': {
-  //   //   returns: interop.types.void,
-  //   //   params: [UIImage, NSError, interop.Pointer]
-  //   // }
-  // };
+  public static ObjCExposedMethods = {
+    switchCam: { returns: interop.types.void },
+    resetPreview: { returns: interop.types.void },
+    savePhoto: { returns: interop.types.void },
+    snapPicture: { returns: interop.types.void },
+    toggleFlash: { returns: interop.types.void },
+    recordVideo: { returns: interop.types.void },
+    videoDidFinishSavingWithErrorContextInfo: {
+      returns: interop.types.void,
+      params: [NSString, NSError, interop.Pointer],
+    },
+    // 'deviceDidRotate': { returns: interop.types.void }
+    // 'thisImage:hasBeenSavedInPhotoAlbumWithError:usingContextInfo:': {
+    //   returns: interop.types.void,
+    //   params: [UIImage, NSError, interop.Pointer]
+    // }
+  };
   private _owner: WeakRef<CameraPlus>;
   private _snapPicOptions: ICameraOptions;
   private _enableVideo: boolean;
@@ -115,7 +115,8 @@ export class MySwifty extends SwiftyCamViewController {
   private _flashEnabled: boolean;
   private _flashBtn: UIButton;
   private _switchBtn: UIButton;
-  private _cameraBtn: ASCameraButton;
+  // private _cameraBtn: ASCameraButton;
+  private _cameraBtn: UIButton;
   private _blurView: UIView;
   public _swiftyDelegate: any;
   // private _pickerDelegate: any;
@@ -171,6 +172,7 @@ export class MySwifty extends SwiftyCamViewController {
     this.cameraDelegate = this._swiftyDelegate;
     CLog('this.cameraDelegate:', this.cameraDelegate);
 
+    /*
     this._cameraBtn = ASCameraButton.alloc().init();
     //register tap handlers
     // this.register(this._cameraBtn)
@@ -211,7 +213,7 @@ export class MySwifty extends SwiftyCamViewController {
     this.view.addSubview(this._blurView);
     this.view.addSubview(this._cameraBtn);
     this.view.bringSubviewToFront(this._cameraBtn);
-
+*/
     // let that = this;
     // setTimeout(() => {
     //   that._cameraBtn.changeToSquare();
@@ -320,11 +322,16 @@ export class MySwifty extends SwiftyCamViewController {
         saveToGallery: this._owner.get().saveToGallery,
       };
     }
+    console.log('using options', this._snapPicOptions);
     this.takePhoto();
   }
 
   public recordVideo(options?: IVideoOptions) {
-    options = options || {};
+    console.log('recordVideo()');
+    options = options || {
+      saveToGallery: false,
+    };
+    // options = options || {};
     if (this._enableVideo) {
       if (this.isVideoRecording) {
         CLog('CameraPlus stop video recording.');
@@ -365,7 +372,7 @@ export class MySwifty extends SwiftyCamViewController {
             this.videoQuality = VideoQuality.Resolution640x480;
             break;
         }
-
+        console.log('requesting permission to photos library');
         const status = PHPhotoLibrary.authorizationStatus();
         if (status === PHAuthorizationStatus.NotDetermined) {
           PHPhotoLibrary.requestAuthorization(status => {
@@ -374,15 +381,18 @@ export class MySwifty extends SwiftyCamViewController {
         } else {
           this.startVideoRecording();
         }
+        console.log('requested camera delegate startVideoRecording()');
       }
     }
   }
 
   public didStartRecording(camera: CameraSelection) {
+    console.log('saw event didStartRecording');
     this._owner.get().sendEvent(CameraPlus.videoRecordingStartedEvent, camera);
   }
 
   public recordingReady(path: string) {
+    console.log('recordingReady()');
     if ((this._videoOptions && this._videoOptions.saveToGallery) || this._owner.get().saveToGallery) {
       // TODO: discuss why callback handler(videoDidFinishSavingWithErrorContextInfo) does not emit event correctly - the path passed to the handler is the same as handled here so just go ahead and emit here for now
       this._owner.get().sendEvent(CameraPlus.videoRecordingReadyEvent, path);
@@ -398,10 +408,12 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   public didFinishRecording(camera: CameraSelection) {
+    console.log('didFinishRecording(), sending event CameraPlus.videoRecordingFinishedEvent');
     this._owner.get().sendEvent(CameraPlus.videoRecordingFinishedEvent, camera);
   }
 
   public videoDidFinishSavingWithErrorContextInfo(path: string, error: NSError, contextInfo: any) {
+    console.log('saw event videoDidFinishSavingWithErrorContextInfo');
     if (error) {
       CLog('video save to camera roll error:');
       CLog(error);
@@ -410,7 +422,7 @@ export class MySwifty extends SwiftyCamViewController {
     CLog(`video saved`, path);
 
     // ideally could just rely on this, but this will not emit the event (commenting for now and instead doing above in recordready - TODO: discuss why)
-    // this._owner.get().sendEvent(CameraPlus.videoRecordingReadyEvent, path);
+    this._owner.get().sendEvent(CameraPlus.videoRecordingReadyEvent, path);
   }
 
   public switchCam() {
@@ -609,17 +621,23 @@ export class MySwifty extends SwiftyCamViewController {
     // this._cameraBtn.changeToSquare();
     // this._cameraBtn.layoutIfNeeded();
     */
-    // CLog('this._cameraBtn done with init');
+
     // if (this._owner.get().showCaptureIcon) {
-    //   CLog('adding showCaptureIcon...');
-    //   const heightOffset = this._owner.get().isIPhoneX ? 200 : 110;
-    //   const picOutline = createButton(this, CGRectMake(width / 2 - 20, height - heightOffset, 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('picOutline'));
-    //   picOutline.transform = CGAffineTransformMakeScale(1.5, 1.5);
-    //   this.view.addSubview(picOutline);
-    //   const takePicBtn = createButton(this, CGRectMake(width / 2 - 21.5, height - (heightOffset + 0.7), 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('takePic'));
-    //   // takePicBtn.transform = CGAffineTransformMakeScale(1.5, 1.5);
-    //   this.view.addSubview(takePicBtn);
+    CLog('adding showCaptureIcon...');
+    if (this._cameraBtn) this._cameraBtn.removeFromSuperview();
+    const heightOffset = this._owner.get().isIPhoneX ? 400 : 310;
+    const picOutline = createButton(this, CGRectMake(width / 2 - 20, height - heightOffset, 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('picOutline'));
+    picOutline.transform = CGAffineTransformMakeScale(1.5, 1.5);
+    this.view.addSubview(picOutline);
+    console.log('created outline ', picOutline);
+
+    const takePicBtn = createButton(this, CGRectMake(width / 2 - 21.5, height - (heightOffset + 0.7), 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('takePic'));
+    // takePicBtn.transform = CGAffineTransformMakeScale(1.5, 1.5);
+    this.view.addSubview(takePicBtn);
+    console.log('created button ', takePicBtn);
+    this._cameraBtn = takePicBtn;
     // }
+    CLog('addButtons done');
   }
 
   private _flashBtnHandler() {
@@ -935,6 +953,7 @@ const createButton = function (target: any, frame: CGRect, label: string, eventN
     // }
   }
   if (eventName) {
+    console.log('adding event ', eventName);
     btn.addTargetActionForControlEvents(target, eventName, UIControlEvents.TouchUpInside);
   }
   return btn;

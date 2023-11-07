@@ -59,38 +59,34 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       return;
     }
 
-    // this.cam.on(CameraPlus.errorEvent, args => {
-    //   console.log('*** CameraPlus errorEvent ***', args);
-    // });
+    this.cam.on(CameraPlus.errorEvent, args => {
+      console.log('*** CameraPlus errorEvent ***', args);
+    });
 
-    // this.cam.on(CameraPlus.toggleCameraEvent, (args: any) => {
-    //   console.log(`toggleCameraEvent listener on main-view-model.ts  ${args}`);
-    // });
+    this.cam.on(CameraPlus.toggleCameraEvent, (args: any) => {
+      console.log(`toggleCameraEvent listener on main-view-model.ts  ${args}`);
+    });
 
-    // this.cam.on(CameraPlus.photoCapturedEvent, (args: any) => {
-    //   console.log(`photoCapturedEvent listener on main-view-model.ts  ${args}`);
-    //   console.log((<any>args).data);
-    //   ImageSource.fromAsset((<any>args).data).then(res => {
-    //     const testImg = Frame.topmost().getViewById('testImagePickResult') as Image;
-    //     testImg.src = res;
-    //   });
-    // });
+    this.cam.on(CameraPlus.photoCapturedEvent, (args: any) => {
+      console.log(`photoCapturedEvent listener on main-view-model.ts  ${args}`);
+      console.log((<any>args).data);
+      ImageSource.fromAsset((<any>args).data).then(res => {
+        const testImg = Frame.topmost().getViewById('testImagePickResult') as Image;
+        testImg.src = res;
+      });
+    });
 
-    // this.cam.on(CameraPlus.imagesSelectedEvent, (args: any) => {
-    //   console.log(`imagesSelectedEvent listener on main-view-model.ts ${args}`);
-    // });
+    this.cam.on(CameraPlus.videoRecordingReadyEvent, (args: any) => {
+      console.log(`videoRecordingReadyEvent listener fired`, args.data);
+    });
 
-    // this.cam.on(CameraPlus.videoRecordingReadyEvent, (args: any) => {
-    //   console.log(`videoRecordingReadyEvent listener fired`, args.data);
-    // });
+    this.cam.on(CameraPlus.videoRecordingStartedEvent, (args: any) => {
+      console.log(`videoRecordingStartedEvent listener fired`, args.data);
+    });
 
-    // this.cam.on(CameraPlus.videoRecordingStartedEvent, (args: any) => {
-    //   console.log(`videoRecordingStartedEvent listener fired`, args.data);
-    // });
-
-    // this.cam.on(CameraPlus.videoRecordingFinishedEvent, (args: any) => {
-    //   console.log(`videoRecordingFinishedEvent listener fired`, args.data);
-    // });
+    this.cam.on(CameraPlus.videoRecordingFinishedEvent, (args: any) => {
+      console.log(`videoRecordingFinishedEvent listener fired`, args.data);
+    });
 
     this._counter = 1;
   }

@@ -233,6 +233,7 @@ import UIKit
     return false
   }
 
+  /*
   @objc private var shouldResetZoom = false
   /// Used ignore gesture calls after video is done recording.
   @objc private var shouldIgnore = false
@@ -256,7 +257,7 @@ import UIKit
   @objc public var photoCaptureThreshold = 2.0 {
     willSet { assert(newValue > 0, "[asCamera]: photoCaptureThreshold should be positive") }
   }
-
+*/
   //MARL: init()
   // public init() {
   //   super.init()
@@ -514,6 +515,7 @@ import UIKit
      */
 
   @objc public func stopVideoRecording() {
+    print("SCVC stopVideoRecording()")
     if movieFileOutput?.isRecording == true {
       isVideoRecording = false
       movieFileOutput!.stopRecording()
@@ -530,6 +532,7 @@ import UIKit
           })
       }
       DispatchQueue.main.async {
+        print("SCVC dispatching event didFinishRecordingVideo")
         self.cameraDelegate?.swiftyCam(self, didFinishRecordingVideo: self.currentCamera)
       }
     }
@@ -1021,7 +1024,7 @@ import UIKit
   }
 }
 
-/*@objc extension SwiftyCamViewController: SwiftyCamButtonDelegate {
+@objc extension SwiftyCamViewController: SwiftyCamButtonDelegate {
   /// Sets the maximum duration of the SwiftyCamButton
 
   public func setMaxiumVideoDuration() -> Double {
@@ -1056,7 +1059,7 @@ import UIKit
     stopVideoRecording()
   }
 }
-*/
+
 // MARK: AVCaptureFileOutputRecordingDelegate
 
 extension SwiftyCamViewController: AVCaptureFileOutputRecordingDelegate {
@@ -1065,6 +1068,11 @@ extension SwiftyCamViewController: AVCaptureFileOutputRecordingDelegate {
     from connections: [AVCaptureConnection], error: Error?
   ) {
     NSLog("empty stub for fileOutput")
+    NSLog(outputFileURL.absoluteString)
+    // Call delegate function with the URL of the outputfile
+    DispatchQueue.main.async {
+      self.cameraDelegate?.swiftyCam(self, didFinishProcessVideoAt: outputFileURL)
+    }
   }
 
   /// Process newly captured video and write it to temporary directory
@@ -1255,17 +1263,18 @@ extension SwiftyCamViewController {
 
 // MARK: UIGestureRecognizerDelegate
 
-// extension SwiftyCamViewController: UIGestureRecognizerDelegate {
-//   /// Set beginZoomScale when pinch begins
+extension SwiftyCamViewController: UIGestureRecognizerDelegate {
+  /// Set beginZoomScale when pinch begins
 
-//   public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-//     if gestureRecognizer.isKind(of: UIPinchGestureRecognizer.self) {
-//       beginZoomScale = zoomScale
-//     }
-//     return true
-//   }
-// }
+  public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+    if gestureRecognizer.isKind(of: UIPinchGestureRecognizer.self) {
+      beginZoomScale = zoomScale
+    }
+    return true
+  }
+}
 
+/*
 // Button related stuff
 @objc extension SwiftyCamViewController {
   public func register(_ button: ASCameraButton) {
@@ -1382,7 +1391,7 @@ extension SwiftyCamViewController {
       self.cameraButton?.changeToCircle()
       //and trigger the takePhoto
       // self.takePhoto()
-      takePhoto()
+      takePhoto();
 
     case .cancelled:
       NSLog("cancelled")
@@ -1528,3 +1537,4 @@ private class LongPressGestureRecognizer: UILongPressGestureRecognizer {
     self.startingLocation = self.location(in: self.view)
   }
 }
+*/
