@@ -1,4 +1,5 @@
 <Page xmlns="http://schemas.nativescript.org/tns.xsd"
+  xmlns:VideoPlayer="nativescript-videoplayer"
   navigatingTo="navigatingTo"
   loaded="onLoaded"
   xmlns:Cam="@voicethread/nativescript-camera">
@@ -34,7 +35,12 @@
 
           <!--<GridLayout rows="auto, *, auto" columns="auto, *, auto"><Button row="0" col="0" text="Flash" class="btn-transparent" tap="{{ toggleFlash }}" /><Button row="0" col="2" text="Camera" class="btn-transparent" tap="{{ toggleCamera }}" /><Image row="1" col="1" horizontalAlignment="center" verticalAlignment="center" src="https://img.clipartfest.com/4ec5e2315cea92482da5546e1e7fca89_-pinterest-cute-clipart-snowman-clipart-transparent-background_300-300.png" stretch="none" /><Button row="2" col="0" text="Gallery" class="btn-transparent" tap="{{ openGallery }}" /><Button row="2" col="2" text="Take" class="btn-transparent" tap="{{ takePic }}" /></GridLayout>-->
         </Cam:CameraPlus>
-
+        <VideoPlayer:Video id="nativeVideoPlayer"
+          controls="true"
+          loop="false"
+          autoplay="false"
+          height="360"
+          opacity="1" />
         <Image height="200"
           id="testImagePickResult"
           src="{{ testImage }}"

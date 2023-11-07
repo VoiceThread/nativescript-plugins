@@ -3,6 +3,8 @@ import { DemoSharedNativescriptCamera } from '@demo/shared';
 import { CameraPlus } from '@voicethread/nativescript-camera';
 import { ObservableProperty } from './observable-property';
 import { checkMultiple, check as checkPermission, request } from '@nativescript-community/perms';
+import { Video } from 'nativescript-videoplayer';
+import { executeOnMainThread } from '@nativescript/core/utils';
 
 export function navigatingTo(args: EventData) {
   console.log('navigatingTo()');
@@ -78,14 +80,23 @@ export class DemoModel extends DemoSharedNativescriptCamera {
 
     this.cam.on(CameraPlus.videoRecordingReadyEvent, (args: any) => {
       console.log(`videoRecordingReadyEvent listener fired`, args.data);
+      const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
+      video.visibility = 'visible';
+      // video.visibility = 'visible';
+      video.opacity = 1;
+      console.log(args.data);
+      video.src = args.data;
+      video.loop = false;
     });
 
     this.cam.on(CameraPlus.videoRecordingStartedEvent, (args: any) => {
       console.log(`videoRecordingStartedEvent listener fired`, args.data);
+      const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
+      video.visibility = 'hidden';
     });
 
     this.cam.on(CameraPlus.videoRecordingFinishedEvent, (args: any) => {
-      console.log(`videoRecordingFinishedEvent listener fired`, args.data);
+      console.log(`videoRecordingFinishedEvent listener fired`);
     });
 
     this._counter = 1;
