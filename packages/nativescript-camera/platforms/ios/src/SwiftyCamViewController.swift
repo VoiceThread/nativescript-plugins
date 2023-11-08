@@ -1119,41 +1119,41 @@ import UIKit
   }
 }
 
-@objc extension SwiftyCamViewController: SwiftyCamButtonDelegate {
-  /// Sets the maximum duration of the SwiftyCamButton
+// @objc extension SwiftyCamViewController: SwiftyCamButtonDelegate {
+//   /// Sets the maximum duration of the SwiftyCamButton
 
-  public func setMaxiumVideoDuration() -> Double {
-    return maximumVideoDuration
-  }
+//   public func setMaxiumVideoDuration() -> Double {
+//     return maximumVideoDuration
+//   }
 
-  /// Set UITapGesture to take photo
+//   /// Set UITapGesture to take photo
 
-  public func buttonWasTapped() {
-    NSLog("cambutton buttonWasTapped")
-    takePhoto()
-  }
+//   public func buttonWasTapped() {
+//     NSLog("cambutton buttonWasTapped")
+//     takePhoto()
+//   }
 
-  /// Set UILongPressGesture start to begin video
+//   /// Set UILongPressGesture start to begin video
 
-  public func buttonDidBeginLongPress() {
-    NSLog("cambutton buttonDidBeginLongPress")
-    startVideoRecording()
-  }
+//   public func buttonDidBeginLongPress() {
+//     NSLog("cambutton buttonDidBeginLongPress")
+//     startVideoRecording()
+//   }
 
-  /// Set UILongPressGesture begin to begin end video
+//   /// Set UILongPressGesture begin to begin end video
 
-  public func buttonDidEndLongPress() {
-    NSLog("cambutton buttonDidEndLongPress")
-    stopVideoRecording()
-  }
+//   public func buttonDidEndLongPress() {
+//     NSLog("cambutton buttonDidEndLongPress")
+//     stopVideoRecording()
+//   }
 
-  /// Called if maximum duration is reached
+//   /// Called if maximum duration is reached
 
-  public func longPressDidReachMaximumDuration() {
-    NSLog("cambutton longPressDidReachMaximumDuration")
-    stopVideoRecording()
-  }
-}
+//   public func longPressDidReachMaximumDuration() {
+//     NSLog("cambutton longPressDidReachMaximumDuration")
+//     stopVideoRecording()
+//   }
+// }
 
 // MARK: AVCaptureFileOutputRecordingDelegate
 
