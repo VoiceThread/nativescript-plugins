@@ -81,7 +81,7 @@ declare var SwiftyCamButtonDelegate: {
   prototype: SwiftyCamButtonDelegate;
 };
 
-declare class SwiftyCamViewController extends UIViewController implements AVCaptureFileOutputRecordingDelegate, UIGestureRecognizerDelegate {
+declare class SwiftyCamViewController extends UIViewController implements AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, UIGestureRecognizerDelegate {
   static alloc(): SwiftyCamViewController; // inherited from NSObject
 
   static deviceWithMediaTypePreferringPosition(mediaType: string, position: AVCaptureDevicePosition): AVCaptureDevice;
@@ -90,13 +90,31 @@ declare class SwiftyCamViewController extends UIViewController implements AVCapt
 
   allowBackgroundAudio: boolean;
 
+  allowsBackgroundAudio: boolean;
+
+  assetWriter: AVAssetWriter;
+
+  assetWriterAudioInput: AVAssetWriterInput;
+
+  assetWriterVideoInput: AVAssetWriterInput;
+
+  audioInput: AVCaptureDeviceInput;
+
+  audioOutput: AVCaptureAudioDataOutput;
+
   beginZoomScale: number;
 
   cameraDelegate: SwiftyCamViewControllerDelegate;
 
+  captureDeviceType: string;
+
   readonly currentCamera: CameraSelection;
 
   defaultCamera: CameraSelection;
+
+  defaultCameraLocation: AVCaptureDevicePosition;
+
+  desiredFrameRate: number;
 
   disableAudio: boolean;
 
@@ -106,11 +124,13 @@ declare class SwiftyCamViewController extends UIViewController implements AVCapt
 
   flashView: UIView;
 
+  isAudioEnabled: boolean;
+
   isCameraTorchOn: boolean;
 
-  readonly isSessionRunning: boolean;
+  readonly isRecording: boolean;
 
-  readonly isVideoRecording: boolean;
+  readonly isSessionRunning: boolean;
 
   lowLightBoost: boolean;
 
@@ -118,7 +138,7 @@ declare class SwiftyCamViewController extends UIViewController implements AVCapt
 
   maximumVideoDuration: number;
 
-  movieFileOutput: AVCaptureMovieFileOutput;
+  outputFileDirectory: NSURL;
 
   photoFileOutput: AVCaptureStillImageOutput;
 
@@ -144,7 +164,7 @@ declare class SwiftyCamViewController extends UIViewController implements AVCapt
 
   videoDevice: AVCaptureDevice;
 
-  videoDeviceInput: AVCaptureDeviceInput;
+  videoInput: AVCaptureDeviceInput;
 
   videoOutput: AVCaptureVideoDataOutput;
 
@@ -164,14 +184,11 @@ declare class SwiftyCamViewController extends UIViewController implements AVCapt
 
   readonly; // inherited from NSObjectProtocol
 
-  captureOutputDidFinishRecordingToOutputFileAtURLFromConnectionsError(
-    output: AVCaptureFileOutput,
-    outputFileURL: NSURL,
-    connections: NSArray<AVCaptureConnection> | AVCaptureConnection[],
-    error: NSError
-  ): void;
+  cancelVideoRecording(): void;
 
-  captureOutputDidStartRecordingToOutputFileAtURLFromConnections(output: AVCaptureFileOutput, fileURL: NSURL, connections: NSArray<AVCaptureConnection> | AVCaptureConnection[]): void;
+  captureOutputDidDropSampleBufferFromConnection(output: AVCaptureOutput, sampleBuffer: any, connection: AVCaptureConnection): void;
+
+  captureOutputDidOutputSampleBufferFromConnection(output: AVCaptureOutput, sampleBuffer: any, connection: AVCaptureConnection): void;
 
   capturePhotoAsyncronouslyWithCompletionHandler(completionHandler: (p1: boolean) => void): void;
 
@@ -183,9 +200,17 @@ declare class SwiftyCamViewController extends UIViewController implements AVCapt
 
   deviceDidRotate(): void;
 
+  didFailToProcessVideo(error: NSError): void;
+
+  didFinishProcessingVideoAt(url: NSURL): void;
+
   disableFlash(): void;
 
   enableFlash(): void;
+
+  executeAsync(closure: () => void): void;
+
+  executeSyncWithClosure(closure: () => void): void;
 
   gestureRecognizerShouldBeRequiredToFailByGestureRecognizer(gestureRecognizer: UIGestureRecognizer, otherGestureRecognizer: UIGestureRecognizer): boolean;
 
@@ -242,6 +267,8 @@ declare class SwiftyCamViewController extends UIViewController implements AVCapt
   self(): this;
 
   setBackgroundAudioPreference(): void;
+
+  setPreviousBackgroundAudioPreference(): void;
 
   startVideoRecording(): void;
 

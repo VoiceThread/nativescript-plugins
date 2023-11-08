@@ -333,7 +333,7 @@ export class MySwifty extends SwiftyCamViewController {
     };
     // options = options || {};
     if (this._enableVideo) {
-      if (this.isVideoRecording) {
+      if (this.isRecording) {
         CLog('CameraPlus stop video recording.');
         this.stopVideoRecording();
       } else {

@@ -97,8 +97,8 @@ import UIKit
 
   @objc public var videoQuality: VideoQuality = .high
 
-  //
-  @objc public var videoCodecType: AVVideoCodecType = AVVideoCodecType.hevc
+  //default to h264 for greater compatibility
+  @objc public var videoCodecType: AVVideoCodecType = AVVideoCodecType.h264
 
   /// Disable audio
   @objc public var disableAudio = false
@@ -147,18 +147,19 @@ import UIKit
 
   /// Sets wether the taken photo or video should be oriented according to the device orientation
 
-  @objc public var shouldUseDeviceOrientation = false
+  @objc public var shouldUseDeviceOrientation = true
 
   // MARK: Public Get-only Variable Declarations
 
   /// Returns true if video is currently being recorded
 
-  @objc public private(set) var isVideoRecording = false
+  // @objc public private(set) var isVideoRecording = false
 
   /// Returns true if the capture session is currently running
 
-  @objc public private(set) var isSessionRunning = false
-
+  // @objc public private(set) var isSessionRunning = false
+  /// Returns true if the capture session is currently running
+  @objc public var isSessionRunning: Bool { return session.isRunning }
   /// Returns the CameraSelection corresponding to the currently utilized camera
 
   @objc public private(set) var currentCamera = CameraSelection.rear
@@ -193,26 +194,63 @@ import UIKit
   @objc public var setupResult = SessionSetupResult.success
 
   /// BackgroundID variable for video recording
-
+  //Note: the UIBackgroundTaskIdentifier can't be converted to objc
   public var backgroundRecordingID: UIBackgroundTaskIdentifier? = nil
 
   /// Video Input variable
 
-  @objc public var videoDeviceInput: AVCaptureDeviceInput!
-
+  @objc public var videoInput: AVCaptureDeviceInput!
   @objc public var videoOutput: AVCaptureVideoDataOutput?
 
   //ASCamera variables start
-  public var audioInput: AVCaptureDeviceInput?
-  public var audioOutput: AVCaptureAudioDataOutput?
-  public var assetWriter: AVAssetWriter?
-  public var assetWriterVideoInput: AVAssetWriterInput?
-  public var assetWriterAudioInput: AVAssetWriterInput?
+  @objc public var audioInput: AVCaptureDeviceInput?
+  @objc public var audioOutput: AVCaptureAudioDataOutput?
+  @objc public var assetWriter: AVAssetWriter?
+  @objc public var assetWriterVideoInput: AVAssetWriterInput?
+  @objc public var assetWriterAudioInput: AVAssetWriterInput?
+
+  // public var orientation: AVCaptureVideoOrientation = .portrait {
+  //   didSet {
+  //     captureView.videoPreviewLayer.connection?.videoOrientation = self.orientation
+  //     let connection = self.videoOutput?.connection(with: AVMediaType.video)
+  //     if connection?.isVideoOrientationSupported == true {
+  //       connection?.videoOrientation = self.orientation
+  //     }
+  //   }
+  // }
+  /// Sets default camera location on initial start
+  @objc public var defaultCameraLocation = AVCaptureDevice.Position.back {
+    didSet {
+      if !isSessionRunning {
+        self.cameraLocation = self.defaultCameraLocation
+      }
+    }
+  }
+  //
+  @objc public var captureDeviceType = AVCaptureDevice.DeviceType.builtInWideAngleCamera
+  // Sets whether or not video recordings will record audio
+  @objc public var isAudioEnabled = true
+  /// Returns true if the capture session is currently running
+  // @objc public var isSessionRunning: Bool { return session.isRunning }
+  // Directory used for uploading files Directoy
+  @objc public var outputFileDirectory: URL = FileManager.default.temporaryDirectory
+  /// Desired number of frame per secon. ASCamera will adjust the frame rate only when system is under pressure.
+  @objc public var desiredFrameRate: Int = 30 {
+    didSet {
+      self.configureFrameRate()
+    }
+  }
+  // Returns true if video is currently being recorded
+  @objc public var isRecording: Bool {
+    return self.didStartWritingSession
+  }
+  // allow background audio from other applications to continue playing during capture
+  @objc public var allowsBackgroundAudio = true
   //ASCamera variables end
 
   /// Movie File Output variable
 
-  @objc public var movieFileOutput: AVCaptureMovieFileOutput?
+  // @objc public var movieFileOutput: AVCaptureMovieFileOutput?
 
   /// Photo File Output variable
 
@@ -238,10 +276,10 @@ import UIKit
 
   public var deviceOrientation: UIDeviceOrientation?
 
-  /// Disable view autorotation for forced portrait recorindg
+  /// Disable view autorotation for forced portrait recording
 
   @objc override open var shouldAutorotate: Bool {
-    return false
+    return true
   }
 
   //ASCamera variables start
@@ -254,6 +292,10 @@ import UIKit
   private let sessionSecondaryQueueSpecificKey = DispatchSpecificKey<()>()
   // Serial queue used for setting up session
   private var sessionSecondaryQueue: DispatchQueue
+  // Variable
+  private var lastZoomScale = CGFloat(1.0)
+
+  private var isSwitchingCameras = false
   // BackgroundID variable for video recording
   private var backgroundTaskID: UIBackgroundTaskIdentifier.RawValue.IntegerLiteralType?
   //
@@ -279,14 +321,19 @@ import UIKit
   //
   private var lastVideoSampleDate: Date = Date()
   // Returns true if video is currently being recorded
-  public var isRecording: Bool {
-    return self.didStartWritingSession
-  }
-  public var desiredFrameRate: Int = 30 {
-    didSet {
-      self.configureFrameRate()
-    }
-  }
+  // public var isRecording: Bool {
+  //   return self.didStartWritingSession
+  // }
+  // public var desiredFrameRate: Int = 30 {
+  //   didSet {
+  //     self.configureFrameRate()
+  //   }
+  // }
+  // Returns the current camera being used.
+  private(set) public var cameraLocation = AVCaptureDevice.Position.back
+  //
+  private(set) public var recordingDuration: Double = 0.0
+
   //ASCamera variables end
 
   /*
@@ -435,7 +482,7 @@ import UIKit
       case .success:
         // Begin Session
         self.session.startRunning()
-        self.isSessionRunning = self.session.isRunning
+        // self.isSessionRunning = self.session.isRunning
 
         // Preview layer video orientation can be set only after the connection is created
         DispatchQueue.main.async {
@@ -474,7 +521,7 @@ import UIKit
     // If session is running, stop the session
     if isSessionRunning == true {
       session.stopRunning()
-      isSessionRunning = false
+      // isSessionRunning = false
     }
 
     // Disble flash if it is currently enabled
@@ -548,52 +595,139 @@ import UIKit
      */
 
   @objc public func startVideoRecording() {
-    guard let movieFileOutput = movieFileOutput else {
-      return
-    }
+    NSLog("SCVC startVideoRecording()")
+    assert(
+      Thread.isMainThread,
+      "[ASCamera]: This function -startRecording must be called on the main thread.")
 
-    if currentCamera == .rear && flashEnabled == true {
-      enableFlash()
-    }
+    self.executeAsync { [weak self] in
+      guard let self = self else { return }
+      assert(
+        !self.willStartWritingSession && !self.shouldStartWritingSession,
+        "[ASCamera]: Called startRecording() when already recording.")
+      self.willStartWritingSession = true
 
-    if currentCamera == .front && flashEnabled == true {
-      flashView = UIView(frame: view.frame)
-      flashView?.backgroundColor = UIColor.white
-      flashView?.alpha = 0.85
-      previewLayer.addSubview(flashView!)
-    }
+      // self.shouldCreateAssetWriter()
 
-    sessionQueue.async { [unowned self] in
-      if !movieFileOutput.isRecording {
-        if UIDevice.current.isMultitaskingSupported {
-          self.backgroundRecordingID = UIApplication.shared.beginBackgroundTask(
-            expirationHandler: nil)
-        }
-
-        // Update the orientation on the movie file output video connection before starting recording.
-        let movieFileOutputConnection = self.movieFileOutput?.connection(with: AVMediaType.video)
-
-        // flip video output if front facing camera is selected
-        if self.currentCamera == .front {
-          movieFileOutputConnection?.isVideoMirrored = true
-        }
-
-        movieFileOutputConnection?.videoOrientation = self.getVideoOrientation()
-
-        // Start recording to a temporary file.
-        let outputFileName = UUID().uuidString
-        let outputFilePath = (NSTemporaryDirectory() as NSString).appendingPathComponent(
-          (outputFileName as NSString).appendingPathExtension("mov")!)
-        movieFileOutput.startRecording(
-          to: URL(fileURLWithPath: outputFilePath), recordingDelegate: self)
-        self.isVideoRecording = true
-        DispatchQueue.main.async {
-          self.cameraDelegate?.swiftyCam(self, didBeginRecordingVideo: self.currentCamera)
-        }
-      } else {
-        movieFileOutput.stopRecording()
+      let uuid = UUID().uuidString
+      let fileType = self.assetWriter?.outputFileType ?? AVFileType.mov
+      assert(fileType.isVideoFileTypeSupported, "fileType is not supported for video")
+      let outputFileName = (uuid as NSString).appendingPathExtension(fileType.stringValue())!
+      let outputFileUrl = self.outputFileDirectory.appendingPathComponent(
+        outputFileName, isDirectory: false)
+      do {
+        let assetWriter =
+          try self.assetWriter ?? AVAssetWriter(outputURL: outputFileUrl, fileType: fileType)
+        self.assetWriter = assetWriter
+      } catch {
+        print("[ASCamera]: error setting up avassetwrtter: \(error)")
+        return
       }
+
+      guard let assetWriter = self.assetWriter else { fatalError("asset writer is nil") }
+
+      self.setBackgroundAudioPreference()
+      // Adding audio her is necessary to mimic Snapchat/Instagram camera
+      // self.session.beginConfiguration()
+      // self.addAudioInput()
+      // self.addAudioOutput()
+      // self.session.commitConfiguration()
+
+      var videoCompressionSettings = self.videoOutput?.recommendedVideoSettingsForAssetWriter(
+        writingTo: assetWriter.outputFileType)
+      var compressionProperties =
+        videoCompressionSettings?[AVVideoCompressionPropertiesKey] as? [String: Any]
+      compressionProperties?[AVVideoExpectedSourceFrameRateKey] = self.frameRate
+      videoCompressionSettings?[AVVideoCompressionPropertiesKey] = compressionProperties
+      let assetWriterVideoInput =
+        self.assetWriterVideoInput
+        ?? AVAssetWriterInput(
+          mediaType: AVMediaType.video, outputSettings: videoCompressionSettings)
+      assetWriterVideoInput.expectsMediaDataInRealTime = true
+
+      if assetWriter.canAdd(assetWriterVideoInput) {
+        assetWriter.add(assetWriterVideoInput)
+      } else {
+        print("[ASCamera]: Could not add VideoWriterInput to VideoWriter")
+      }
+
+      self.assetWriterVideoInput = assetWriterVideoInput
+
+      if self.isAudioEnabled {
+        let audioCompressionSettings =
+          self.audioOutput?.recommendedAudioSettingsForAssetWriter(
+            writingTo: assetWriter.outputFileType) as? [String: Any]
+        let assetWriterAudioInput =
+          self.assetWriterAudioInput
+          ?? AVAssetWriterInput(
+            mediaType: AVMediaType.audio, outputSettings: audioCompressionSettings)
+        assetWriterAudioInput.expectsMediaDataInRealTime = true
+        if assetWriter.canAdd(assetWriterAudioInput) {
+          assetWriter.add(assetWriterAudioInput)
+        } else {
+          print("[ASCamera]: Could not add AudioWriterInput to VideoWriter")
+        }
+        self.assetWriterAudioInput = assetWriterAudioInput
+      }
+
+      self.assetWriterInputPixelBufferAdator = AVAssetWriterInputPixelBufferAdaptor.init(
+        assetWriterInput: assetWriterVideoInput, sourcePixelBufferAttributes: nil)
+
+      assetWriter.startWriting()
+
+      // DispatchQueue.main.async {
+      //   self.willBeginRecordingVideo()
+      // }
+
+      self.shouldStartWritingSession = true
+      self.willStartWritingSession = false
     }
+    // guard let movieFileOutput = movieFileOutput else {
+    //   return
+    // }
+
+    // if currentCamera == .rear && flashEnabled == true {
+    //   enableFlash()
+    // }
+
+    // if currentCamera == .front && flashEnabled == true {
+    //   flashView = UIView(frame: view.frame)
+    //   flashView?.backgroundColor = UIColor.white
+    //   flashView?.alpha = 0.85
+    //   previewLayer.addSubview(flashView!)
+    // }
+
+    // sessionQueue.async { [unowned self] in
+    //   if !movieFileOutput.isRecording {
+    //     if UIDevice.current.isMultitaskingSupported {
+    //       self.backgroundRecordingID = UIApplication.shared.beginBackgroundTask(
+    //         expirationHandler: nil)
+    //     }
+
+    //     // Update the orientation on the movie file output video connection before starting recording.
+    //     let movieFileOutputConnection = self.movieFileOutput?.connection(with: AVMediaType.video)
+
+    //     // flip video output if front facing camera is selected
+    //     if self.currentCamera == .front {
+    //       movieFileOutputConnection?.isVideoMirrored = true
+    //     }
+
+    //     movieFileOutputConnection?.videoOrientation = self.getVideoOrientation()
+
+    //     // Start recording to a temporary file.
+    //     let outputFileName = UUID().uuidString
+    //     let outputFilePath = (NSTemporaryDirectory() as NSString).appendingPathComponent(
+    //       (outputFileName as NSString).appendingPathExtension("mov")!)
+    //     movieFileOutput.startRecording(
+    //       to: URL(fileURLWithPath: outputFilePath), recordingDelegate: self)
+    //     self.isVideoRecording = true
+    //     DispatchQueue.main.async {
+    //       self.cameraDelegate?.swiftyCam(self, didBeginRecordingVideo: self.currentCamera)
+    //     }
+    //   } else {
+    //     movieFileOutput.stopRecording()
+    //   }
+    // }
   }
 
   /**
@@ -607,26 +741,105 @@ import UIKit
      */
 
   @objc public func stopVideoRecording() {
-    print("SCVC stopVideoRecording()")
-    if movieFileOutput?.isRecording == true {
-      isVideoRecording = false
-      movieFileOutput!.stopRecording()
-      disableFlash()
+    NSLog("SCVC stopVideoRecording()")
+    assert(
+      Thread.isMainThread,
+      "[ASCamera]: This function -stopRecording must be called on the main thread.")
 
-      if currentCamera == .front && flashEnabled == true && flashView != nil {
-        UIView.animate(
-          withDuration: 0.1, delay: 0.0, options: .curveEaseInOut,
-          animations: {
-            self.flashView?.alpha = 0.0
-          },
-          completion: { _ in
-            self.flashView?.removeFromSuperview()
-          })
+    self.executeAsync { [weak self] in
+      guard let self = self else { return }
+      assert(
+        self.shouldStartWritingSession,
+        "[ASCamera]: Called stopRecording() while video is not being recorded")
+      guard let assetWriter = self.assetWriter else { return }
+      self.shouldStartWritingSession = false
+      self.didStartWritingSession = false
+      self.frameCount = 0
+      self.recordingDuration = 0.0
+
+      self.assetWriterVideoInput?.markAsFinished()
+      self.assetWriterAudioInput?.markAsFinished()
+      // Must remove audio after recording in order to mimic Snapchat/Instagram camera
+      // self.session.beginConfiguration()
+      // self.removeAudioInput()
+      // self.removeAudioOutput()
+      // self.session.commitConfiguration()
+      // self.setPreviousBackgroundAudioPreference()
+
+      // DispatchQueue.main.async {
+      //   self.didFinishRecordingVideo()
+      // }
+
+      assetWriter.finishWriting {
+        DispatchQueue.main.async {
+          if let error = assetWriter.error {
+            self.didFailToProcessVideo(error)
+          } else {
+            self.didFinishProcessingVideoAt(assetWriter.outputURL)
+          }
+        }
       }
-      DispatchQueue.main.async {
-        print("SCVC dispatching event didFinishRecordingVideo")
-        self.cameraDelegate?.swiftyCam(self, didFinishRecordingVideo: self.currentCamera)
-      }
+
+      self.assetWriter = nil
+      self.assetWriterAudioInput = nil
+      self.assetWriterVideoInput = nil
+    }
+    // if movieFileOutput?.isRecording == true {
+    //   isVideoRecording = false
+    //   movieFileOutput!.stopRecording()
+    //   disableFlash()
+
+    //   if currentCamera == .front && flashEnabled == true && flashView != nil {
+    //     UIView.animate(
+    //       withDuration: 0.1, delay: 0.0, options: .curveEaseInOut,
+    //       animations: {
+    //         self.flashView?.alpha = 0.0
+    //       },
+    //       completion: { _ in
+    //         self.flashView?.removeFromSuperview()
+    //       })
+    //   }
+    //   DispatchQueue.main.async {
+    //     print("SCVC dispatching event didFinishRecordingVideo")
+    //     self.cameraDelegate?.swiftyCam(self, didFinishRecordingVideo: self.currentCamera)
+    //   }
+    // }
+  }
+
+  @objc public func cancelVideoRecording() {
+    assert(
+      Thread.isMainThread,
+      "[ASCamera]: This function -cancelRecording must be called on the main thread.")
+
+    self.executeAsync { [weak self] in
+      guard let self = self else { return }
+      assert(
+        self.shouldStartWritingSession,
+        "[ASCamera]: Called cancelRecording() while video is not being recorded")
+      guard let assetWriter = self.assetWriter else { return }
+      self.shouldStartWritingSession = false
+      self.didStartWritingSession = false
+      self.frameCount = 0
+      self.recordingDuration = 0.0
+
+      let url = assetWriter.outputURL
+
+      assetWriter.cancelWriting()
+
+      // Must remove audio after recording in order to mimic Snapchat/Instagram camera
+      self.session.beginConfiguration()
+      self.removeAudioInput()
+      self.removeAudioOutput()
+      self.session.commitConfiguration()
+      self.setPreviousBackgroundAudioPreference()
+
+      // DispatchQueue.main.async {
+      //   self.didCancelRecording(at: url)
+      // }
+
+      self.assetWriter = nil
+      self.assetWriterAudioInput = nil
+      self.assetWriterVideoInput = nil
     }
   }
 
@@ -640,15 +853,16 @@ import UIKit
 
   @objc public func switchCamera() {
     NSLog("SWC viewcontroller switchCamera()")
-    guard isVideoRecording != true else {
-      // TODO: Look into switching camera during video recording
-      NSLog("[SwiftyCam]: Switching between cameras while recording video is not supported")
-      return
-    }
 
-    guard session.isRunning == true else {
-      return
-    }
+    // guard isVideoRecording != true else {
+    //   // TODO: Look into switching camera during video recording
+    //   NSLog("[SwiftyCam]: Switching between cameras while recording video is not supported")
+    //   return
+    // }
+
+    // guard session.isRunning == true else {
+    //   return
+    // }
 
     switch currentCamera {
     case .front:
@@ -657,6 +871,7 @@ import UIKit
       currentCamera = .front
     }
 
+    /*
     session.stopRunning()
 
     sessionQueue.async { [unowned self] in
@@ -677,6 +892,49 @@ import UIKit
 
     // If flash is enabled, disable it as the torch is needed for front facing camera
     disableFlash()
+    */
+    guard !isSwitchingCameras else { return }
+    self.isSwitchingCameras = true
+    let zoomScale = lastZoomScale
+
+    executeSync { [weak self] in
+      guard let self = self else { return }
+      self.lastZoomScale = self.videoDevice?.videoZoomFactor ?? 1.0
+
+      self.cameraLocation = self.cameraLocation.opposite()
+
+      self.session.beginConfiguration()
+
+      if let videoInput = self.videoInput {
+        self.session.removeInput(videoInput)
+      }
+
+      self.addVideoInput()
+      self.configureSessionQuality()
+
+      // Fix initial frame having incorrect orientation
+      // let connection = self.videoOutput?.connection(with: .video)
+      // if connection?.isVideoOrientationSupported == true {
+      //   connection?.videoOrientation = self.orientation
+      // }
+
+      // DispatchQueue.main.async {
+      //   self.didSwitchCamera()
+      // }
+
+      self.session.commitConfiguration()
+
+      do {
+        try self.videoDevice?.lockForConfiguration()
+        self.videoDevice?.videoZoomFactor = zoomScale
+        self.videoDevice?.unlockForConfiguration()
+      } catch {
+        print("[ASCamera]: Error locking configuration")
+      }
+
+      self.isSwitchingCameras = false
+    }
+    // }
   }
 
   // MARK: Private Functions
@@ -685,59 +943,77 @@ import UIKit
 
   fileprivate func configureSession() {
     NSLog("viewcontroller configureSession()")
-    guard setupResult == .success else {
-      return
+    // guard setupResult == .success else {
+    //   return
+    // }
+
+    // // Set default camera
+
+    // currentCamera = defaultCamera
+
+    // // begin configuring session
+
+    // session.beginConfiguration()
+    // configureVideoPreset()
+    // addVideoInput()
+    // if disableAudio == false {
+    //   addAudioInput()
+    // }
+    // // configureVideoOutput()
+    // configurePhotoOutput()
+
+    // session.commitConfiguration()
+    self.executeSync { [weak self] in
+      guard let self = self else { return }
+      self.session.beginConfiguration()
+
+      for input in self.session.inputs {
+        self.session.removeInput(input)
+      }
+
+      self.addVideoInput()
+      self.addVideoOutput()
+      self.addAudioInput()
+      self.addAudioOutput()
+
+      self.configureSessionQuality()
+
+      self.session.commitConfiguration()
     }
-
-    // Set default camera
-
-    currentCamera = defaultCamera
-
-    // begin configuring session
-
-    session.beginConfiguration()
-    configureVideoPreset()
-    addVideoInput()
-    if disableAudio == false {
-      addAudioInput()
-    }
-    configureVideoOutput()
-    configurePhotoOutput()
-
-    session.commitConfiguration()
   }
 
   /// Add inputs after changing camera()
 
-  fileprivate func addInputs() {
-    NSLog("viewcontroller addInputs()")
-    session.beginConfiguration()
-    configureVideoPreset()
-    addVideoInput()
-    if disableAudio == false {
-      addAudioInput()
-    }
-    session.commitConfiguration()
-  }
+  // fileprivate func addInputs() {
+  //   NSLog("viewcontroller addInputs()")
+  //   session.beginConfiguration()
+  //   configureVideoPreset()
+  //   addVideoInput()
+  //   if disableAudio == false {
+  //     addAudioInput()
+  //   }
+  //   session.commitConfiguration()
+  // }
 
   // Front facing camera will always be set to VideoQuality.high
   // If set video quality is not supported, videoQuality variable will be set to VideoQuality.high
   /// Configure image quality preset
 
-  fileprivate func configureVideoPreset() {
-    if currentCamera == .front {
-      session.sessionPreset = videoInputPresetFromVideoQuality(quality: .high)
-    } else {
-      if session.canSetSessionPreset(videoInputPresetFromVideoQuality(quality: videoQuality)) {
-        session.sessionPreset = videoInputPresetFromVideoQuality(quality: videoQuality)
-      } else {
-        session.sessionPreset = videoInputPresetFromVideoQuality(quality: .high)
-      }
-    }
-  }
+  // fileprivate func configureVideoPreset() {
+  //   if currentCamera == .front {
+  //     session.sessionPreset = videoInputPresetFromVideoQuality(quality: .high)
+  //   } else {
+  //     if session.canSetSessionPreset(videoInputPresetFromVideoQuality(quality: videoQuality)) {
+  //       session.sessionPreset = videoInputPresetFromVideoQuality(quality: videoQuality)
+  //     } else {
+  //       session.sessionPreset = videoInputPresetFromVideoQuality(quality: .high)
+  //     }
+  //   }
+  // }
 
   /// Add Video Inputs
 
+  /*
   fileprivate func addVideoInput() {
     switch currentCamera {
     case .front:
@@ -781,7 +1057,7 @@ import UIKit
 
       if session.canAddInput(videoDeviceInput) {
         session.addInput(videoDeviceInput)
-        self.videoDeviceInput = videoDeviceInput
+        self.videoInput = videoDeviceInput
       } else {
         NSLog("[SwiftyCam]: Could not add video device input to the session")
         print(session.canSetSessionPreset(videoInputPresetFromVideoQuality(quality: videoQuality)))
@@ -821,22 +1097,22 @@ import UIKit
 
   /// Configure Movie Output
 
-  fileprivate func configureVideoOutput() {
-    let movieFileOutput = AVCaptureMovieFileOutput()
+  // fileprivate func configureVideoOutput() {
+  //   let movieFileOutput = AVCaptureMovieFileOutput()
 
-    if session.canAddOutput(movieFileOutput) {
-      session.addOutput(movieFileOutput)
-      if let connection = movieFileOutput.connection(with: AVMediaType.video) {
-        if connection.isVideoStabilizationSupported {
-          connection.preferredVideoStabilizationMode = .auto
-        }
-      }
-      self.movieFileOutput = movieFileOutput
-    }
-  }
-
+  //   if session.canAddOutput(movieFileOutput) {
+  //     session.addOutput(movieFileOutput)
+  //     if let connection = movieFileOutput.connection(with: AVMediaType.video) {
+  //       if connection.isVideoStabilizationSupported {
+  //         connection.preferredVideoStabilizationMode = .auto
+  //       }
+  //     }
+  //     self.movieFileOutput = movieFileOutput
+  //   }
+  // }
+*/
   /// Configure Photo Output
-
+  //TODO: replace with image buffer frame grab version instead
   fileprivate func configurePhotoOutput() {
     let photoFileOutput = AVCaptureStillImageOutput()
 
@@ -1101,7 +1377,7 @@ import UIKit
   }
 
   /// Sets whether SwiftyCam should enable background audio from other applications or sources
-
+  @objc open func setPreviousBackgroundAudioPreference() {}
   @objc public func setBackgroundAudioPreference() {
     guard allowBackgroundAudio == true else {
       return
@@ -1157,42 +1433,42 @@ import UIKit
 
 // MARK: AVCaptureFileOutputRecordingDelegate
 
-extension SwiftyCamViewController: AVCaptureFileOutputRecordingDelegate {
-  public func fileOutput(
-    _ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL,
-    from connections: [AVCaptureConnection], error: Error?
-  ) {
-    NSLog("empty stub for fileOutput")
-    NSLog(outputFileURL.absoluteString)
-    // Call delegate function with the URL of the outputfile
-    DispatchQueue.main.async {
-      self.cameraDelegate?.swiftyCam(self, didFinishProcessVideoAt: outputFileURL)
-    }
-  }
+// extension SwiftyCamViewController: AVCaptureFileOutputRecordingDelegate {
+//   public func fileOutput(
+//     _ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL,
+//     from connections: [AVCaptureConnection], error: Error?
+//   ) {
+//     NSLog("empty stub for fileOutput")
+//     NSLog(outputFileURL.absoluteString)
+//     // Call delegate function with the URL of the outputfile
+//     DispatchQueue.main.async {
+//       self.cameraDelegate?.swiftyCam(self, didFinishProcessVideoAt: outputFileURL)
+//     }
+//   }
 
-  /// Process newly captured video and write it to temporary directory
+//   /// Process newly captured video and write it to temporary directory
 
-  public func capture(
-    _ captureOutput: AVCaptureFileOutput!, didFinishRecordingToOutputFileAt outputFileURL: URL!,
-    fromConnections connections: [Any]!, error: Error!
-  ) {
-    if let currentBackgroundRecordingID = backgroundRecordingID {
-      backgroundRecordingID = UIBackgroundTaskIdentifier.invalid
+//   public func capture(
+//     _ captureOutput: AVCaptureFileOutput!, didFinishRecordingToOutputFileAt outputFileURL: URL!,
+//     fromConnections connections: [Any]!, error: Error!
+//   ) {
+//     if let currentBackgroundRecordingID = backgroundRecordingID {
+//       backgroundRecordingID = UIBackgroundTaskIdentifier.invalid
 
-      if currentBackgroundRecordingID != UIBackgroundTaskIdentifier.invalid {
-        UIApplication.shared.endBackgroundTask(currentBackgroundRecordingID)
-      }
-    }
-    if error != nil {
-      NSLog("[SwiftyCam]: Movie file finishing error: \(String(describing: error))")
-    } else {
-      // Call delegate function with the URL of the outputfile
-      DispatchQueue.main.async {
-        self.cameraDelegate?.swiftyCam(self, didFinishProcessVideoAt: outputFileURL)
-      }
-    }
-  }
-}
+//       if currentBackgroundRecordingID != UIBackgroundTaskIdentifier.invalid {
+//         UIApplication.shared.endBackgroundTask(currentBackgroundRecordingID)
+//       }
+//     }
+//     if error != nil {
+//       NSLog("[SwiftyCam]: Movie file finishing error: \(String(describing: error))")
+//     } else {
+//       // Call delegate function with the URL of the outputfile
+//       DispatchQueue.main.async {
+//         self.cameraDelegate?.swiftyCam(self, didFinishProcessVideoAt: outputFileURL)
+//       }
+//     }
+//   }
+// }
 
 // MARK: UIGestureRecognizer Declarations
 
@@ -1207,21 +1483,21 @@ extension SwiftyCamViewController {
       return
     }
     do {
-      let captureDevice = AVCaptureDevice.devices().first
-      try captureDevice?.lockForConfiguration()
+      let videoDevice = AVCaptureDevice.devices().first
+      try videoDevice?.lockForConfiguration()
 
       zoomScale = min(
         maxZoomScale,
-        max(1.0, min(beginZoomScale * pinch.scale, captureDevice!.activeFormat.videoMaxZoomFactor)))
+        max(1.0, min(beginZoomScale * pinch.scale, videoDevice!.activeFormat.videoMaxZoomFactor)))
 
-      captureDevice?.videoZoomFactor = zoomScale
+      videoDevice?.videoZoomFactor = zoomScale
 
       // Call Delegate function with current zoom scale
       DispatchQueue.main.async {
         self.cameraDelegate?.swiftyCam(self, didChangeZoomLevel: self.zoomScale)
       }
 
-      captureDevice?.unlockForConfiguration()
+      videoDevice?.unlockForConfiguration()
 
     } catch {
       NSLog("[SwiftyCam]: Error locking configuration")
@@ -1282,10 +1558,10 @@ extension SwiftyCamViewController {
     let translationDifference = currentTranslation - previousPanTranslation
 
     do {
-      let captureDevice = AVCaptureDevice.devices().first
-      try captureDevice?.lockForConfiguration()
+      let videoDevice = AVCaptureDevice.devices().first
+      try videoDevice?.lockForConfiguration()
 
-      let currentZoom = captureDevice?.videoZoomFactor ?? 0.0
+      let currentZoom = videoDevice?.videoZoomFactor ?? 0.0
 
       if swipeToZoomInverted == true {
         zoomScale = min(
@@ -1294,7 +1570,7 @@ extension SwiftyCamViewController {
             1.0,
             min(
               currentZoom - (translationDifference / 75),
-              captureDevice!.activeFormat.videoMaxZoomFactor)))
+              videoDevice!.activeFormat.videoMaxZoomFactor)))
       } else {
         zoomScale = min(
           maxZoomScale,
@@ -1302,17 +1578,17 @@ extension SwiftyCamViewController {
             1.0,
             min(
               currentZoom + (translationDifference / 75),
-              captureDevice!.activeFormat.videoMaxZoomFactor)))
+              videoDevice!.activeFormat.videoMaxZoomFactor)))
       }
 
-      captureDevice?.videoZoomFactor = zoomScale
+      videoDevice?.videoZoomFactor = zoomScale
 
       // Call Delegate function with current zoom scale
       DispatchQueue.main.async {
         self.cameraDelegate?.swiftyCam(self, didChangeZoomLevel: self.zoomScale)
       }
 
-      captureDevice?.unlockForConfiguration()
+      videoDevice?.unlockForConfiguration()
 
     } catch {
       NSLog("[SwiftyCam]: Error locking configuration")
@@ -1846,91 +2122,617 @@ extension SwiftyCamViewController {
     }
   }
 
-  // private func addVideoInput() {
-  //   self.captureDevice =
-  //     AVCaptureDevice.DiscoverySession(
-  //       deviceTypes: [captureDeviceType], mediaType: AVMediaType.video, position: cameraLocation
-  //     ).devices.first
+  private func addVideoInput() {
+    self.videoDevice =
+      AVCaptureDevice.DiscoverySession(
+        deviceTypes: [captureDeviceType], mediaType: AVMediaType.video, position: cameraLocation
+      ).devices.first
 
-  //   self.removeSystemObservers()
-  //   if #available(iOS 11.1, *) {
-  //     self.addSystemObervers()
-  //   } else {
-  //     // Fallback on earlier versions
-  //     NSLog("[msCamera]: iOS 11.1+ required for observers")
-  //   }
+    self.removeSystemObservers()
+    if #available(iOS 11.1, *) {
+      self.addSystemObervers()
+    } else {
+      // Fallback on earlier versions
+      NSLog("[msCamera]: iOS 11.1+ required for observers")
+    }
 
-  //   guard let videoDevice = self.captureDevice else {
-  //     NSLog("[ASCamera]: Could not add video device input to the session")
-  //     return
-  //   }
+    guard let videoDevice = self.videoDevice else {
+      NSLog("[ASCamera]: Could not add video device input to the session")
+      return
+    }
 
-  //   do {
-  //     let videoDeviceInput = try AVCaptureDeviceInput(device: videoDevice)
-  //     if self.session.canAddInput(videoDeviceInput) {
-  //       self.session.addInput(videoDeviceInput)
-  //       self.videoInput = videoDeviceInput
-  //     } else {
-  //       NSLog("[ASCamera]: Could not add video device input to the session")
+    if let device: AVCaptureDevice = self.videoDevice {
+      do {
+        try device.lockForConfiguration()
+        if device.isFocusModeSupported(.continuousAutoFocus) {
+          device.focusMode = .continuousAutoFocus
+          if device.isSmoothAutoFocusSupported {
+            device.isSmoothAutoFocusEnabled = true
+          }
+        }
+
+        if device.isExposureModeSupported(.continuousAutoExposure) {
+          device.exposureMode = .continuousAutoExposure
+        }
+
+        if device.isWhiteBalanceModeSupported(.continuousAutoWhiteBalance) {
+          device.whiteBalanceMode = .continuousAutoWhiteBalance
+        }
+
+        if device.isLowLightBoostSupported && lowLightBoost == true {
+          device.automaticallyEnablesLowLightBoostWhenAvailable = true
+        }
+
+        device.unlockForConfiguration()
+      } catch {
+        NSLog("[SwiftyCam]: Error locking configuration")
+      }
+    }
+
+    do {
+
+      let videoDeviceInput = try AVCaptureDeviceInput(device: videoDevice)
+      if self.session.canAddInput(videoDeviceInput) {
+        self.session.addInput(videoDeviceInput)
+        self.videoInput = videoDeviceInput
+      } else {
+        // NSLog("[ASCamera]: Could not add video device input to the session")
+        NSLog("[SwiftyCam]: Could not add video device input to the session")
+        print(session.canSetSessionPreset(videoInputPresetFromVideoQuality(quality: videoQuality)))
+        setupResult = .configurationFailed
+        session.commitConfiguration()
+        return
+      }
+    } catch {
+      // NSLog("[ASCamera]: Could not create video device input: \(error)")
+      NSLog("[SwiftyCam]: Could not create video device input: \(error)")
+      setupResult = .configurationFailed
+      return
+    }
+  }
+
+  private func addVideoOutput() {
+    let dataOutput = AVCaptureVideoDataOutput.init()
+    dataOutput.setSampleBufferDelegate(self, queue: self.sessionSecondaryQueue)
+
+    if self.session.canAddOutput(dataOutput) {
+      self.session.addOutput(dataOutput)
+    }
+
+    // let connection = dataOutput.connection(with: AVMediaType.video)
+    // if connection?.isVideoOrientationSupported == true {
+    //   connection?.videoOrientation = self.orientation
+    // }
+
+    self.videoOutput = dataOutput
+  }
+
+  private func addAudioInput() {
+    guard let audioDevice = AVCaptureDevice.default(for: AVMediaType.audio) else {
+      NSLog("[ASCamera]: Could not add audio device input to the session")
+      return
+    }
+    do {
+      let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice)
+      if self.session.canAddInput(audioDeviceInput) {
+        self.session.addInput(audioDeviceInput)
+        self.audioInput = audioDeviceInput
+      } else {
+        NSLog("[ASCamera]: Could not add audio device input to the session")
+      }
+    } catch {
+      NSLog("[ASCamera]: Could not create audio device input: \(error)")
+    }
+  }
+
+  private func addAudioOutput() {
+    let dataOutput = AVCaptureAudioDataOutput.init()
+    dataOutput.setSampleBufferDelegate(self, queue: self.sessionSecondaryQueue)
+
+    if self.session.canAddOutput(dataOutput) {
+      self.session.addOutput(dataOutput)
+      self.audioOutput = dataOutput
+    }
+  }
+
+  private func removeAudioOutput() {
+    guard let audioOutput = self.audioOutput else { return }
+    self.session.removeOutput(audioOutput)
+    self.audioOutput = nil
+  }
+
+  private func removeAudioInput() {
+    guard let audioInput = self.audioInput else { return }
+    self.session.removeInput(audioInput)
+    self.audioInput = nil
+  }
+}
+
+//Adding this section and next causes type issues until I rewrite for new approach and remove old recorder approach for video
+
+@objc extension SwiftyCamViewController {
+  //
+  // func shouldCreateAssetWriter() {
+
+  // }
+  ///
+  // func willBeginRecordingVideo() {
+  //   if UIDevice.current.isMultitaskingSupported {
+  //     let backgroundTaskID = UIApplication.shared.beginBackgroundTask { [weak self] in
+  //       // End Task
+  //       if self?.isRecording == true {
+  //         //TODO: fix this
+  //         // self?.stopRecording()
+  //       }
   //     }
-  //   } catch {
-  //     NSLog("[ASCamera]: Could not create video device input: \(error)")
+  //     self.backgroundTaskID = backgroundTaskID.rawValue
   //   }
   // }
+  ///
+  // func didBeginRecordingVideo() {
 
-  // private func addVideoOutput() {
-  //   let dataOutput = AVCaptureVideoDataOutput.init()
-  //   dataOutput.setSampleBufferDelegate(self, queue: self.sessionSecondaryQueue)
-
-  //   if self.session.canAddOutput(dataOutput) {
-  //     self.session.addOutput(dataOutput)
-  //   }
-
-  //   let connection = dataOutput.connection(with: AVMediaType.video)
-  //   if connection?.isVideoOrientationSupported == true {
-  //     connection?.videoOrientation = self.orientation
-  //   }
-
-  //   self.videoOutput = dataOutput
   // }
+  ///
+  // func didFinishRecordingVideo() {
 
-  // private func addAudioInput() {
-  //   guard let audioDevice = AVCaptureDevice.default(for: AVMediaType.audio) else {
-  //     NSLog("[ASCamera]: Could not add audio device input to the session")
-  //     return
-  //   }
-  //   do {
-  //     let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice)
-  //     if self.session.canAddInput(audioDeviceInput) {
-  //       self.session.addInput(audioDeviceInput)
-  //       self.audioInput = audioDeviceInput
-  //     } else {
-  //       NSLog("[ASCamera]: Could not add audio device input to the session")
+  // }
+  ///
+  func didFinishProcessingVideoAt(_ url: URL) {
+    if let currentBackgroundTaskID = backgroundTaskID {
+      backgroundTaskID = UIBackgroundTaskIdentifier.invalid.rawValue
+
+      if currentBackgroundTaskID != UIBackgroundTaskIdentifier.invalid.rawValue {
+        UIApplication.shared.endBackgroundTask(
+          UIBackgroundTaskIdentifier(rawValue: currentBackgroundTaskID))
+      }
+    }
+    //send event with url generated from recording process
+
+  }
+  ///
+  func didFailToProcessVideo(_ error: Error) {
+    if let currentBackgroundTaskID = backgroundTaskID {
+      backgroundTaskID = UIBackgroundTaskIdentifier.invalid.rawValue
+
+      if currentBackgroundTaskID != UIBackgroundTaskIdentifier.invalid.rawValue {
+        UIApplication.shared.endBackgroundTask(
+          UIBackgroundTaskIdentifier(rawValue: currentBackgroundTaskID))
+      }
+    }
+  }
+  ///
+  // func didSwitchCamera() {
+
+  // }
+  // ///
+  // func didCancelRecording(at url: URL) {
+
+  // }
+  ///
+  // func willCaptureImage() {
+
+  // }
+  ///
+  // func didCaptureImage() {
+
+  // }
+  ///
+  // func didFinishProcessing(image: UIImage, with properties: CFDictionary) {
+
+  // }
+}
+
+@objc
+extension SwiftyCamViewController: AVCaptureVideoDataOutputSampleBufferDelegate,
+  AVCaptureAudioDataOutputSampleBufferDelegate
+{
+  public func captureOutput(
+    _ output: AVCaptureOutput, didDrop sampleBuffer: CMSampleBuffer,
+    from connection: AVCaptureConnection
+  ) {
+
+    NSLog("[ASCamera]: Dropped \(output == self.audioOutput ? "audio" : "video") Frame")
+  }
+
+  public func captureOutput(
+    _ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer,
+    from connection: AVCaptureConnection
+  ) {
+
+    if self.shouldCapturePhotoFromDataOutput {
+      self.shouldCapturePhotoFromDataOutput = false
+
+      self.handlePhotoCapture(sampleBuffer)
+    }
+
+    guard self.shouldStartWritingSession else { return }
+
+    let isDataReady = CMSampleBufferDataIsReady(sampleBuffer)
+    guard isDataReady, let assetWriter = self.assetWriter else { return }
+
+    if !self.didStartWritingSession {
+      let presentationTimestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+      assetWriter.startSession(atSourceTime: presentationTimestamp)
+      self.didStartWritingSession = true
+      // DispatchQueue.main.async {
+      //   self.didBeginRecordingVideo()
+      // }
+      self.startingPresentationTimeStamp = presentationTimestamp
+      self.previousPresentationTimeStamp = presentationTimestamp
+    }
+
+    guard self.isRecording else { return }
+
+    if let assetWriterAudioInput = self.assetWriterAudioInput,
+      output == self.audioOutput, assetWriterAudioInput.isReadyForMoreMediaData
+    {
+      let since = Date().timeIntervalSince(self.lastVideoSampleDate)
+      if since < 0.05 {
+        let success = assetWriterAudioInput.append(sampleBuffer)
+        if !success, let error = assetWriter.error {
+          print(error)
+          fatalError(error.localizedDescription)
+        }
+      }
+    }
+
+    if let assetWriterInputPixelBufferAdator = self.assetWriterInputPixelBufferAdator,
+      let assetWriterVideoInput = self.assetWriterVideoInput,
+      output == self.videoOutput,
+      assetWriterVideoInput.isReadyForMoreMediaData,
+      let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer)
+    {
+
+      let currentPresentationTimestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+      let previousPresentationTimeStamp = self.previousPresentationTimeStamp
+
+      // Frame correction logic. Fixes the bug of video/audio unsynced when switching cameras
+      let currentFramePosition =
+        (Double(self.frameRate) * Double(currentPresentationTimestamp.value))
+        / Double(currentPresentationTimestamp.timescale)
+      let previousFramePosition =
+        (Double(self.frameRate) * Double(previousPresentationTimeStamp.value))
+        / Double(previousPresentationTimeStamp.timescale)
+      var presentationTimeStamp = currentPresentationTimestamp
+      let maxFrameDistance = 1.1
+      let frameDistance = currentFramePosition - previousFramePosition
+      if frameDistance > maxFrameDistance {
+        let expectedFramePosition = previousFramePosition + 1.0
+        //                print(
+        //                    "[asCamera]: Frame at incorrect position moving from \(currentFramePosition) to \(expectedFramePosition)")
+
+        let newFramePosition =
+          (expectedFramePosition * Double(currentPresentationTimestamp.timescale))
+          / Double(self.frameRate)
+
+        let newPresentationTimeStamp = CMTime.init(
+          value: CMTimeValue(newFramePosition), timescale: currentPresentationTimestamp.timescale)
+
+        presentationTimeStamp = newPresentationTimeStamp
+      }
+
+      let success = assetWriterInputPixelBufferAdator.append(
+        pixelBuffer, withPresentationTime: presentationTimeStamp)
+      if !success, let error = assetWriter.error {
+        print(error)
+        fatalError(error.localizedDescription)
+      }
+      self.lastVideoSampleDate = Date()
+      self.previousPresentationTimeStamp = presentationTimeStamp
+
+      let startTime =
+        Double(startingPresentationTimeStamp.value)
+        / Double(startingPresentationTimeStamp.timescale)
+      let currentTime =
+        Double(currentPresentationTimestamp.value) / Double(currentPresentationTimestamp.timescale)
+      let previousTime =
+        Double(previousPresentationTimeStamp.value)
+        / Double(previousPresentationTimeStamp.timescale)
+
+      self.frameCount += 1
+      self.recordingDuration = currentTime - startTime
+
+      if (Int(previousTime - startTime) == Int(currentTime - startTime)) == false {
+        //print("[asCamera]: Frame Count for previous second: \(self.frameCount)")
+        self.frameCount = 0
+      }
+    }
+    //        if output == self.audioOutput {
+    //            self.handleAudioBuffer(sampleBuffer)
+    //        }
+    //
+    //        if output == self.videoOutput {
+    //            self.handleVideoBuffer(sampleBuffer)
+    //        }
+  }
+
+  private func handlePhotoCapture(_ sampleBuffer: CMSampleBuffer) {
+    let isDataReady = CMSampleBufferDataIsReady(sampleBuffer)
+    guard isDataReady else {
+      NSLog("[ASCamera]: SampleBuffer was not ready")
+      return
+    }
+
+    // DispatchQueue.main.async { [weak self] in
+    //   self?.didCaptureImage()
+    // }
+
+    guard let cgImage = self.cgImage(from: sampleBuffer) else { return }
+    let size = UIScreen.main.bounds.size
+    guard let image = UIImage.init(cgImage: cgImage).scaled(toHeight: size.height) else { return }
+    let properties = metadata(from: sampleBuffer)
+
+    // DispatchQueue.main.async { [weak self] in
+    //   self?.didFinishProcessing(image: image, with: properties)
+    // }
+  }
+
+  private func handleAudioBuffer(_ sampleBuffer: CMSampleBuffer) {
+    guard let assetWriter = self.assetWriter else { return }
+    if let assetWriterAudioInput = self.assetWriterAudioInput,
+      assetWriterAudioInput.isReadyForMoreMediaData
+    {
+      let success = assetWriterAudioInput.append(sampleBuffer)
+      if !success, let error = assetWriter.error {
+        print(error)
+        fatalError(error.localizedDescription)
+      }
+    }
+  }
+
+  private func handleVideoBuffer(_ sampleBuffer: CMSampleBuffer) {
+    guard let assetWriter = self.assetWriter else { return }
+    if let assetWriterInputPixelBufferAdator = self.assetWriterInputPixelBufferAdator,
+      let assetWriterVideoInput = self.assetWriterVideoInput,
+      assetWriterVideoInput.isReadyForMoreMediaData,
+      let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer)
+    {
+
+      let currentPresentationTimestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+      let previousPresentationTimeStamp = self.previousPresentationTimeStamp
+
+      // Frame correction logic. Fixes the bug of video/audio unsynced when switching cameras
+      let currentFramePosition =
+        (Double(self.frameRate) * Double(currentPresentationTimestamp.value))
+        / Double(currentPresentationTimestamp.timescale)
+      let previousFramePosition =
+        (Double(self.frameRate) * Double(previousPresentationTimeStamp.value))
+        / Double(previousPresentationTimeStamp.timescale)
+      var presentationTimeStamp = currentPresentationTimestamp
+      let maxFrameDistance = 1.1
+      let frameDistance = currentFramePosition - previousFramePosition
+      if frameDistance > maxFrameDistance {
+        let expectedFramePosition = previousFramePosition + 1.0
+        //                print(
+        //                    "[ASCamera]: Frame at incorrect position moving from \(currentFramePosition) to \(expectedFramePosition)")
+        let newFramePosition =
+          (expectedFramePosition * Double(currentPresentationTimestamp.timescale))
+          / Double(self.frameRate)
+
+        let newPresentationTimeStamp = CMTime.init(
+          value: CMTimeValue(newFramePosition), timescale: currentPresentationTimestamp.timescale)
+
+        presentationTimeStamp = newPresentationTimeStamp
+      }
+
+      let success = assetWriterInputPixelBufferAdator.append(
+        pixelBuffer, withPresentationTime: presentationTimeStamp)
+      if !success, let error = assetWriter.error {
+        print(error)
+        fatalError(error.localizedDescription)
+      }
+
+      self.previousPresentationTimeStamp = presentationTimeStamp
+
+      let startTime =
+        Double(startingPresentationTimeStamp.value)
+        / Double(startingPresentationTimeStamp.timescale)
+      let currentTime =
+        Double(currentPresentationTimestamp.value) / Double(currentPresentationTimestamp.timescale)
+      let previousTime =
+        Double(previousPresentationTimeStamp.value)
+        / Double(previousPresentationTimeStamp.timescale)
+
+      self.frameCount += 1
+      self.recordingDuration = currentTime - startTime
+
+      if (Int(previousTime - startTime) == Int(currentTime - startTime)) == false {
+        //print("[ASCamera]: Frame Count for previous second: \(self.frameCount)")
+        self.frameCount = 0
+      }
+    }
+  }
+}
+
+extension SwiftyCamViewController {
+  private func cgImage(from sampleBuffer: CMSampleBuffer) -> CGImage? {
+    guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return nil }
+    // Lock the base address of the pixel buffer
+    CVPixelBufferLockBaseAddress(pixelBuffer, CVPixelBufferLockFlags.readOnly)
+    let ciImage = CIImage.init(cvPixelBuffer: pixelBuffer)
+    let context = CIContext.init()
+    let cgimage = context.createCGImage(ciImage, from: ciImage.extent)
+    // Unlock the pixel buffer
+    CVPixelBufferUnlockBaseAddress(pixelBuffer, CVPixelBufferLockFlags.readOnly)
+    return cgimage
+  }
+
+  private func metadata(from sampleBuffer: CMSampleBuffer) -> NSMutableDictionary {
+    let rawMetadata = CMCopyDictionaryOfAttachments(
+      allocator: nil, target: sampleBuffer,
+      attachmentMode: CMAttachmentMode(kCMAttachmentMode_ShouldPropagate))
+    let metadata = CFDictionaryCreateMutableCopy(nil, 0, rawMetadata) as NSMutableDictionary
+    return metadata
+  }
+
+  // private func metadata(from url: URL) {
+  //   if let imageSource = CGImageSourceCreateWithURL(url as CFURL, nil) {
+  //     let imageProperties = CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil)
+  //     if let dict = imageProperties as? [String: Any] {
+  //       print(dict)
   //     }
-  //   } catch {
-  //     NSLog("[ASCamera]: Could not create audio device input: \(error)")
+
+  //     guard let imageMetadata = CGImageSourceCopyMetadataAtIndex(imageSource, 0, .none) else {
+  //       return
+  //     }
+
+  //     guard let tags = CGImageMetadataCopyTags(imageMetadata) else {
+  //       return
+  //     }
+  //     // swiftlint:disable force_cast
+  //     var result = [String: Any]()
+  //     for tag in tags as NSArray {
+  //       let tagMetadata = tag as! CGImageMetadataTag
+  //       if let cfName = CGImageMetadataTagCopyName(tagMetadata) {
+  //         let name = String(cfName)
+  //         let value = CGImageMetadataTagCopyValue(tagMetadata)
+  //         result[name] = value
+  //       }
+  //     }
+
+  //     // swiftlint:enable force_cast
+
+  //     print(result)
   //   }
   // }
 
-  // private func addAudioOutput() {
-  //   let dataOutput = AVCaptureAudioDataOutput.init()
-  //   dataOutput.setSampleBufferDelegate(self, queue: self.sessionSecondaryQueue)
+  public func createData(
+    from cgImage: CGImage, fileType: AVFileType, quality: CGFloat,
+    properties: NSMutableDictionary = NSMutableDictionary()
+  ) -> Data? {
 
-  //   if self.session.canAddOutput(dataOutput) {
-  //     self.session.addOutput(dataOutput)
-  //     self.audioOutput = dataOutput
-  //   }
-  // }
+    let imageData = NSMutableData()
+    let numberOfImages = 1
+    guard
+      let destination = CGImageDestinationCreateWithData(
+        imageData as CFMutableData, fileType as CFString, numberOfImages, nil)
+    else { return nil }
 
-  // private func removeAudioOutput() {
-  //   guard let audioOutput = self.audioOutput else { return }
-  //   self.session.removeOutput(audioOutput)
-  //   self.audioOutput = nil
-  // }
+    let options = [kCGImageDestinationLossyCompressionQuality: quality]
+    properties.addEntries(from: options)
+    CGImageDestinationAddImage(destination, cgImage, properties as CFDictionary)
+    CGImageDestinationFinalize(destination)
 
-  // private func removeAudioInput() {
-  //   guard let audioInput = self.audioInput else { return }
-  //   self.session.removeInput(audioInput)
-  //   self.audioInput = nil
-  // }
+    return imageData as Data
+  }
+
+  public func save(
+    cgImage: CGImage, fileType: AVFileType, quality: CGFloat,
+    properties: NSMutableDictionary = NSMutableDictionary()
+  ) -> URL? {
+
+    let uuid = UUID().uuidString
+    assert(fileType.isImageFileTypeSupported, "fileType is not supported for video")
+    let outputFileName = (uuid as NSString).appendingPathExtension(fileType.stringValue())!
+    let outputFileUrl = self.outputFileDirectory.appendingPathComponent(
+      outputFileName, isDirectory: false)
+
+    //var qual = quality
+    //let compression = CFNumberCreate(kCFAllocatorDefault, CFNumberType.floatType, &qual)
+    let numberOfImages = 1
+    guard
+      let destination = CGImageDestinationCreateWithURL(
+        outputFileUrl as CFURL, fileType as CFString, numberOfImages, nil)
+    else { return nil }
+    let options = [kCGImageDestinationLossyCompressionQuality: quality]
+    properties.addEntries(from: options)
+    CGImageDestinationAddImage(destination, cgImage, properties as CFDictionary)
+
+    guard CGImageDestinationFinalize(destination) else { return nil }
+
+    return outputFileUrl
+  }
+}
+
+@objc extension UIImage {
+  fileprivate func scaled(toWidth width: CGFloat) -> UIImage? {
+    let oldWidth = self.size.width
+    let scaleFactor = width / oldWidth
+    let newHeight = self.size.height * scaleFactor
+    let newWidth = oldWidth * scaleFactor
+    let newSize = CGSize(width: newWidth, height: newHeight)
+    let renderer = UIGraphicsImageRenderer(size: newSize)
+    let newImage = renderer.image { _ in
+      self.draw(in: CGRect.init(origin: CGPoint.zero, size: newSize))
+    }
+    return newImage
+  }
+
+  fileprivate func scaled(toHeight height: CGFloat) -> UIImage? {
+    let scale = height / self.size.height
+    let newWidth = self.size.width * scale
+    let newSize = CGSize(width: newWidth, height: height)
+    let renderer = UIGraphicsImageRenderer(size: newSize)
+    let newImage = renderer.image { _ in
+      self.draw(in: CGRect.init(origin: CGPoint.zero, size: newSize))
+    }
+
+    return newImage
+  }
+}
+
+@objc extension SwiftyCamViewController {
+  func executeAsync(_ closure: @escaping () -> Void) {
+    self.sessionPrimaryQueue.async(execute: closure)
+  }
+
+  func executeSync(withClosure closure: @escaping () -> Void) {
+    if DispatchQueue.getSpecific(key: self.sessionPrimaryQueueSpecificKey) != nil {
+      closure()
+    } else {
+      self.sessionPrimaryQueue.sync(execute: closure)
+    }
+  }
+}
+
+extension AVCaptureDevice.Position {
+  fileprivate func opposite() -> AVCaptureDevice.Position {
+    switch self {
+    case .front: return .back
+    case .back: return .front
+    case .unspecified: return .unspecified
+    @unknown default:
+      return .unspecified
+    }
+  }
+}
+
+extension AVFileType {
+  // swiftlint:disable cyclomatic_complexity file_length
+  fileprivate func stringValue() -> String {
+    var string = ""
+    switch self {
+    case .mov: string += "mov"
+    case .mp4: string += "mp4"
+    case .m4v: string += "m4v"
+    case .m4a: string += "m4a"
+    case .mobile3GPP: string += "3gp"
+    case .mobile3GPP2: string += "3g2"
+    case .caf: string += "caf"
+    case .wav: string += "wav"
+    case .aiff: string += "aif"
+    case .aifc: string += "aifc"
+    case .amr: string += "amr"
+    case .mp3: string += "mp3"
+    case .au: string += "au"
+    case .ac3: string += "ac3"
+    case .eac3: string += "eac3"
+    case .jpg: string += "jpg"
+    case .dng: string += "dng"
+    case .heic: string += "heic"
+    case .avci: string += "avci"
+    case .heif: string += "heif"
+    case .tif: string += "tiff"
+    default: fatalError("AVFileType: \(self.rawValue) not supported")
+    }
+    return string
+  }
+
+  fileprivate var isImageFileTypeSupported: Bool {
+    return self == .heic || self == .jpg || self == .tif
+  }
+
+  fileprivate var isVideoFileTypeSupported: Bool {
+    return self == .mov || self == .mp4 || self == .mobile3GPP || self == .mobile3GPP2
+  }
 }
