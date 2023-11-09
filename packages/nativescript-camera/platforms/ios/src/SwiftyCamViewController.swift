@@ -1157,8 +1157,11 @@ import UIKit
   }
 
   @objc public func deviceDidRotate() {
+    NSLog("[ SwiftyCamViewController ] deviceDidRotate()")
     if !UIDevice.current.orientation.isFlat {
       deviceOrientation = UIDevice.current.orientation
+    } else {
+      NSLog("device is flat, ignoring")
     }
   }
 

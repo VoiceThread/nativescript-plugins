@@ -118,7 +118,7 @@ export class MySwifty extends SwiftyCamViewController {
   // private _cameraBtn: ASCameraButton;
   private _cameraBtn: UIButton;
   private _blurView: UIView;
-  public _swiftyDelegate: any;
+  public _swiftyDelegate: SwiftyDelegate;
   // private _pickerDelegate: any;
   private _resized: boolean;
 
@@ -255,6 +255,101 @@ export class MySwifty extends SwiftyCamViewController {
 
     // this.view.bringSubviewToFront(this._cameraBtn);
     // this._cameraBtn.changeToSquare();
+    if (this._owner.get().showCaptureIcon) {
+      CLog('adding main capture button...');
+      if (this._cameraBtn) this._cameraBtn.removeFromSuperview();
+      // const heightOffset = this._owner.get().isIPhoneX ? 400 : 310;
+      // const picOutline = createButton(this, CGRectMake(width / 2 - 20, height - heightOffset, 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('picOutline'));
+      // picOutline.transform = CGAffineTransformMakeScale(1.5, 1.5);
+      // const picOutline = createButton(this,null, null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('picOutline'));
+      // picOutline.translatesAutoresizingMaskIntoConstraints = false;
+
+      // this.view.addSubview(picOutline);
+      // console.log('created outline ', picOutline);
+      // // console.log('frame: ', width / 2 - 20, height - heightOffset, 50, 50);
+
+      // const takePicBtn = createButton(this, CGRectMake(width / 2 - 21.5, height - (heightOffset + 0.7), 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('takePic'));
+      this._cameraBtn = createButton(this, null, null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('takePic'));
+      this._cameraBtn.translatesAutoresizingMaskIntoConstraints = false;
+      // takePicBtn.transform = CGAffineTransformMakeScale(1.5, 1.5);
+      let widthRule = this._cameraBtn.widthAnchor.constraintEqualToConstant(40);
+      widthRule.active = true;
+      let heightRule = this._cameraBtn.heightAnchor.constraintEqualToConstant(40);
+      heightRule.active = true;
+      this.view.addSubview(this._cameraBtn);
+      // this.view.bringSubviewToFront(this._cameraBtn);
+      let centerRule = this._cameraBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor);
+      centerRule.active = true;
+      // let bottomRule = this._cameraBtn.bottomAnchor.constraintEqualToAnchor(this.view.bottomAnchor);
+      let bottomRule = this._cameraBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.safeAreaLayoutGuide.bottomAnchor, -40);
+      bottomRule.active = true;
+
+      console.log('added main button to view ', this._cameraBtn);
+    }
+
+    if (this._owner.get().showToggleIcon) {
+      if (this._switchBtn) this._switchBtn.removeFromSuperview();
+      CLog('adding toggle/switch camera button...');
+      // const switchCameraBtn = createButton(this, CGRectMake(width - 100, 20, 100, 50), null, 'switchCamera', null, createIcon('toggle', CGSizeMake(65, 50)));
+      this._switchBtn = createButton(this, null, null, 'switchCamera', null, createIcon('toggle', CGSizeMake(65, 50)));
+      // switchCameraBtn.transform = CGAffineTransformMakeScale(0.7, 0.7);
+      this._switchBtn.translatesAutoresizingMaskIntoConstraints = false;
+      let widthRule = this._switchBtn.widthAnchor.constraintEqualToConstant(40);
+      widthRule.active = true;
+      let heightRule = this._switchBtn.heightAnchor.constraintEqualToConstant(40);
+      heightRule.active = true;
+
+      this.view.addSubview(this._switchBtn);
+      // this.view.bringSubviewToFront(this._switchBtn);
+      // let leftRule = this._switchBtn.leftAnchor.constraintEqualToAnchor(this.view.leftAnchor);
+      // leftRule.active = true;
+
+      // let topRule = this._switchBtn.topAnchor.constraintEqualToAnchor(this.view.topAnchor);
+      // topRule.active = true;
+
+      // let centerRule = this._switchBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor);
+      // centerRule.active = true;
+      // let bottomRule = this._switchBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.safeAreaLayoutGuide.bottomAnchor, -40);
+      // bottomRule.active = true;
+
+      let topRule = this._switchBtn.topAnchor.constraintEqualToAnchorConstant(this.view.topAnchor, 20);
+      topRule.active = true;
+      let leftRule = this._switchBtn.trailingAnchor.constraintEqualToAnchorConstant(this.view.trailingAnchor, -20);
+      leftRule.active = true;
+
+      console.log('added main button to view ', this._switchBtn);
+    }
+
+    if (this._owner.get().showFlashIcon) {
+      CLog('adding _flashBtn ...');
+      if (this._flashBtn) this._flashBtn.removeFromSuperview();
+      // if (this.flashEnabled) {
+      //   this._flashBtn = createButton(this, CGRectMake(20, 20, 50, 50), null, 'toggleFlash', null, createIcon('flash'));
+      // } else {
+      //   this._flashBtn = createButton(this, CGRectMake(20, 20, 50, 50), null, 'toggleFlash', null, createIcon('flashOff'));
+      // }
+      // if (this.flashEnabled) {
+      this._flashBtn = createButton(this, null, null, 'toggleFlash', null, this.flashEnabled ? createIcon('flash') : createIcon('flashOff'));
+      // } else {
+      // this._flashBtn = createButton(this, null, null, 'toggleFlash', null, createIcon('flashOff'));
+      // }
+      this._flashBtn.translatesAutoresizingMaskIntoConstraints = false;
+      let widthRule = this._flashBtn.widthAnchor.constraintEqualToConstant(40);
+      widthRule.active = true;
+      let heightRule = this._flashBtn.heightAnchor.constraintEqualToConstant(40);
+      heightRule.active = true;
+
+      // this._flashBtn.transform = CGAffineTransformMakeScale(0.75, 0.75);
+      this.view.addSubview(this._flashBtn);
+
+      let topRule = this._flashBtn.topAnchor.constraintEqualToAnchorConstant(this.view.topAnchor, 20);
+      topRule.active = true;
+      let leftRule = this._flashBtn.leadingAnchor.constraintEqualToAnchorConstant(this.view.leadingAnchor, 20);
+      leftRule.active = true;
+
+      // console.log('frame: ', 20, 20, 50, 50);
+    }
+
     console.log('done with viewDidLoad');
   }
 
@@ -288,6 +383,7 @@ export class MySwifty extends SwiftyCamViewController {
     CLog('deviceDidRotate!');
     if (this.previewLayer && this.previewLayer.videoPreviewLayer) {
       this.previewLayer.videoPreviewLayer.connection.videoOrientation = this.getPreviewLayerOrientation();
+      CLog('setting orientation of video previewLayer to ', this.previewLayer.videoPreviewLayer.connection.videoOrientation);
     }
   }
 
@@ -574,10 +670,17 @@ export class MySwifty extends SwiftyCamViewController {
     CLog('adding buttons...');
     const width = this.view.bounds.size.width;
     const height = this.view.bounds.size.height;
+    CLog('iOS bounds width: ', width, ' height:', height);
+    CLog('NS Screen heightDIPs heightPixels widthDIPs widthPixels,: ', Screen.mainScreen.heightDIPs, Screen.mainScreen.heightPixels, Screen.mainScreen.widthDIPs, Screen.mainScreen.widthPixels);
+    // CLog('View location ', this._swiftyDelegate.previewLayer.frame.origin);
+    // console.log(this._owner.get()?.ios?.previewLayer);
+    // CLog('previewLayer ', this._swiftyDelegate.previewLayer);
+    // CLog('previewLayer ', this._swiftyDelegate.previewLayer.bounds.size.width, this._swiftyDelegate.previewLayer.bounds.size.height);
+    // CLog('previewLayer ', this._swiftyDelegate.previewLayer.bounds.size.width, this._swiftyDelegate.previewLayer.bounds.size.height);
 
     if (this._owner.get().showToggleIcon) {
       if (this._switchBtn) this._switchBtn.removeFromSuperview();
-      CLog('adding toggle/switch camera button...');
+      CLog('adding toggle/switch camera button... using frame: ', width - 100, 20, 100, 50);
       const switchCameraBtn = createButton(this, CGRectMake(width - 100, 20, 100, 50), null, 'switchCamera', null, createIcon('toggle', CGSizeMake(65, 50)));
       switchCameraBtn.transform = CGAffineTransformMakeScale(0.7, 0.7);
       this._switchBtn = switchCameraBtn;
@@ -625,19 +728,35 @@ export class MySwifty extends SwiftyCamViewController {
     */
 
     // if (this._owner.get().showCaptureIcon) {
-    CLog('adding showCaptureIcon...');
-    if (this._cameraBtn) this._cameraBtn.removeFromSuperview();
-    const heightOffset = this._owner.get().isIPhoneX ? 400 : 310;
-    const picOutline = createButton(this, CGRectMake(width / 2 - 20, height - heightOffset, 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('picOutline'));
-    picOutline.transform = CGAffineTransformMakeScale(1.5, 1.5);
-    this.view.addSubview(picOutline);
-    console.log('created outline ', picOutline);
+    // CLog('adding showCaptureIcon...');
+    // if (this._cameraBtn) this._cameraBtn.removeFromSuperview();
+    // // const heightOffset = this._owner.get().isIPhoneX ? 400 : 310;
+    // // const picOutline = createButton(this, CGRectMake(width / 2 - 20, height - heightOffset, 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('picOutline'));
+    // // picOutline.transform = CGAffineTransformMakeScale(1.5, 1.5);
+    // // const picOutline = createButton(this,null, null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('picOutline'));
+    // // picOutline.translatesAutoresizingMaskIntoConstraints = false;
 
-    const takePicBtn = createButton(this, CGRectMake(width / 2 - 21.5, height - (heightOffset + 0.7), 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('takePic'));
-    // takePicBtn.transform = CGAffineTransformMakeScale(1.5, 1.5);
-    this.view.addSubview(takePicBtn);
-    console.log('created button ', takePicBtn);
-    this._cameraBtn = takePicBtn;
+    // // this.view.addSubview(picOutline);
+    // // console.log('created outline ', picOutline);
+    // // // console.log('frame: ', width / 2 - 20, height - heightOffset, 50, 50);
+
+    // // const takePicBtn = createButton(this, CGRectMake(width / 2 - 21.5, height - (heightOffset + 0.7), 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('takePic'));
+    // this._cameraBtn = createButton(this, null, null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('takePic'));
+
+    // // takePicBtn.transform = CGAffineTransformMakeScale(1.5, 1.5);
+    // let widthRule = this._cameraBtn.widthAnchor.constraintEqualToConstant(20);
+    // widthRule.active = true;
+    // let heightRule = this._cameraBtn.heightAnchor.constraintEqualToConstant(20);
+    // heightRule.active = true;
+    // let centerRule = this._cameraBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor);
+    // centerRule.active = true;
+    // // let bottomRule = this._cameraBtn.bottomAnchor.constraintEqualToAnchor(this.view.bottomAnchor);
+    // let bottomRule = this._cameraBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.safeAreaLayoutGuide.bottomAnchor, -40);
+    // bottomRule.active = true;
+    // this.view.addSubview(this._cameraBtn);
+    // console.log('added main button to view ', this._cameraBtn);
+    // console.log('frame: ', width / 2 - 21.5, height - (heightOffset + 0.7), 50, 50);
+
     // }
     CLog('addButtons done');
   }
@@ -653,6 +772,7 @@ export class MySwifty extends SwiftyCamViewController {
       }
       this._flashBtn.transform = CGAffineTransformMakeScale(0.75, 0.75);
       this.view.addSubview(this._flashBtn);
+      console.log('frame: ', 20, 20, 50, 50);
     }
   }
 }
@@ -810,7 +930,7 @@ export class CameraPlus extends CameraPlusBase {
 
     this._swifty.viewDidAppear(true);
     console.log('CameraPlus Adding buttons', this._swifty);
-    this._swifty.addButtons();
+    // this._swifty.addButtons();
     // this._swifty.addButtons();
   }
 
