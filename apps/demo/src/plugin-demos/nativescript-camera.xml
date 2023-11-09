@@ -39,7 +39,8 @@
           controls="true"
           loop="false"
           autoplay="false"
-          height="360"
+          height="600"
+          src=""
           opacity="1" />
         <Image height="200"
           id="testImagePickResult"

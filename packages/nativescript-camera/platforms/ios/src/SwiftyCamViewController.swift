@@ -36,6 +36,7 @@ import UIKit
 
   /// Enumeration for video quality of the capture session. Corresponds to a AVCaptureSessionPreset
   // private var d: AVCaptureSession.Preset
+
   @objc public enum VideoQuality: Int {
     /// AVCaptureSessionPresetHigh
     case high
@@ -367,7 +368,9 @@ import UIKit
   // }
 
   //ASCamera
+
   public init() {
+    NSLog("init()")
     self.sessionPrimaryQueue = DispatchQueue(
       label: self.sessionPrimaryQueueIdentifier, qos: .userInitiated, target: DispatchQueue.global()
     )
@@ -389,12 +392,15 @@ import UIKit
 
     self.session.automaticallyConfiguresApplicationAudioSession = false
   }
+
   required public init?(coder aDecoder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
   }
 
   //ASCamera
+
   deinit {
+    NSLog("deinit()")
     if self.session.isRunning {
       self.session.stopRunning()
     }
@@ -402,6 +408,7 @@ import UIKit
     removeSessionObservers()
     removeSystemObservers()
   }
+
   // required public init?(coder aDecoder: NSCoder) {
   //   fatalError("init(coder:) has not been implemented")
   // }
@@ -409,7 +416,9 @@ import UIKit
 
   /// ViewDidLoad Implementation
   //SwiftyCamera
+
   @objc override open func viewDidLoad() {
+    NSLog("viewDidLoad()")
     super.viewDidLoad()
     previewLayer = PreviewView(
       frame: CGRect(x: 0.0, y: 0.0, width: view.bounds.width, height: view.bounds.height))
@@ -423,28 +432,28 @@ import UIKit
 
     // Test authorization status for Camera and Micophone
 
-    switch AVCaptureDevice.authorizationStatus(for: AVMediaType.video) {
-    case .authorized:
+    // switch AVCaptureDevice.authorizationStatus(for: AVMediaType.video) {
+    // case .authorized:
 
-      // already authorized
-      break
-    case .notDetermined:
+    //   // already authorized
+    //   break
+    // case .notDetermined:
 
-      // not yet determined
-      sessionQueue.suspend()
-      AVCaptureDevice.requestAccess(
-        for: AVMediaType.video,
-        completionHandler: { [unowned self] granted in
-          if !granted {
-            self.setupResult = .notAuthorized
-          }
-          self.sessionQueue.resume()
-        })
-    default:
+    //   // not yet determined
+    //   sessionQueue.suspend()
+    //   AVCaptureDevice.requestAccess(
+    //     for: AVMediaType.video,
+    //     completionHandler: { [unowned self] granted in
+    //       if !granted {
+    //         self.setupResult = .notAuthorized
+    //       }
+    //       self.sessionQueue.resume()
+    //     })
+    // default:
 
-      // already been asked. Denied access
-      setupResult = .notAuthorized
-    }
+    //   // already been asked. Denied access
+    //   setupResult = .notAuthorized
+    // }
     sessionQueue.async { [unowned self] in
       self.configureSession()
     }
@@ -464,7 +473,9 @@ import UIKit
 
   /// ViewDidAppear(_ animated:) Implementation
   //SwiftyCamera
+
   @objc override open func viewDidAppear(_ animated: Bool) {
+    NSLog("viewDidAppear()")
     super.viewDidAppear(animated)
 
     // Subscribe to device rotation notifications
@@ -515,6 +526,7 @@ import UIKit
 
   /// ViewDidDisappear(_ animated:) Implementation
   //SwiftyCamera
+
   @objc override open func viewDidDisappear(_ animated: Bool) {
     super.viewDidDisappear(animated)
 
@@ -610,7 +622,7 @@ import UIKit
       // self.shouldCreateAssetWriter()
 
       let uuid = UUID().uuidString
-      let fileType = self.assetWriter?.outputFileType ?? AVFileType.mov
+      let fileType = self.assetWriter?.outputFileType ?? AVFileType.mp4
       assert(fileType.isVideoFileTypeSupported, "fileType is not supported for video")
       let outputFileName = (uuid as NSString).appendingPathExtension(fileType.stringValue())!
       let outputFileUrl = self.outputFileDirectory.appendingPathComponent(
@@ -772,6 +784,7 @@ import UIKit
 
       assetWriter.finishWriting {
         DispatchQueue.main.async {
+          print("Done with assets, calling events")
           if let error = assetWriter.error {
             self.didFailToProcessVideo(error)
           } else {
@@ -966,19 +979,23 @@ import UIKit
     self.executeSync { [weak self] in
       guard let self = self else { return }
       self.session.beginConfiguration()
-
+      print("configureSession() removing inputs")
       for input in self.session.inputs {
         self.session.removeInput(input)
       }
 
       self.addVideoInput()
+      print("configureSession() adding video input")
       self.addVideoOutput()
+      print("configureSession() adding video output")
       self.addAudioInput()
+      print("configureSession() adding audio input")
       self.addAudioOutput()
-
+      print("configureSession() adding audio output")
       self.configureSessionQuality()
-
+      print("configureSession() configured quality")
       self.session.commitConfiguration()
+      NSLog("viewcontroller configureSession() done")
     }
   }
 
@@ -1113,6 +1130,7 @@ import UIKit
 */
   /// Configure Photo Output
   //TODO: replace with image buffer frame grab version instead
+
   fileprivate func configurePhotoOutput() {
     let photoFileOutput = AVCaptureStillImageOutput()
 
@@ -2061,12 +2079,18 @@ extension SwiftyCamViewController {
     }
     // session.sessionPreset = videoInputPresetFromVideoQuality(quality: preset)
     session.sessionPreset = preset
-
+    NSLog(
+      "[ASCamera]:  sessionPreset set to \(preset)."
+    )
     self.configureFrameRate()
   }
+
   /// Fixing framerate does effect low light capture performance
+
   /// Todo: Make this functionality optional.
+
   private func configureFrameRate(toframeRate: Int? = nil) {
+    NSLog("configureFrameRate()")
     guard let videoDevice = self.videoDevice else {
       NSLog("[ASCamera]: Cannot configure frame rate. Reason: Video Capture Device is nil")
       return
@@ -2102,8 +2126,9 @@ extension SwiftyCamViewController {
         "[ASCamera]: Desired frame rate is lower than supported frame rates. setting to \(minFrameRate) instead."
       )
       frameRate = minFrameRate
-    }
 
+    }
+    NSLog("[ASCamera]: Same frame rate \(frameRate).")
     guard videoDevice.activeVideoMinFrameDuration.timescale != frameRate,
       videoDevice.activeVideoMaxFrameDuration.timescale != frameRate
     else { return }
@@ -2117,9 +2142,11 @@ extension SwiftyCamViewController {
       videoDevice.unlockForConfiguration()
 
       self.frameRate = frameRate
+      NSLog("[ASCamera]: Set frame rate to \(frameRate).")
     } catch {
       NSLog("[ASCamera]: Could not lock device for configuration: \(error)")
     }
+    NSLog("configureFrameRate() done")
   }
 
   private func addVideoInput() {
@@ -2277,7 +2304,10 @@ extension SwiftyCamViewController {
 
   // }
   ///
+
   func didFinishProcessingVideoAt(_ url: URL) {
+    NSLog("didFinishProcessingVideoAt")
+    NSLog(url.absoluteString)
     if let currentBackgroundTaskID = backgroundTaskID {
       backgroundTaskID = UIBackgroundTaskIdentifier.invalid.rawValue
 
@@ -2287,10 +2317,16 @@ extension SwiftyCamViewController {
       }
     }
     //send event with url generated from recording process
-
+    DispatchQueue.main.async {
+      self.cameraDelegate?.swiftyCam(self, didFinishProcessVideoAt: url)
+    }
   }
+
   ///
+
   func didFailToProcessVideo(_ error: Error) {
+    NSLog("didFailToProcessVideo")
+    NSLog(error.localizedDescription)
     if let currentBackgroundTaskID = backgroundTaskID {
       backgroundTaskID = UIBackgroundTaskIdentifier.invalid.rawValue
 
@@ -2300,6 +2336,7 @@ extension SwiftyCamViewController {
       }
     }
   }
+
   ///
   // func didSwitchCamera() {
 
@@ -2326,11 +2363,11 @@ extension SwiftyCamViewController {
 extension SwiftyCamViewController: AVCaptureVideoDataOutputSampleBufferDelegate,
   AVCaptureAudioDataOutputSampleBufferDelegate
 {
+
   public func captureOutput(
     _ output: AVCaptureOutput, didDrop sampleBuffer: CMSampleBuffer,
     from connection: AVCaptureConnection
   ) {
-
     NSLog("[ASCamera]: Dropped \(output == self.audioOutput ? "audio" : "video") Frame")
   }
 
@@ -2542,6 +2579,7 @@ extension SwiftyCamViewController: AVCaptureVideoDataOutputSampleBufferDelegate,
       }
     }
   }
+
 }
 
 extension SwiftyCamViewController {

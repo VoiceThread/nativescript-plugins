@@ -1,4 +1,4 @@
-import { Observable, EventData, Page, ImageAsset, alert, ImageSource, Frame, Screen, Image } from '@nativescript/core';
+import { Observable, EventData, Page, ImageAsset, alert, ImageSource, Frame, Screen, Image, File } from '@nativescript/core';
 import { DemoSharedNativescriptCamera } from '@demo/shared';
 import { CameraPlus } from '@voicethread/nativescript-camera';
 import { ObservableProperty } from './observable-property';
@@ -55,7 +55,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
     // hide a default icon button here
     // this.cam.showGalleryIcon = false
 
-    this.cameraHeight = Screen.mainScreen.heightDIPs * 0.6;
+    this.cameraHeight = Screen.mainScreen.heightDIPs * 0.7;
 
     if (this._counter > 0) {
       return;
@@ -80,19 +80,22 @@ export class DemoModel extends DemoSharedNativescriptCamera {
 
     this.cam.on(CameraPlus.videoRecordingReadyEvent, (args: any) => {
       console.log(`videoRecordingReadyEvent listener fired`, args.data);
+      let videoFile = File.fromPath(args.data);
+      console.log('File has length', videoFile.size);
       const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
       video.visibility = 'visible';
       // video.visibility = 'visible';
       video.opacity = 1;
-      console.log(args.data);
+      console.log('event passed path: ', args.data);
       video.src = args.data;
-      video.loop = false;
+      video.loop = true;
+      video.play();
     });
 
     this.cam.on(CameraPlus.videoRecordingStartedEvent, (args: any) => {
       console.log(`videoRecordingStartedEvent listener fired`, args.data);
       const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
-      video.visibility = 'hidden';
+      video.visibility = 'collapsed';
     });
 
     this.cam.on(CameraPlus.videoRecordingFinishedEvent, (args: any) => {
@@ -147,7 +150,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       }
       console.log(`*** start recording ***`);
       this.cam.record({
-        saveToGallery: true,
+        saveToGallery: false,
       });
     } catch (err) {
       console.log(err);

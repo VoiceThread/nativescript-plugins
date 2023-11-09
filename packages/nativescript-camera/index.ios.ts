@@ -330,6 +330,7 @@ export class MySwifty extends SwiftyCamViewController {
     console.log('recordVideo()');
     options = options || {
       saveToGallery: false,
+      disableHEVC: true,
     };
     // options = options || {};
     if (this._enableVideo) {
@@ -392,8 +393,9 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   public recordingReady(path: string) {
-    console.log('recordingReady()');
+    console.log('recordingReady()', path);
     if ((this._videoOptions && this._videoOptions.saveToGallery) || this._owner.get().saveToGallery) {
+      CLog('Save to Gallery option enabled, checking permission and saving if authorized');
       // TODO: discuss why callback handler(videoDidFinishSavingWithErrorContextInfo) does not emit event correctly - the path passed to the handler is the same as handled here so just go ahead and emit here for now
       this._owner.get().sendEvent(CameraPlus.videoRecordingReadyEvent, path);
 
