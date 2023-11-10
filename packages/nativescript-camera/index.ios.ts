@@ -338,30 +338,31 @@ export class MySwifty extends SwiftyCamViewController {
 
     if (this._owner.get().showFlashIcon) {
       CLog('adding _flashBtn ...');
-      if (this._flashBtn) this._flashBtn.removeFromSuperview();
-      // if (this.flashEnabled) {
-      //   this._flashBtn = createButton(this, CGRectMake(20, 20, 50, 50), null, 'toggleFlash', null, createIcon('flash'));
-      // } else {
-      //   this._flashBtn = createButton(this, CGRectMake(20, 20, 50, 50), null, 'toggleFlash', null, createIcon('flashOff'));
-      // }
-      // if (this.flashEnabled) {
-      this._flashBtn = createButton(this, null, null, 'toggleFlash', null, this.flashEnabled ? createIcon('flash') : createIcon('flashOff'));
-      // } else {
-      // this._flashBtn = createButton(this, null, null, 'toggleFlash', null, createIcon('flashOff'));
-      // }
-      this._flashBtn.translatesAutoresizingMaskIntoConstraints = false;
-      let widthRule = this._flashBtn.widthAnchor.constraintEqualToConstant(40);
-      widthRule.active = true;
-      let heightRule = this._flashBtn.heightAnchor.constraintEqualToConstant(40);
-      heightRule.active = true;
+      this._flashBtnHandler();
+      // if (this._flashBtn) this._flashBtn.removeFromSuperview();
+      // // if (this.flashEnabled) {
+      // //   this._flashBtn = createButton(this, CGRectMake(20, 20, 50, 50), null, 'toggleFlash', null, createIcon('flash'));
+      // // } else {
+      // //   this._flashBtn = createButton(this, CGRectMake(20, 20, 50, 50), null, 'toggleFlash', null, createIcon('flashOff'));
+      // // }
+      // // if (this.flashEnabled) {
+      // this._flashBtn = createButton(this, null, null, 'toggleFlash', null, this.flashEnabled ? createIcon('flash') : createIcon('flashOff'));
+      // // } else {
+      // // this._flashBtn = createButton(this, null, null, 'toggleFlash', null, createIcon('flashOff'));
+      // // }
+      // this._flashBtn.translatesAutoresizingMaskIntoConstraints = false;
+      // let widthRule = this._flashBtn.widthAnchor.constraintEqualToConstant(40);
+      // widthRule.active = true;
+      // let heightRule = this._flashBtn.heightAnchor.constraintEqualToConstant(40);
+      // heightRule.active = true;
 
-      // this._flashBtn.transform = CGAffineTransformMakeScale(0.75, 0.75);
-      this.view.addSubview(this._flashBtn);
+      // // this._flashBtn.transform = CGAffineTransformMakeScale(0.75, 0.75);
+      // this.view.addSubview(this._flashBtn);
 
-      let topRule = this._flashBtn.topAnchor.constraintEqualToAnchorConstant(this.view.topAnchor, 20);
-      topRule.active = true;
-      let leftRule = this._flashBtn.leadingAnchor.constraintEqualToAnchorConstant(this.view.leadingAnchor, 20);
-      leftRule.active = true;
+      // let topRule = this._flashBtn.topAnchor.constraintEqualToAnchorConstant(this.view.topAnchor, 20);
+      // topRule.active = true;
+      // let leftRule = this._flashBtn.leadingAnchor.constraintEqualToAnchorConstant(this.view.leadingAnchor, 20);
+      // leftRule.active = true;
 
       // console.log('frame: ', 20, 20, 50, 50);
     }
@@ -785,16 +786,40 @@ export class MySwifty extends SwiftyCamViewController {
 
   private _flashBtnHandler() {
     console.log('adding _flashBtn ...');
-    if (this._owner.get().showFlashIcon) {
-      if (this._flashBtn) this._flashBtn.removeFromSuperview();
-      if (this.flashEnabled) {
-        this._flashBtn = createButton(this, CGRectMake(20, 20, 50, 50), null, 'toggleFlash', null, createIcon('flash'));
-      } else {
-        this._flashBtn = createButton(this, CGRectMake(20, 20, 50, 50), null, 'toggleFlash', null, createIcon('flashOff'));
-      }
-      this._flashBtn.transform = CGAffineTransformMakeScale(0.75, 0.75);
-      this.view.addSubview(this._flashBtn);
-    }
+    if (this._flashBtn) this._flashBtn.removeFromSuperview();
+    // if (this.flashEnabled) {
+    //   this._flashBtn = createButton(this, CGRectMake(20, 20, 50, 50), null, 'toggleFlash', null, createIcon('flash'));
+    // } else {
+    //   this._flashBtn = createButton(this, CGRectMake(20, 20, 50, 50), null, 'toggleFlash', null, createIcon('flashOff'));
+    // }
+    // if (this.flashEnabled) {
+    this._flashBtn = createButton(this, null, null, 'toggleFlash', null, this.flashEnabled ? createIcon('flash') : createIcon('flashOff'));
+    // } else {
+    // this._flashBtn = createButton(this, null, null, 'toggleFlash', null, createIcon('flashOff'));
+    // }
+    this._flashBtn.translatesAutoresizingMaskIntoConstraints = false;
+    let widthRule = this._flashBtn.widthAnchor.constraintEqualToConstant(40);
+    widthRule.active = true;
+    let heightRule = this._flashBtn.heightAnchor.constraintEqualToConstant(40);
+    heightRule.active = true;
+
+    // this._flashBtn.transform = CGAffineTransformMakeScale(0.75, 0.75);
+    this.view.addSubview(this._flashBtn);
+
+    let topRule = this._flashBtn.topAnchor.constraintEqualToAnchorConstant(this.view.topAnchor, 20);
+    topRule.active = true;
+    let leftRule = this._flashBtn.leadingAnchor.constraintEqualToAnchorConstant(this.view.leadingAnchor, 20);
+    leftRule.active = true;
+    // if (this._owner.get().showFlashIcon) {
+    //   if (this._flashBtn) this._flashBtn.removeFromSuperview();
+    //   if (this.flashEnabled) {
+    //     this._flashBtn = createButton(this, CGRectMake(20, 20, 50, 50), null, 'toggleFlash', null, createIcon('flash'));
+    //   } else {
+    //     this._flashBtn = createButton(this, CGRectMake(20, 20, 50, 50), null, 'toggleFlash', null, createIcon('flashOff'));
+    //   }
+    //   this._flashBtn.transform = CGAffineTransformMakeScale(0.75, 0.75);
+    //   this.view.addSubview(this._flashBtn);
+    // }
   }
 
   /**
