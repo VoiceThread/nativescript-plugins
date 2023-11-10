@@ -154,6 +154,8 @@ declare class SwiftyCamViewController extends UIViewController implements AVCapt
 
   shouldUseDeviceOrientation: boolean;
 
+  shouldLockRotation: boolean;
+
   swipeToZoom: boolean;
 
   swipeToZoomInverted: boolean;

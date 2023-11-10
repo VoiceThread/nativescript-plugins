@@ -150,6 +150,8 @@ import UIKit
 
   @objc public var shouldUseDeviceOrientation = true
 
+  @objc public var shouldLockRotation = true
+
   // MARK: Public Get-only Variable Declarations
 
   /// Returns true if video is currently being recorded
@@ -464,9 +466,14 @@ import UIKit
   /// ViewDidLayoutSubviews() Implementation
   //SwiftyCamera
   @objc override open func viewDidLayoutSubviews() {
+    NSLog("override open func viewDidLayoutSubviews()")
     previewLayer.frame = CGRect(
       x: 0.0, y: 0.0, width: view.bounds.width, height: view.bounds.height)
     super.viewDidLayoutSubviews()
+    DispatchQueue.main.async {
+      self.previewLayer.videoPreviewLayer.connection?.videoOrientation =
+        self.getPreviewLayerOrientation()
+    }
   }
 
   // MARK: ViewDidAppear
@@ -481,7 +488,9 @@ import UIKit
     // Subscribe to device rotation notifications
 
     if shouldUseDeviceOrientation {
+      NSLog("shouldUseDeviceOrientation subscribing")
       subscribeToDeviceOrientationChangeNotifications()
+
     }
 
     // Set background audio preference
@@ -611,26 +620,33 @@ import UIKit
     assert(
       Thread.isMainThread,
       "[ASCamera]: This function -startRecording must be called on the main thread.")
+    //TODO: remove this, just for logging so it shows on main thread console
 
+    self.getVideoTransform()
     self.executeAsync { [weak self] in
-      guard let self = self else { return }
+      guard let self = self else {
+        NSLog("guard entered, returning")
+        return
+      }
       assert(
         !self.willStartWritingSession && !self.shouldStartWritingSession,
         "[ASCamera]: Called startRecording() when already recording.")
       self.willStartWritingSession = true
 
       // self.shouldCreateAssetWriter()
-
+      NSLog("setting up recording filename")
       let uuid = UUID().uuidString
       let fileType = self.assetWriter?.outputFileType ?? AVFileType.mp4
       assert(fileType.isVideoFileTypeSupported, "fileType is not supported for video")
       let outputFileName = (uuid as NSString).appendingPathExtension(fileType.stringValue())!
+      NSLog(outputFileName)
       let outputFileUrl = self.outputFileDirectory.appendingPathComponent(
         outputFileName, isDirectory: false)
       do {
         let assetWriter =
           try self.assetWriter ?? AVAssetWriter(outputURL: outputFileUrl, fileType: fileType)
         self.assetWriter = assetWriter
+        NSLog("Assigned assetWriter")
       } catch {
         print("[ASCamera]: error setting up avassetwrtter: \(error)")
         return
@@ -656,7 +672,8 @@ import UIKit
         ?? AVAssetWriterInput(
           mediaType: AVMediaType.video, outputSettings: videoCompressionSettings)
       assetWriterVideoInput.expectsMediaDataInRealTime = true
-
+      assetWriterVideoInput.transform = self.getVideoTransform()
+      NSLog("Assigned transform")
       if assetWriter.canAdd(assetWriterVideoInput) {
         assetWriter.add(assetWriterVideoInput)
       } else {
@@ -742,6 +759,43 @@ import UIKit
     // }
   }
 
+  private func getVideoTransform() -> CGAffineTransform {
+    NSLog("getVideoTransform()")
+    switch UIDevice.current.orientation {
+    case .portrait:
+      NSLog(" identity")
+      if currentCamera == .rear {
+        return CGAffineTransform(rotationAngle: .pi / 2)
+      }
+      return CGAffineTransform(rotationAngle: .pi / 2)
+    case .portraitUpsideDown:
+
+      if currentCamera == .rear {
+        NSLog("rear portraitUpsideDown pi/2")
+        return CGAffineTransform(rotationAngle: .pi / 2)
+      }
+      NSLog("front portraitUpsideDown pi")
+      return CGAffineTransform(rotationAngle: .pi / 2)
+    case .landscapeLeft:
+
+      if currentCamera == .rear {
+        NSLog("rear landscapeLeft identity")
+        return .identity
+      }
+      NSLog("front landscapeLeft pi")
+      return CGAffineTransform(rotationAngle: .pi)
+    case .landscapeRight:
+      if currentCamera == .rear {
+        NSLog("rear landscapeRight identity")
+        return CGAffineTransform(rotationAngle: .pi)
+      }
+      NSLog("front landscapeRight ")
+      return .identity
+    default:
+      NSLog("default identity")
+      return .identity
+    }
+  }
   /**
 
      Stop video recording video of current session
@@ -1144,6 +1198,7 @@ import UIKit
   /// Orientation management
 
   @objc public func subscribeToDeviceOrientationChangeNotifications() {
+    NSLog("subscribeToDeviceOrientationChangeNotifications")
     deviceOrientation = UIDevice.current.orientation
     NotificationCenter.default.addObserver(
       self, selector: #selector(deviceDidRotate), name: UIDevice.orientationDidChangeNotification,
@@ -1151,6 +1206,7 @@ import UIKit
   }
 
   @objc public func unsubscribeFromDeviceOrientationChangeNotifications() {
+    NSLog("unsubscribeFromDeviceOrientationChangeNotifications")
     NotificationCenter.default.removeObserver(
       self, name: UIDevice.orientationDidChangeNotification, object: nil)
     deviceOrientation = nil
@@ -1167,19 +1223,27 @@ import UIKit
 
   @objc public func getPreviewLayerOrientation() -> AVCaptureVideoOrientation {
     // Depends on layout orientation, not device orientation
+    NSLog("current orientation of statusBar:")
+    // NSLog(UIApplication.shared.statusBarOrientation)
     switch UIApplication.shared.statusBarOrientation {
     case .portrait, .unknown:
+      NSLog("portrait")
       return AVCaptureVideoOrientation.portrait
     case .landscapeLeft:
+      NSLog("landscapeLeft")
       return AVCaptureVideoOrientation.landscapeLeft
     case .landscapeRight:
+      NSLog("landscapeRight")
       return AVCaptureVideoOrientation.landscapeRight
     case .portraitUpsideDown:
+      NSLog("portraitUpsideDown")
       return AVCaptureVideoOrientation.portraitUpsideDown
     }
   }
 
   @objc public func getVideoOrientation() -> AVCaptureVideoOrientation {
+    NSLog("current orientation of video:")
+    // NSLog(previewLayer!.videoPreviewLayer.connection!.videoOrientation)
     guard shouldUseDeviceOrientation, let deviceOrientation = deviceOrientation else {
       return previewLayer!.videoPreviewLayer.connection!.videoOrientation
     }
@@ -1187,13 +1251,17 @@ import UIKit
     switch deviceOrientation {
     case .landscapeLeft:
       // keep the same if using front camera
+      NSLog("landscapeLeft")
       return currentCamera == .rear ? .landscapeRight : .landscapeLeft
     case .landscapeRight:
+      NSLog("landscapeRight")
       // keep the same if using front camera
       return currentCamera == .rear ? .landscapeLeft : .landscapeRight
     case .portraitUpsideDown:
+      NSLog("portraitUpsideDown")
       return .portraitUpsideDown
     default:
+      NSLog("portrait")
       return .portrait
     }
   }

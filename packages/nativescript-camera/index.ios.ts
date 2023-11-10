@@ -4,11 +4,27 @@
  * Version 1.1.0                                                    team@nStudio.io
  **********************************************************************************/
 
-import { Color, ImageAsset, View, File, Device, Screen } from '@nativescript/core';
+import { Color, ImageAsset, View, File, Device, Screen, isIOS, Frame, Application } from '@nativescript/core';
 import { CameraPlusBase, CameraTypes, CameraVideoQuality, CLog, GetSetProperty, ICameraOptions, IChooseOptions, IVideoOptions } from './common';
+import { iOSNativeHelper } from '@nativescript/core/utils';
 
 export * from './common';
 export { CameraVideoQuality, WhiteBalance } from './common';
+
+export class DefaultMap<T> extends Map {
+  constructor(obj: { [key: string]: T } = {}) {
+    super();
+    for (let [key, value] of Object.entries(obj)) {
+      if (key === 'defaultValue') this.defaultValue = value;
+      else this.set(key, value);
+    }
+  }
+  protected defaultValue: T;
+
+  get(key?: string, defaultValue: T = this.defaultValue): T {
+    return this.has(key) ? super.get(key) : defaultValue;
+  }
+}
 
 /**
  * Take picture with camera delegate
@@ -349,6 +365,9 @@ export class MySwifty extends SwiftyCamViewController {
 
       // console.log('frame: ', 20, 20, 50, 50);
     }
+    if (this._owner.get().shouldLockRotation) {
+      this.setupiOSController();
+    }
 
     console.log('done with viewDidLoad');
   }
@@ -401,7 +420,7 @@ export class MySwifty extends SwiftyCamViewController {
     CLog('view.bounds:', this.view.bounds.size.width + 'x' + this.view.bounds.size.height);
     if (!this._resized) {
       this._resized = true;
-      this.addButtons();
+      // this.addButtons();
       this.viewDidAppear(true);
     }
   }
@@ -433,6 +452,8 @@ export class MySwifty extends SwiftyCamViewController {
       if (this.isRecording) {
         CLog('CameraPlus stop video recording.');
         this.stopVideoRecording();
+        //unlock rotation
+        this.enableRotation();
       } else {
         CLog('CameraPlus record video options:', options);
         if (options) {
@@ -478,6 +499,7 @@ export class MySwifty extends SwiftyCamViewController {
         } else {
           this.startVideoRecording();
         }
+        this.disableRotation();
         console.log('requested camera delegate startVideoRecording()');
       }
     }
@@ -666,103 +688,103 @@ export class MySwifty extends SwiftyCamViewController {
     return UIImagePickerController.isSourceTypeAvailable(UIImagePickerControllerSourceType.Camera);
   }
 
-  public addButtons() {
-    CLog('adding buttons...');
-    const width = this.view.bounds.size.width;
-    const height = this.view.bounds.size.height;
-    CLog('iOS bounds width: ', width, ' height:', height);
-    CLog('NS Screen heightDIPs heightPixels widthDIPs widthPixels,: ', Screen.mainScreen.heightDIPs, Screen.mainScreen.heightPixels, Screen.mainScreen.widthDIPs, Screen.mainScreen.widthPixels);
-    // CLog('View location ', this._swiftyDelegate.previewLayer.frame.origin);
-    // console.log(this._owner.get()?.ios?.previewLayer);
-    // CLog('previewLayer ', this._swiftyDelegate.previewLayer);
-    // CLog('previewLayer ', this._swiftyDelegate.previewLayer.bounds.size.width, this._swiftyDelegate.previewLayer.bounds.size.height);
-    // CLog('previewLayer ', this._swiftyDelegate.previewLayer.bounds.size.width, this._swiftyDelegate.previewLayer.bounds.size.height);
+  // public addButtons() {
+  //   CLog('adding buttons...');
+  //   const width = this.view.bounds.size.width;
+  //   const height = this.view.bounds.size.height;
+  //   CLog('iOS bounds width: ', width, ' height:', height);
+  //   CLog('NS Screen heightDIPs heightPixels widthDIPs widthPixels,: ', Screen.mainScreen.heightDIPs, Screen.mainScreen.heightPixels, Screen.mainScreen.widthDIPs, Screen.mainScreen.widthPixels);
+  //   // CLog('View location ', this._swiftyDelegate.previewLayer.frame.origin);
+  //   // console.log(this._owner.get()?.ios?.previewLayer);
+  //   // CLog('previewLayer ', this._swiftyDelegate.previewLayer);
+  //   // CLog('previewLayer ', this._swiftyDelegate.previewLayer.bounds.size.width, this._swiftyDelegate.previewLayer.bounds.size.height);
+  //   // CLog('previewLayer ', this._swiftyDelegate.previewLayer.bounds.size.width, this._swiftyDelegate.previewLayer.bounds.size.height);
 
-    if (this._owner.get().showToggleIcon) {
-      if (this._switchBtn) this._switchBtn.removeFromSuperview();
-      CLog('adding toggle/switch camera button... using frame: ', width - 100, 20, 100, 50);
-      const switchCameraBtn = createButton(this, CGRectMake(width - 100, 20, 100, 50), null, 'switchCamera', null, createIcon('toggle', CGSizeMake(65, 50)));
-      switchCameraBtn.transform = CGAffineTransformMakeScale(0.7, 0.7);
-      this._switchBtn = switchCameraBtn;
-      this.view.addSubview(switchCameraBtn);
-    }
+  //   if (this._owner.get().showToggleIcon) {
+  //     if (this._switchBtn) this._switchBtn.removeFromSuperview();
+  //     CLog('adding toggle/switch camera button... using frame: ', width - 100, 20, 100, 50);
+  //     const switchCameraBtn = createButton(this, CGRectMake(width - 100, 20, 100, 50), null, 'switchCamera', null, createIcon('toggle', CGSizeMake(65, 50)));
+  //     switchCameraBtn.transform = CGAffineTransformMakeScale(0.7, 0.7);
+  //     this._switchBtn = switchCameraBtn;
+  //     this.view.addSubview(switchCameraBtn);
+  //   }
 
-    this._flashBtnHandler();
-    /*
-    this._cameraBtn = ASCameraButton.alloc().init();
-    this._cameraBtn.translatesAutoresizingMaskIntoConstraints = false;
-    CLog('this._cameraBtn:', this._cameraBtn);
-    let widthRule = this._cameraBtn.widthAnchor.constraintEqualToConstant(20);
-    widthRule.active = true;
-    console.log('Added widthAnchor');
-    let heightRule = this._cameraBtn.heightAnchor.constraintEqualToConstant(20);
-    heightRule.active = true;
-    console.log('Added heightAnchor');
+  //   this._flashBtnHandler();
+  //   /*
+  //   this._cameraBtn = ASCameraButton.alloc().init();
+  //   this._cameraBtn.translatesAutoresizingMaskIntoConstraints = false;
+  //   CLog('this._cameraBtn:', this._cameraBtn);
+  //   let widthRule = this._cameraBtn.widthAnchor.constraintEqualToConstant(20);
+  //   widthRule.active = true;
+  //   console.log('Added widthAnchor');
+  //   let heightRule = this._cameraBtn.heightAnchor.constraintEqualToConstant(20);
+  //   heightRule.active = true;
+  //   console.log('Added heightAnchor');
 
-    // this._cameraBtn.centerXAnchor.constraint(equalTo: view.centerXAnchor, constant: 0).isActive = true
-    // this._cameraBtn.addConstraint(this._cameraBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor));
-    // console.log('Added centerXAnchor');
-    // let centerRule = this._cameraBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor);
-    // centerRule.active = true;
-    // this._cameraBtn.addConstraint(this._cameraBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.safeAreaLayoutGuide.bottomAnchor, -40));
-    // console.log('Added bottomAnchor');
+  //   // this._cameraBtn.centerXAnchor.constraint(equalTo: view.centerXAnchor, constant: 0).isActive = true
+  //   // this._cameraBtn.addConstraint(this._cameraBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor));
+  //   // console.log('Added centerXAnchor');
+  //   // let centerRule = this._cameraBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor);
+  //   // centerRule.active = true;
+  //   // this._cameraBtn.addConstraint(this._cameraBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.safeAreaLayoutGuide.bottomAnchor, -40));
+  //   // console.log('Added bottomAnchor');
 
-    // this._cameraBtn.addConstraint(this._cameraBtn.heightAnchor.constraintEqualToAnchor(this._cameraBtn.widthAnchor.));
-    //this._cameraBtn.bottomAnchor.constraint(
-    //      equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40).isActive = true
-    // this._cameraBtn.widthAnchor.constraint(equalToConstant: 40).isActive = true
-    // this._cameraBtn.heightAnchor.constraint(equalTo: this._cameraBtn.widthAnchor).isActive = true
+  //   // this._cameraBtn.addConstraint(this._cameraBtn.heightAnchor.constraintEqualToAnchor(this._cameraBtn.widthAnchor.));
+  //   //this._cameraBtn.bottomAnchor.constraint(
+  //   //      equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40).isActive = true
+  //   // this._cameraBtn.widthAnchor.constraint(equalToConstant: 40).isActive = true
+  //   // this._cameraBtn.heightAnchor.constraint(equalTo: this._cameraBtn.widthAnchor).isActive = true
 
-    let blurEffect = UIBlurEffect.effectWithStyle(UIBlurEffectStyle.Dark);
-    // this._blurView = UIVisualEffectView(effect: blurEffect)
-    this._blurView = new UIVisualEffectView({ effect: blurEffect });
-    this._blurView.frame = this.view.bounds;
-    this._blurView.alpha = 0;
-    this.view.addSubview(this._blurView);
-    this.view.addSubview(this._cameraBtn);
-    this.view.bringSubviewToFront(this._cameraBtn);
-    console.log('drawing button');
-    // this._cameraBtn.drawButton();
-    // this._cameraBtn.changeToSquare();
-    // this._cameraBtn.layoutIfNeeded();
-    */
+  //   let blurEffect = UIBlurEffect.effectWithStyle(UIBlurEffectStyle.Dark);
+  //   // this._blurView = UIVisualEffectView(effect: blurEffect)
+  //   this._blurView = new UIVisualEffectView({ effect: blurEffect });
+  //   this._blurView.frame = this.view.bounds;
+  //   this._blurView.alpha = 0;
+  //   this.view.addSubview(this._blurView);
+  //   this.view.addSubview(this._cameraBtn);
+  //   this.view.bringSubviewToFront(this._cameraBtn);
+  //   console.log('drawing button');
+  //   // this._cameraBtn.drawButton();
+  //   // this._cameraBtn.changeToSquare();
+  //   // this._cameraBtn.layoutIfNeeded();
+  //   */
 
-    // if (this._owner.get().showCaptureIcon) {
-    // CLog('adding showCaptureIcon...');
-    // if (this._cameraBtn) this._cameraBtn.removeFromSuperview();
-    // // const heightOffset = this._owner.get().isIPhoneX ? 400 : 310;
-    // // const picOutline = createButton(this, CGRectMake(width / 2 - 20, height - heightOffset, 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('picOutline'));
-    // // picOutline.transform = CGAffineTransformMakeScale(1.5, 1.5);
-    // // const picOutline = createButton(this,null, null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('picOutline'));
-    // // picOutline.translatesAutoresizingMaskIntoConstraints = false;
+  //   // if (this._owner.get().showCaptureIcon) {
+  //   // CLog('adding showCaptureIcon...');
+  //   // if (this._cameraBtn) this._cameraBtn.removeFromSuperview();
+  //   // // const heightOffset = this._owner.get().isIPhoneX ? 400 : 310;
+  //   // // const picOutline = createButton(this, CGRectMake(width / 2 - 20, height - heightOffset, 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('picOutline'));
+  //   // // picOutline.transform = CGAffineTransformMakeScale(1.5, 1.5);
+  //   // // const picOutline = createButton(this,null, null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('picOutline'));
+  //   // // picOutline.translatesAutoresizingMaskIntoConstraints = false;
 
-    // // this.view.addSubview(picOutline);
-    // // console.log('created outline ', picOutline);
-    // // // console.log('frame: ', width / 2 - 20, height - heightOffset, 50, 50);
+  //   // // this.view.addSubview(picOutline);
+  //   // // console.log('created outline ', picOutline);
+  //   // // // console.log('frame: ', width / 2 - 20, height - heightOffset, 50, 50);
 
-    // // const takePicBtn = createButton(this, CGRectMake(width / 2 - 21.5, height - (heightOffset + 0.7), 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('takePic'));
-    // this._cameraBtn = createButton(this, null, null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('takePic'));
+  //   // // const takePicBtn = createButton(this, CGRectMake(width / 2 - 21.5, height - (heightOffset + 0.7), 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('takePic'));
+  //   // this._cameraBtn = createButton(this, null, null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('takePic'));
 
-    // // takePicBtn.transform = CGAffineTransformMakeScale(1.5, 1.5);
-    // let widthRule = this._cameraBtn.widthAnchor.constraintEqualToConstant(20);
-    // widthRule.active = true;
-    // let heightRule = this._cameraBtn.heightAnchor.constraintEqualToConstant(20);
-    // heightRule.active = true;
-    // let centerRule = this._cameraBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor);
-    // centerRule.active = true;
-    // // let bottomRule = this._cameraBtn.bottomAnchor.constraintEqualToAnchor(this.view.bottomAnchor);
-    // let bottomRule = this._cameraBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.safeAreaLayoutGuide.bottomAnchor, -40);
-    // bottomRule.active = true;
-    // this.view.addSubview(this._cameraBtn);
-    // console.log('added main button to view ', this._cameraBtn);
-    // console.log('frame: ', width / 2 - 21.5, height - (heightOffset + 0.7), 50, 50);
+  //   // // takePicBtn.transform = CGAffineTransformMakeScale(1.5, 1.5);
+  //   // let widthRule = this._cameraBtn.widthAnchor.constraintEqualToConstant(20);
+  //   // widthRule.active = true;
+  //   // let heightRule = this._cameraBtn.heightAnchor.constraintEqualToConstant(20);
+  //   // heightRule.active = true;
+  //   // let centerRule = this._cameraBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor);
+  //   // centerRule.active = true;
+  //   // // let bottomRule = this._cameraBtn.bottomAnchor.constraintEqualToAnchor(this.view.bottomAnchor);
+  //   // let bottomRule = this._cameraBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.safeAreaLayoutGuide.bottomAnchor, -40);
+  //   // bottomRule.active = true;
+  //   // this.view.addSubview(this._cameraBtn);
+  //   // console.log('added main button to view ', this._cameraBtn);
+  //   // console.log('frame: ', width / 2 - 21.5, height - (heightOffset + 0.7), 50, 50);
 
-    // }
-    CLog('addButtons done');
-  }
+  //   // }
+  //   CLog('addButtons done');
+  // }
 
   private _flashBtnHandler() {
-    CLog('adding _flashBtn ...');
+    console.log('adding _flashBtn ...');
     if (this._owner.get().showFlashIcon) {
       if (this._flashBtn) this._flashBtn.removeFromSuperview();
       if (this.flashEnabled) {
@@ -772,8 +794,126 @@ export class MySwifty extends SwiftyCamViewController {
       }
       this._flashBtn.transform = CGAffineTransformMakeScale(0.75, 0.75);
       this.view.addSubview(this._flashBtn);
-      console.log('frame: ', 20, 20, 50, 50);
     }
+  }
+
+  /**
+   * Orientation utils
+   */
+  private allowRotation = true;
+  private _currentOrientationMask: UIInterfaceOrientationMask;
+
+  /**
+   * Sets up the iOS Controller configuration
+   */
+  private setupiOSController() {
+    const curFrame = Frame.topmost();
+    if (!curFrame) {
+      setTimeout(this.setupiOSController, 100);
+      return;
+    }
+    try {
+      let viewController = Application.ios.rootController;
+
+      while (viewController && viewController.presentedViewController) {
+        viewController = viewController.presentedViewController;
+      }
+      this.allowRotation = true;
+      const proto = this.findRootPrototype(viewController, 'supportedInterfaceOrientations');
+
+      if (proto === null) {
+        console.warn('Unable to find root controller prototype');
+        return;
+      }
+
+      this.getOrientationMaskForCurrent();
+      let that = this;
+      Object.defineProperty(proto, 'supportedInterfaceOrientations', {
+        get: function () {
+          const result = that.allowRotation ? UIInterfaceOrientationMask.AllButUpsideDown : that._currentOrientationMask;
+          // console.log('get supported orientations', result);
+          // console.log('allowRotation', that.allowRotation);
+          return result;
+        },
+        enumerable: true,
+        configurable: true,
+      });
+    } catch (err) {
+      console.warn('Unable to setup Rotation', err);
+    }
+  }
+
+  /**
+   * Searchs for a prototype in the prototype chain
+   * @param source - Source element
+   * @param name - the name of the element
+   * @returns {*}
+   */
+  private findRootPrototype(source, name) {
+    let proto = source;
+    do {
+      proto = Object.getPrototypeOf(proto);
+    } while (proto !== null && !proto.hasOwnProperty(name));
+    return proto;
+  }
+
+  private getOrientationMaskForCurrent(): void {
+    this._currentOrientationMask = new DefaultMap({
+      [UIDeviceOrientation.LandscapeLeft]: () => UIInterfaceOrientationMask.LandscapeRight,
+      [UIDeviceOrientation.LandscapeRight]: () => UIInterfaceOrientationMask.LandscapeLeft,
+      [UIDeviceOrientation.PortraitUpsideDown]: () => UIInterfaceOrientationMask.PortraitUpsideDown,
+      [UIDeviceOrientation.Portrait]: () => UIInterfaceOrientationMask.Portrait,
+      defaultValue: () => this._currentOrientationMask || UIInterfaceOrientationMask.Portrait,
+    }).get(UIDevice.currentDevice.orientation as any)();
+    // console.log('current', UIDevice.currentDevice.orientation, this._currentOrientationMask);
+  }
+
+  /**
+   * @function enableRotation
+   */
+  private enableRotation(): void {
+    // console.log('enableRotation');
+    if (!this._owner.get().shouldLockRotation) return;
+    this.allowRotation = true;
+    if (+iOSNativeHelper.MajorVersion >= 16) {
+      this.updateiOS16Orientations();
+    } else {
+      UINavigationController.attemptRotationToDeviceOrientation();
+    }
+  }
+
+  /**
+   * @function disableRotation
+   */
+  private disableRotation(): void {
+    if (!this._owner.get().shouldLockRotation) return;
+    // console.log('disableRotation');
+    if (!this.allowRotation) {
+      // console.log('allowRotation is already false');
+      return;
+    }
+
+    this.getOrientationMaskForCurrent();
+    this.allowRotation = false;
+    if (+iOSNativeHelper.MajorVersion >= 16) {
+      this.updateiOS16Orientations();
+    }
+  }
+
+  /**
+   * @function updateiOS16Orientations
+   * Function to inform iOS16+ of new orientation to apply
+   */
+  private updateiOS16Orientations(): void {
+    let viewController: UIViewController = Application.ios.rootController;
+    while (viewController && viewController.presentedViewController) {
+      viewController = viewController.presentedViewController;
+    }
+    viewController.setNeedsUpdateOfSupportedInterfaceOrientations();
+    let window: UIWindow = Application.ios.window;
+    let windowScene: UIWindowScene = window.windowScene;
+    let prefs = new UIWindowSceneGeometryPreferencesIOS({ interfaceOrientations: this._currentOrientationMask });
+    windowScene.requestGeometryUpdateWithPreferencesErrorHandler(prefs, null);
   }
 }
 
@@ -789,15 +929,17 @@ export class CameraPlus extends CameraPlusBase {
   constructor() {
     super();
     this._onLayoutChangeListener = this._onLayoutChangeFn.bind(this);
-    CLog('CameraPlus constructor');
+    // CLog('CameraPlus constructor');
     this._swifty = MySwifty.initWithOwner(new WeakRef(this), CameraPlus.defaultCamera);
     // this._swifty.shouldPrompToAppSettings = false;
 
     // experimenting with static flag (this is usually explicitly false)
     // enable device orientation
+    //TODO: this is not currently working
     this._swifty.shouldUseDeviceOrientation = CameraPlus.useDeviceOrientation;
+    //TODO: see if this is useful
     this._detectDevice();
-    console.log('done with constructor', this._swifty);
+    // console.log('done with constructor', this._swifty);
   }
 
   private isVideoEnabled() {

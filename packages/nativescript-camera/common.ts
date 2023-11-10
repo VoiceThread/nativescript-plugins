@@ -146,6 +146,12 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
   public confirmVideo: boolean = false;
 
   /**
+   * If true locks rotation while recording video
+   */
+  @GetSetProperty()
+  public shouldLockRotation: boolean = true;
+
+  /**
    * If true the default take picture event will save to device gallery. Default is true.
    */
   @GetSetProperty()

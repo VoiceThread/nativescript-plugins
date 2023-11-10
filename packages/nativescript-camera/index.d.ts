@@ -128,6 +128,11 @@ export declare class CameraPlus extends ContentView {
   confirmVideo: boolean;
 
   /**
+   * If true locks rotation while recording video
+   */
+  shouldLockRotation: boolean;
+
+  /**
    * If true, the video/image will save to the device Gallery/Library. Default is true.
    */
   saveToGallery: boolean;
