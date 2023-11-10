@@ -263,6 +263,10 @@ import UIKit
 
   @objc public var videoDevice: AVCaptureDevice?
 
+  /// Audio Device variable
+
+  @objc public var audioDevice: AVCaptureDevice?
+
   /// PreviewView for the capture session
 
   @objc public var previewLayer: PreviewView!
@@ -976,8 +980,14 @@ import UIKit
         self.session.removeInput(videoInput)
       }
 
+      if let audioInput = self.audioInput {
+        self.session.removeInput(audioInput)
+      }
+
       self.addVideoInput()
       self.configureSessionQuality()
+      self.addAudioInput()
+      //if we have a different microphone on new camera, use that
 
       // Fix initial frame having incorrect orientation
       // let connection = self.videoOutput?.connection(with: .video)
@@ -2221,11 +2231,25 @@ extension SwiftyCamViewController {
   }
 
   private func addVideoInput() {
-    self.videoDevice =
-      AVCaptureDevice.DiscoverySession(
-        deviceTypes: [captureDeviceType], mediaType: AVMediaType.video, position: cameraLocation
-      ).devices.first
 
+    // self.videoDevice =
+    //   AVCaptureDevice.DiscoverySession(
+    //     deviceTypes: [captureDeviceType], mediaType: AVMediaType.video, position: cameraLocation
+    //   ).devices.first
+    // self.videoDevice = AVCaptureDevice.default(
+    //   .builtInWideAngleCamera, for: AVMediaType.video, position: cameraLocation)
+
+    if #available(iOS 10.0, *) {
+      //this adds front or back cameras if available
+      self.videoDevice = AVCaptureDevice.default(
+        .builtInWideAngleCamera, for: .video, position: cameraLocation)
+    } else {
+      // Fallback on earlier versions
+      self.videoDevice = AVCaptureDevice.default(for: .video)
+    }
+
+    // console.log("found videoDevice ", self.videoDevice)
+    // self.videoDevice = curvideoDevice
     self.removeSystemObservers()
     if #available(iOS 11.1, *) {
       self.addSystemObervers()
@@ -2306,6 +2330,7 @@ extension SwiftyCamViewController {
   }
 
   private func addAudioInput() {
+
     guard let audioDevice = AVCaptureDevice.default(for: AVMediaType.audio) else {
       NSLog("[ASCamera]: Could not add audio device input to the session")
       return
@@ -2321,6 +2346,37 @@ extension SwiftyCamViewController {
     } catch {
       NSLog("[ASCamera]: Could not create audio device input: \(error)")
     }
+    //AVCaptureDevice.default(.builtInMicrophone, for: AVMediaType.audio, position: .unspecified)
+    // do {
+
+    //   if #available(iOS 10.0, *) {
+    //     self.audioDevice = AVCaptureDevice.default(
+    //       .builtInMicrophone,
+    //       for: .audio,
+    //       position: cameraLocation)
+    //   } else {
+    //     // Fallback on earlier versions
+    //     self.audioDevice = AVCaptureDevice.default(for: .audio)
+    //   }
+    //   guard let chosenDevice: AVCaptureDevice = self.audioDevice else {
+    //     NSLog("[ASCamera]: Could not add audio device input to the session")
+    //     return
+    //   }
+    //   // console.log("found audioDevice ", audioDevice)
+    //   // .defaultDevice(withMediaType: AVMediaTypeAudio)
+    //   let audioDeviceInput: AVCaptureDeviceInput = try AVCaptureDeviceInput(device: chosenDevice)
+
+    //   if session.canAddInput(audioDeviceInput) {
+    //     // session.addInput(audioDeviceInput)
+    //     self.session.addInput(audioDeviceInput)
+    //     self.audioInput = audioDeviceInput
+    //     // console.log("added audio input ", audioDeviceInput)
+    //   } else {
+    //     NSLog("[SwiftyCam]: Could not add audio device input to the session")
+    //   }
+    // } catch {
+    //   NSLog("[SwiftyCam]: Could not create audio device input: \(error)")
+    // }
   }
 
   private func addAudioOutput() {

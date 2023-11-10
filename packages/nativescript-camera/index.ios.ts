@@ -558,7 +558,7 @@ export class MySwifty extends SwiftyCamViewController {
     this._flashEnabled = !this._flashEnabled;
     this.flashEnabled = this._flashEnabled; // super class behavior
     CLog('CameraPlus flash enabled:', this._flashEnabled);
-    this._flashBtnHandler();
+    if (this._owner.get().showFlashIcon) this._flashBtnHandler();
   }
 
   // public thisImageHasBeenSavedInPhotoAlbumWithErrorUsingContextInfo(image, error, context) {
