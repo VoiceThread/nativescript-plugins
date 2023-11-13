@@ -81,7 +81,10 @@ declare var SwiftyCamButtonDelegate: {
   prototype: SwiftyCamButtonDelegate;
 };
 
-declare class SwiftyCamViewController extends UIViewController implements AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, UIGestureRecognizerDelegate {
+declare class SwiftyCamViewController
+  extends UIViewController
+  implements AVCaptureAudioDataOutputSampleBufferDelegate, AVCaptureVideoDataOutputSampleBufferDelegate, SwiftyCamButtonDelegate, UIGestureRecognizerDelegate
+{
   static alloc(): SwiftyCamViewController; // inherited from NSObject
 
   static deviceWithMediaTypePreferringPosition(mediaType: string, position: AVCaptureDevicePosition): AVCaptureDevice;
@@ -97,6 +100,8 @@ declare class SwiftyCamViewController extends UIViewController implements AVCapt
   assetWriterAudioInput: AVAssetWriterInput;
 
   assetWriterVideoInput: AVAssetWriterInput;
+
+  audioDevice: AVCaptureDevice;
 
   audioInput: AVCaptureDeviceInput;
 
@@ -152,9 +157,9 @@ declare class SwiftyCamViewController extends UIViewController implements AVCapt
 
   setupResult: SessionSetupResult;
 
-  shouldUseDeviceOrientation: boolean;
-
   shouldLockRotation: boolean;
+
+  shouldUseDeviceOrientation: boolean;
 
   swipeToZoom: boolean;
 
@@ -185,6 +190,12 @@ declare class SwiftyCamViewController extends UIViewController implements AVCapt
   readonly superclass: typeof NSObject; // inherited from NSObjectProtocol
 
   readonly; // inherited from NSObjectProtocol
+
+  buttonDidBeginLongPress(): void;
+
+  buttonDidEndLongPress(): void;
+
+  buttonWasTapped(): void;
 
   cancelVideoRecording(): void;
 
@@ -252,6 +263,8 @@ declare class SwiftyCamViewController extends UIViewController implements AVCapt
 
   isMemberOfClass(aClass: typeof NSObject): boolean;
 
+  longPressDidReachMaximumDuration(): void;
+
   performSelector(aSelector: string): any;
 
   performSelectorWithObject(aSelector: string, object: any): any;
@@ -269,6 +282,8 @@ declare class SwiftyCamViewController extends UIViewController implements AVCapt
   self(): this;
 
   setBackgroundAudioPreference(): void;
+
+  setMaxiumVideoDuration(): number;
 
   setPreviousBackgroundAudioPreference(): void;
 

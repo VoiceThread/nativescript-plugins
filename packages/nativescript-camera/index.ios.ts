@@ -132,7 +132,9 @@ export class MySwifty extends SwiftyCamViewController {
   private _flashBtn: UIButton;
   private _switchBtn: UIButton;
   // private _cameraBtn: ASCameraButton;
-  private _cameraBtn: UIButton;
+  // private _cameraBtn: UIButton;
+  private _cameraBtn: SwiftyCamButton;
+  private _maxDuration: number = 3600;
   private _blurView: UIView;
   public _swiftyDelegate: SwiftyDelegate;
   // private _pickerDelegate: any;
@@ -273,34 +275,37 @@ export class MySwifty extends SwiftyCamViewController {
     // this._cameraBtn.changeToSquare();
     if (this._owner.get().showCaptureIcon) {
       CLog('adding main capture button...');
+      /* //Basic version of button
       if (this._cameraBtn) this._cameraBtn.removeFromSuperview();
-      // const heightOffset = this._owner.get().isIPhoneX ? 400 : 310;
-      // const picOutline = createButton(this, CGRectMake(width / 2 - 20, height - heightOffset, 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('picOutline'));
-      // picOutline.transform = CGAffineTransformMakeScale(1.5, 1.5);
-      // const picOutline = createButton(this,null, null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('picOutline'));
-      // picOutline.translatesAutoresizingMaskIntoConstraints = false;
-
-      // this.view.addSubview(picOutline);
-      // console.log('created outline ', picOutline);
-      // // console.log('frame: ', width / 2 - 20, height - heightOffset, 50, 50);
-
-      // const takePicBtn = createButton(this, CGRectMake(width / 2 - 21.5, height - (heightOffset + 0.7), 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('takePic'));
       this._cameraBtn = createButton(this, null, null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('takePic'));
       this._cameraBtn.translatesAutoresizingMaskIntoConstraints = false;
-      // takePicBtn.transform = CGAffineTransformMakeScale(1.5, 1.5);
       let widthRule = this._cameraBtn.widthAnchor.constraintEqualToConstant(40);
       widthRule.active = true;
       let heightRule = this._cameraBtn.heightAnchor.constraintEqualToConstant(40);
       heightRule.active = true;
       this.view.addSubview(this._cameraBtn);
-      // this.view.bringSubviewToFront(this._cameraBtn);
       let centerRule = this._cameraBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor);
       centerRule.active = true;
-      // let bottomRule = this._cameraBtn.bottomAnchor.constraintEqualToAnchor(this.view.bottomAnchor);
+      let bottomRule = this._cameraBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.safeAreaLayoutGuide.bottomAnchor, -40);
+      bottomRule.active = true;
+      */
+      //Version with UI animations and iOS gesture handler
+      if (this._cameraBtn) this._cameraBtn.removeFromSuperview();
+      this._cameraBtn = SwiftyCamButton.alloc().init();
+      this._cameraBtn.delegate = this;
+      this._cameraBtn.translatesAutoresizingMaskIntoConstraints = false;
+      let heightRule = this._cameraBtn.heightAnchor.constraintEqualToConstant(40);
+      heightRule.active = true;
+      let widthRule = this._cameraBtn.widthAnchor.constraintEqualToConstant(40);
+      widthRule.active = true;
+      this.view.addSubview(this._cameraBtn);
+      this.view.bringSubviewToFront(this._cameraBtn);
+      let centerRule = this._cameraBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor);
+      centerRule.active = true;
       let bottomRule = this._cameraBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.safeAreaLayoutGuide.bottomAnchor, -40);
       bottomRule.active = true;
 
-      console.log('added main button to view ', this._cameraBtn);
+      CLog('added main button to view ', this._cameraBtn);
     }
 
     if (this._owner.get().showToggleIcon) {
@@ -822,6 +827,39 @@ export class MySwifty extends SwiftyCamViewController {
     // }
   }
 
+  /**
+   * SwiftyCamButtonDelegate handlers
+   */
+
+  public buttonWasTapped() {
+    CLog('SwiftyCamButtonDelegate called buttonWasTapped()');
+    this.snapPicture();
+  }
+
+  /// Called When UILongPressGestureRecognizer enters UIGestureRecognizerState.began
+
+  public buttonDidBeginLongPress() {
+    CLog('SwiftyCamButtonDelegate called buttonDidBeginLongPress()');
+    this.startVideoRecording();
+  }
+
+  /// Called When UILongPressGestureRecognizer enters UIGestureRecognizerState.end
+
+  public buttonDidEndLongPress() {
+    CLog('SwiftyCamButtonDelegate called buttonDidEndLongPress()');
+    this.stopVideoRecording();
+  }
+
+  /// Called when the maximum duration is reached
+  public longPressDidReachMaximumDuration() {
+    CLog('SwiftyCamButtonDelegate called longPressDidReachMaximumDuration()');
+    this.stopVideoRecording();
+  }
+
+  /// Sets the maximum duration of the video recording
+  public setMaxiumVideoDuration() {
+    return this._maxDuration; //1 hour
+  }
   /**
    * Orientation utils
    */

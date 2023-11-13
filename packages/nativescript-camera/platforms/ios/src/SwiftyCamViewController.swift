@@ -569,7 +569,9 @@ import UIKit
      */
 
   @objc public func takePhoto() {
+    NSLog("SCVC takePhoto()")
     guard let device = videoDevice else {
+      NSLog("!!!!   NO VideoDevice to capture from!!!!!")
       return
     }
 
@@ -1043,21 +1045,24 @@ import UIKit
     self.executeSync { [weak self] in
       guard let self = self else { return }
       self.session.beginConfiguration()
-      print("configureSession() removing inputs")
+      NSLog("configureSession() removing inputs")
       for input in self.session.inputs {
         self.session.removeInput(input)
       }
 
       self.addVideoInput()
-      print("configureSession() adding video input")
+      NSLog("configureSession() adding video input")
       self.addVideoOutput()
-      print("configureSession() adding video output")
+      NSLog("configureSession() adding video output")
       self.addAudioInput()
-      print("configureSession() adding audio input")
+      NSLog("configureSession() adding audio input")
       self.addAudioOutput()
-      print("configureSession() adding audio output")
+      NSLog("configureSession() adding audio output")
       self.configureSessionQuality()
-      print("configureSession() configured quality")
+      NSLog("configureSession() configured quality")
+
+      configurePhotoOutput()
+      NSLog("configureSession() configured photo output")
       self.session.commitConfiguration()
       NSLog("viewcontroller configureSession() done")
     }
@@ -1317,7 +1322,7 @@ import UIKit
   }
 
   @objc public func capturePhotoAsyncronously(completionHandler: @escaping (Bool) -> Void) {
-
+    NSLog("capturePhotoAsyncronously()")
     if let videoConnection: AVCaptureConnection = photoFileOutput?.connection(
       with: AVMediaType.video)
     {
@@ -1330,6 +1335,7 @@ import UIKit
             let image = self.processPhoto(imageData!)
 
             // Call delegate and return new image
+            NSLog("calling self.cameraDelegate?.swiftyCam(self, didTake: image)")
             DispatchQueue.main.async {
               self.cameraDelegate?.swiftyCam(self, didTake: image)
             }
@@ -1339,6 +1345,7 @@ import UIKit
           }
         })
     } else {
+      NSLog("!!!! Error trying to get photoFileOuput connection")
       completionHandler(false)
     }
   }
@@ -1494,41 +1501,41 @@ import UIKit
   }
 }
 
-// @objc extension SwiftyCamViewController: SwiftyCamButtonDelegate {
-//   /// Sets the maximum duration of the SwiftyCamButton
+@objc extension SwiftyCamViewController: SwiftyCamButtonDelegate {
+  /// Sets the maximum duration of the SwiftyCamButton
 
-//   public func setMaxiumVideoDuration() -> Double {
-//     return maximumVideoDuration
-//   }
+  public func setMaxiumVideoDuration() -> Double {
+    return maximumVideoDuration
+  }
 
-//   /// Set UITapGesture to take photo
+  /// Set UITapGesture to take photo
 
-//   public func buttonWasTapped() {
-//     NSLog("cambutton buttonWasTapped")
-//     takePhoto()
-//   }
+  public func buttonWasTapped() {
+    NSLog("cambutton buttonWasTapped")
+    // takePhoto()
+  }
 
-//   /// Set UILongPressGesture start to begin video
+  /// Set UILongPressGesture start to begin video
 
-//   public func buttonDidBeginLongPress() {
-//     NSLog("cambutton buttonDidBeginLongPress")
-//     startVideoRecording()
-//   }
+  public func buttonDidBeginLongPress() {
+    NSLog("cambutton buttonDidBeginLongPress")
+    // startVideoRecording()
+  }
 
-//   /// Set UILongPressGesture begin to begin end video
+  /// Set UILongPressGesture begin to begin end video
 
-//   public func buttonDidEndLongPress() {
-//     NSLog("cambutton buttonDidEndLongPress")
-//     stopVideoRecording()
-//   }
+  public func buttonDidEndLongPress() {
+    NSLog("cambutton buttonDidEndLongPress")
+    // stopVideoRecording()
+  }
 
-//   /// Called if maximum duration is reached
+  /// Called if maximum duration is reached
 
-//   public func longPressDidReachMaximumDuration() {
-//     NSLog("cambutton longPressDidReachMaximumDuration")
-//     stopVideoRecording()
-//   }
-// }
+  public func longPressDidReachMaximumDuration() {
+    NSLog("cambutton longPressDidReachMaximumDuration")
+    // stopVideoRecording()
+  }
+}
 
 // MARK: AVCaptureFileOutputRecordingDelegate
 

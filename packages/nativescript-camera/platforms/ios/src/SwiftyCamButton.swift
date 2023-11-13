@@ -56,10 +56,25 @@ import UIKit
 
   fileprivate var timer: Timer?
 
+  private var circleBorder: CALayer!
+  private var innerCircle: UIView!
+
+  var bgPath: UIBezierPath!
+  var shapeLayer: CAShapeLayer!
+  var progressLayer: CAShapeLayer!
+  var progress = 0.0 {
+    willSet {
+      DispatchQueue.main.async { [weak self] in
+        self?.progressLayer.strokeEnd = CGFloat(newValue)
+      }
+    }
+  }
+
   /// Initialization Declaration
 
   @objc override public init(frame: CGRect) {
     super.init(frame: frame)
+    drawButton()
     createGestureRecognizers()
   }
 
@@ -67,9 +82,14 @@ import UIKit
 
   required public init?(coder aDecoder: NSCoder) {
     super.init(coder: aDecoder)
+    drawButton()
     createGestureRecognizers()
   }
 
+  // override open func layoutSubviews() {
+  //   super.layoutSubviews()
+  //   drawButton()
+  // }
   /// UITapGestureRecognizer Function
 
   @objc fileprivate func Tap() {
@@ -82,8 +102,10 @@ import UIKit
   @objc fileprivate func LongPress(_ sender: UILongPressGestureRecognizer!) {
     if sender.state == UIGestureRecognizer.State.ended {
       invalidateTimer()
+      changeToCircle()
       self.delegate?.buttonDidEndLongPress()
     } else if sender.state == UIGestureRecognizer.State.began {
+      changeToSquare()
       self.delegate?.buttonDidBeginLongPress()
       startTimer()
     }
@@ -125,5 +147,103 @@ import UIKit
       target: self, action: #selector(SwiftyCamButton.LongPress))
     self.addGestureRecognizer(tapGesture)
     self.addGestureRecognizer(longGesture)
+  }
+
+  //UI Animations
+  private func drawButton() {
+    // self.backgroundColor = UIColor.clear
+
+    // circleBorder = CALayer()
+    // circleBorder.backgroundColor = UIColor.clear.cgColor
+    // circleBorder.borderWidth = 6.0
+    // circleBorder.borderColor = UIColor.white.cgColor
+    // circleBorder.bounds = self.bounds
+    // circleBorder.position = CGPoint(x: self.bounds.midX, y: self.bounds.midY)
+    // circleBorder.cornerRadius = self.frame.size.width / 2
+    // layer.insertSublayer(circleBorder, at: 0)
+    self.backgroundColor = UIColor.white.withAlphaComponent(0.8)
+    self.layer.cornerRadius = self.bounds.width / 2
+    self.transform = CGAffineTransform.identity
+    self.layer.masksToBounds = true
+
+    // let xCord = self.bounds.width / 2
+    // let yCord = self.bounds.height / 2
+    // let center = CGPoint(x: xCord, y: yCord)
+    // bgPath = UIBezierPath(
+    //   arcCenter: center, radius: xCord + 15, startAngle: -.pi / 2, endAngle: .pi * 3 / 2,
+    //   clockwise: true)
+    // bgPath.close()
+
+    // shapeLayer = CAShapeLayer()
+    // shapeLayer.path = bgPath.cgPath
+    // shapeLayer.lineWidth = 8
+    // shapeLayer.fillColor = nil
+    // shapeLayer.strokeColor = UIColor.lightGray.withAlphaComponent(0.8).cgColor
+    // self.layer.addSublayer(shapeLayer)
+
+    // progressLayer = CAShapeLayer()
+    // progressLayer.path = bgPath.cgPath
+    // progressLayer.lineWidth = 8
+    // progressLayer.lineCap = CAShapeLayerLineCap.round
+    // progressLayer.fillColor = nil
+    // progressLayer.strokeColor = UIColor.white.cgColor
+    // progressLayer.strokeEnd = 0.0
+    // self.layer.addSublayer(progressLayer)
+
+    NSLog("done drawButton()")
+  }
+
+  /*public func growButton() {
+    innerCircle = UIView(frame: CGRect(x: 0, y: 0, width: 1, height: 1))
+    innerCircle.center = CGPoint(x: self.bounds.midX, y: self.bounds.midY)
+    innerCircle.backgroundColor = UIColor.red
+    innerCircle.layer.cornerRadius = innerCircle.frame.size.width / 2
+    innerCircle.clipsToBounds = true
+    self.addSubview(innerCircle)
+
+    UIView.animate(
+      withDuration: 0.6, delay: 0.0, options: .curveEaseOut,
+      animations: {
+        self.innerCircle.transform = CGAffineTransform(scaleX: 62.4, y: 62.4)
+        self.circleBorder.setAffineTransform(CGAffineTransform(scaleX: 1.352, y: 1.352))
+        self.circleBorder.borderWidth = (6 / 1.352)
+
+      }, completion: nil)
+  }
+
+  public func shrinkButton() {
+    UIView.animate(
+      withDuration: 0.3, delay: 0.0, options: .curveEaseOut,
+      animations: {
+        self.innerCircle.transform = CGAffineTransform(scaleX: 1.0, y: 1.0)
+        self.circleBorder.setAffineTransform(CGAffineTransform(scaleX: 1.0, y: 1.0))
+        self.circleBorder.borderWidth = 6.0
+      },
+      completion: { (success) in
+        self.innerCircle.removeFromSuperview()
+        self.innerCircle = nil
+      })
+  }*/
+  public func changeToSquare() {
+    let bounds = self.bounds
+    UIView.animate(
+      withDuration: 0.2, delay: 0.0, options: .curveLinear,
+      animations: { [weak self] in
+        self?.transform = CGAffineTransform(scaleX: 1.25, y: 1.25)
+        self?.layer.cornerRadius = bounds.width / 4
+        self?.backgroundColor = UIColor.red.withAlphaComponent(0.8)
+      }, completion: nil)
+  }
+
+  public func changeToCircle() {
+    let bounds = self.bounds
+    UIView.animate(
+      withDuration: 0.2, delay: 0.0, options: .curveLinear,
+      animations: { [weak self] in
+        self?.transform = CGAffineTransform.identity
+        self?.layer.cornerRadius = bounds.width / 2
+        self?.backgroundColor = UIColor.white.withAlphaComponent(0.8)
+        // self?.bgPath.apply(CGAffineTransform.identity)
+      }, completion: nil)
   }
 }
