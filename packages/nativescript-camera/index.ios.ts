@@ -123,6 +123,7 @@ export class MySwifty extends SwiftyCamViewController {
   private _owner: WeakRef<CameraPlus>;
   private _snapPicOptions: ICameraOptions;
   private _enableVideo: boolean;
+  private _disablePhoto: boolean;
   private _videoOptions: IVideoOptions;
   private _videoPath: string;
   private _isRecording: boolean;
@@ -159,7 +160,13 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   public set enableVideo(value: boolean) {
+    console.log('enableVideo set to ', value);
     this._enableVideo = value;
+  }
+
+  public set disablePhoto(value: boolean) {
+    console.log('disablePhoto set to ', value);
+    this._disablePhoto = value;
   }
 
   // public set pickerDelegate(value: any) {
@@ -832,28 +839,44 @@ export class MySwifty extends SwiftyCamViewController {
    */
 
   public buttonWasTapped() {
-    CLog('SwiftyCamButtonDelegate called buttonWasTapped()');
-    this.snapPicture();
+    CLog('SwiftyCamButtonDelegate called buttonWasTapped()', this._enableVideo, this._disablePhoto);
+    if (this._enableVideo && this._disablePhoto) {
+      if (this.isRecording) {
+        console.log('Recording in progress, stopping recording');
+        this.stopVideoRecording();
+      } else {
+        console.log('Video enabled, starting recording');
+        this.startVideoRecording();
+      }
+    } else if (!this._disablePhoto) {
+      console.log('Photo enabled, taking pic');
+      this.snapPicture();
+    } else {
+      console.warn('neither photo or video enabled, ignoring tap');
+    }
   }
 
   /// Called When UILongPressGestureRecognizer enters UIGestureRecognizerState.began
 
   public buttonDidBeginLongPress() {
     CLog('SwiftyCamButtonDelegate called buttonDidBeginLongPress()');
-    this.startVideoRecording();
+    if (this._enableVideo) this.startVideoRecording();
+    else console.warn('video not enabled, ignoring long press start');
+    //TODO: add rapid photo taking support every 200ms or so while button pressed
   }
 
   /// Called When UILongPressGestureRecognizer enters UIGestureRecognizerState.end
-
   public buttonDidEndLongPress() {
     CLog('SwiftyCamButtonDelegate called buttonDidEndLongPress()');
-    this.stopVideoRecording();
+    if (this._enableVideo) this.stopVideoRecording();
+    else console.warn('video not enabled, ignoring long press end');
   }
 
   /// Called when the maximum duration is reached
   public longPressDidReachMaximumDuration() {
     CLog('SwiftyCamButtonDelegate called longPressDidReachMaximumDuration()');
-    this.stopVideoRecording();
+    if (this._enableVideo) this.stopVideoRecording();
+    else console.warn('video not enabled, ignoring long press max duration');
   }
 
   /// Sets the maximum duration of the video recording
@@ -989,6 +1012,9 @@ export class CameraPlus extends CameraPlusBase {
   @GetSetProperty()
   public enableVideo: boolean;
 
+  @GetSetProperty()
+  public disablePhoto: boolean;
+
   constructor() {
     super();
     this._onLayoutChangeListener = this._onLayoutChangeFn.bind(this);
@@ -1009,11 +1035,17 @@ export class CameraPlus extends CameraPlusBase {
     return this.enableVideo === true || CameraPlus.enableVideo;
   }
 
+  private isPhotoDisabled() {
+    return this.disablePhoto === true || CameraPlus.disablePhoto;
+  }
+
   createNativeView() {
     CLog('CameraPlus createNativeView');
     // this._swifty.videoGravity = SwiftyCamVideoGravity.ResizeAspectFill;
     this._swifty.enableVideo = this.isVideoEnabled();
     CLog('video enabled:', this.isVideoEnabled());
+    this._swifty.disablePhoto = this.isPhotoDisabled();
+    CLog('photo disabled:', this.isPhotoDisabled());
     // disable audio if no video support
     this._swifty.disableAudio = !this.isVideoEnabled();
     CLog('default camera:', CameraPlus.defaultCamera);
@@ -1132,9 +1164,9 @@ export class CameraPlus extends CameraPlusBase {
   onLoaded() {
     super.onLoaded();
     console.log('CameraPlus calling this._swifty.viewDidAppear(true)');
-
+    //Note: do this properly, hackalicious
     this._swifty.viewDidAppear(true);
-    console.log('CameraPlus Adding buttons', this._swifty);
+    // console.log('CameraPlus Adding buttons', this._swifty);
     // this._swifty.addButtons();
     // this._swifty.addButtons();
   }

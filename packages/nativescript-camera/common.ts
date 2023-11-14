@@ -34,6 +34,8 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
    */
   public static enableVideo: boolean = false;
 
+  public static disablePhoto: boolean = false;
+
   /**
    * Default camera: must be set early before constructor to default the camera correctly on launch (default to rear)
    */
@@ -120,6 +122,19 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
   getGetSupportedRatios(): string[] {
     return [];
   }
+
+  /**
+   * Video Support (off by default)
+   */
+  // @GetSetProperty()
+  // public enableVideo: boolean = false;
+
+  /**
+   * Disable Photo Support (off by default)
+   * If you want to record video, and use tap to start and stop recording, set this to true
+   */
+  // @GetSetProperty()
+  // public disablePhoto: boolean = false;
 
   /**
    * If true the default take picture event will present a confirmation dialog. Default is true.

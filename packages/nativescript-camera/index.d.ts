@@ -13,6 +13,12 @@ export declare class CameraPlus extends ContentView {
   public static enableVideo: boolean;
 
   /**
+   * Disable Photo Support (off by default)
+   * If you want to record video, and use tap to start and stop recording, set this to true
+   */
+  public static disablePhoto: boolean;
+
+  /**
    * Default camera: must be set early before constructor to default the camera correctly on launch (default to 'rear')
    */
   public static defaultCamera: 'front' | 'rear';
@@ -101,6 +107,17 @@ export declare class CameraPlus extends ContentView {
    * If true the default take picture event will present a confirmation dialog. Default is true.
    */
   confirmPhotos: boolean;
+
+  /**
+   * Video Support (off by default)
+   */
+  // enableVideo: boolean;
+
+  /**
+   * Disable Photo Support (off by default)
+   * If you want to record video, and use tap to start and stop recording, set this to true
+   */
+  // disablePhoto: boolean;
 
   // /**
   //  * The gallery/library selection mode. 'single' allows one image to be selected. 'multiple' allows multiple images. Default is 'multiple'
