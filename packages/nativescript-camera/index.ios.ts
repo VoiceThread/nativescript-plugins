@@ -560,9 +560,9 @@ export class MySwifty extends SwiftyCamViewController {
 
   public switchCam() {
     console.log('index.ios switchCam()');
-    // CLog('CameraPlus switchCam, calling native lib switchCamera()');
+    CLog('CameraPlus switchCam, calling native lib switchCamera()');
     // this._swiftyDelegate.switchCamera();
-    //  this.switchCamera();
+    this.switchCamera();
   }
 
   public toggleFlash() {
@@ -1183,18 +1183,18 @@ export class CameraPlus extends CameraPlusBase {
   /**
    * Toggle Camera front/back
    */
-  // public toggleCamera() {
-  //   console.log('CameraPlus toggleCamera()');
-  //   this._swifty.switchCam();
-  // }
+  public toggleCamera() {
+    console.log('CameraPlus toggleCamera()');
+    this._swifty.switchCam();
+  }
 
   /**
    * Toggle flash mode
    */
-  // public toggleFlash() {
-  //   console.log('CameraPlus toggleFlash()');
-  //   this._swifty.toggleFlash();
-  // }
+  public toggleFlash() {
+    console.log('CameraPlus toggleFlash()');
+    this._swifty.toggleFlash();
+  }
 
   /**
    * Return the current flash mode (either 'on' or 'off' for iOS)
