@@ -22,40 +22,31 @@ import UIKit
 @objc public protocol SwiftyCamButtonDelegate {
 
   /// Called when UITapGestureRecognizer begins
-
   func buttonWasTapped()
 
   /// Called When UILongPressGestureRecognizer enters UIGestureRecognizerState.began
-
   func buttonDidBeginLongPress()
 
   /// Called When UILongPressGestureRecognizer enters UIGestureRecognizerState.end
-
   func buttonDidEndLongPress()
 
   /// Called when the maximum duration is reached
-
   func longPressDidReachMaximumDuration()
 
   /// Sets the maximum duration of the video recording
-
   func setMaxiumVideoDuration() -> Double
 }
 
 // MARK: Public View Declaration
 
-/// UIButton Subclass for Capturing Photo and Video with SwiftyCamViewController
-
+/*
+  UIButton Subclass for Capturing Photo and Video with SwiftyCamViewController
+  */
 @objc open class SwiftyCamButton: UIButton {
-
   /// Delegate variable
-
   @objc public var delegate: SwiftyCamButtonDelegate?
-
   /// Maximum duration variable
-
   fileprivate var timer: Timer?
-
   private var circleBorder: CALayer!
   private var innerCircle: UIView!
 
@@ -70,35 +61,35 @@ import UIKit
     }
   }
 
-  /// Initialization Declaration
-
+  /*
+  Initialization Declaration
+  */
   @objc override public init(frame: CGRect) {
     super.init(frame: frame)
     drawButton()
     createGestureRecognizers()
   }
 
-  /// Initialization Declaration
-
+  /*
+  Initialization Declaration
+  */
   required public init?(coder aDecoder: NSCoder) {
     super.init(coder: aDecoder)
     drawButton()
     createGestureRecognizers()
   }
 
-  // override open func layoutSubviews() {
-  //   super.layoutSubviews()
-  //   drawButton()
-  // }
-  /// UITapGestureRecognizer Function
-
+  /*
+   UITapGestureRecognizer Function
+   */
   @objc fileprivate func Tap() {
     NSLog("Button Tap()")
     self.delegate?.buttonWasTapped()
   }
 
-  /// UILongPressGestureRecognizer Function
-
+  /*
+   UILongPressGestureRecognizer Function
+   */
   @objc fileprivate func LongPress(_ sender: UILongPressGestureRecognizer!) {
     if sender.state == UIGestureRecognizer.State.ended {
       invalidateTimer()
@@ -152,7 +143,6 @@ import UIKit
   //UI Animations
   private func drawButton() {
     // self.backgroundColor = UIColor.clear
-
     // circleBorder = CALayer()
     // circleBorder.backgroundColor = UIColor.clear.cgColor
     // circleBorder.borderWidth = 6.0

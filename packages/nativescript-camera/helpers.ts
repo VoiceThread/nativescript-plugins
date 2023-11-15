@@ -1,4 +1,8 @@
-// import * as app from 'tns-core-modules/application';
+/**********************************************************************************
+  2017, nStudio, LLC & LiveShopper, LLC
+  2023, VoiceThread - Angel Dominguez
+ **********************************************************************************/
+
 import { ImageAsset, Application } from '@nativescript/core';
 import { CLog } from './common';
 

@@ -1,7 +1,6 @@
 /**********************************************************************************
- * (c) 2017, nStudio, LLC & LiveShopper, LLC
- *
- * Version 1.1.0                                                    team@nStudio.io
+  2017, nStudio, LLC & LiveShopper, LLC
+  2023, VoiceThread - Angel Dominguez
  **********************************************************************************/
 
 import { Color, ImageAsset, View, File, Device, Screen, isIOS, Frame, Application } from '@nativescript/core';
@@ -27,7 +26,7 @@ export class DefaultMap<T> extends Map {
 }
 
 /**
- * Take picture with camera delegate
+ Main delegate for iOS viewcontrollers
  */
 @NativeClass
 export class SwiftyDelegate extends NSObject implements SwiftyCamViewControllerDelegate {
@@ -92,8 +91,6 @@ export class SwiftyDelegate extends NSObject implements SwiftyCamViewControllerD
   swiftyCamDidTake(swiftyCam: SwiftyCamViewController, photo: UIImage) {
     CLog('swiftyCamDidTake:', photo);
     try {
-      // UIImageWriteToSavedPhotosAlbum(photo, this._owner.get(), 'thisImage:hasBeenSavedInPhotoAlbumWithError:usingContextInfo:', null);
-
       this._owner.get().tookPhoto(photo);
     } catch (err) {
       CLog(err);
@@ -114,11 +111,6 @@ export class MySwifty extends SwiftyCamViewController {
       returns: interop.types.void,
       params: [NSString, NSError, interop.Pointer],
     },
-    // 'deviceDidRotate': { returns: interop.types.void }
-    // 'thisImage:hasBeenSavedInPhotoAlbumWithError:usingContextInfo:': {
-    //   returns: interop.types.void,
-    //   params: [UIImage, NSError, interop.Pointer]
-    // }
   };
   private _owner: WeakRef<CameraPlus>;
   private _snapPicOptions: ICameraOptions;
@@ -132,20 +124,16 @@ export class MySwifty extends SwiftyCamViewController {
   private _flashEnabled: boolean;
   private _flashBtn: UIButton;
   private _switchBtn: UIButton;
-  // private _cameraBtn: ASCameraButton;
   // private _cameraBtn: UIButton;
   private _cameraBtn: SwiftyCamButton;
   private _maxDuration: number = 3600;
-  private _blurView: UIView;
+  // private _blurView: UIView;
   public _swiftyDelegate: SwiftyDelegate;
-  // private _pickerDelegate: any;
   private _resized: boolean;
 
   public static initWithOwner(owner: WeakRef<CameraPlus>, defaultCamera: CameraTypes = 'rear') {
     CLog('MySwifty initWithOwner');
     const ctrl = <MySwifty>MySwifty.alloc().init();
-    // const ctrl = <MySwifty>MySwifty.new().init();
-    // const ctrl = <MySwifty>MySwifty.new().init();
     CLog('ctrl', ctrl);
     ctrl._owner = owner;
     // set default camera
@@ -169,120 +157,27 @@ export class MySwifty extends SwiftyCamViewController {
     this._disablePhoto = value;
   }
 
-  // public set pickerDelegate(value: any) {
-  //   this._pickerDelegate = value;
-  // }
-
-  // public closePicker() {
-  //   rootVC().dismissViewControllerAnimatedCompletion(true, () => {
-  //     this.pickerDelegate = null;
-  //   });
-  // }
-
   viewDidLoad() {
     CLog('MySwifty viewdidload');
     super.viewDidLoad();
     const owner = this._owner && this._owner.get();
     if (owner) {
-      owner._updatePhotoQuality();
+      owner._updateCameraQuality();
     }
     this.view.userInteractionEnabled = true;
     const doubleTapEnabled = this._owner.get().doubleTapCameraSwitch;
     this.doubleTapCameraSwitch = doubleTapEnabled;
     CLog('doubleTapCameraSwitch:', doubleTapEnabled);
 
-    // CLog('view.frame.size:', this.view.frame.size.width + 'x' + this.view.frame.size.height);
     // retain delegate in javascript to ensure garbage collector does not get it
     this._swiftyDelegate = <any>SwiftyDelegate.initWithOwner(new WeakRef(this));
     this.cameraDelegate = this._swiftyDelegate;
     CLog('this.cameraDelegate:', this.cameraDelegate);
 
-    /*
-    this._cameraBtn = ASCameraButton.alloc().init();
-    //register tap handlers
-    // this.register(this._cameraBtn)
-    this.register(this._cameraBtn);
-
-    this._cameraBtn.translatesAutoresizingMaskIntoConstraints = false;
-
-    // this._cameraBtn.longPressGestureRecognizer?.addTarget(self, action: #selector(handleLongPress(_:)))
-    // this._cameraBtn.longPressGestureRecognizer?.addTargetAction(this, 'handleLongPress');
-    // view.addSubview(captureButton)
-
-    CLog('this._cameraBtn:', this._cameraBtn);
-
-    let widthRule = this._cameraBtn.widthAnchor.constraintEqualToConstant(20);
-    widthRule.active = true;
-    // this._cameraBtn.addConstraint(this._cameraBtn.widthAnchor.constraintEqualToConstant(20));
-    console.log('Added widthAnchor');
-    let heightRule = this._cameraBtn.heightAnchor.constraintEqualToConstant(20);
-    heightRule.active = true;
-    // this._cameraBtn.addConstraint(this._cameraBtn.heightAnchor.constraintEqualToConstant(20));
-    console.log('Added heightAnchor');
-
-    this.view.addSubview(this._cameraBtn);
-    this.view.bringSubviewToFront(this._cameraBtn);
-    console.log('drawing button');
-
-    let centerRule = this._cameraBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor);
-    centerRule.active = true;
-
-    // let bottomRule = this._cameraBtn.bottomAnchor.constraintEqualToAnchor(this.view.bottomAnchor);
-    let bottomRule = this._cameraBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.safeAreaLayoutGuide.bottomAnchor, -40);
-    bottomRule.active = true;
-    let blurEffect = UIBlurEffect.effectWithStyle(UIBlurEffectStyle.Dark);
-    // this._blurView = UIVisualEffectView(effect: blurEffect)
-    this._blurView = new UIVisualEffectView({ effect: blurEffect });
-    this._blurView.frame = this.view.bounds;
-    this._blurView.alpha = 0;
-    this.view.addSubview(this._blurView);
-    this.view.addSubview(this._cameraBtn);
-    this.view.bringSubviewToFront(this._cameraBtn);
-*/
-    // let that = this;
-    // setTimeout(() => {
-    //   that._cameraBtn.changeToSquare();
-    // }, 1000);
-    // setTimeout(() => {
-    //   that._cameraBtn.changeToCircle();
-    // }, 2000);
-
-    // this.register(this._cameraBtn)
-
-    // this._cameraBtn = CameraButton.alloc().init();
-    // //register tap handlers
-    // // this.register(this._cameraBtn)
-    // this._cameraBtn.translatesAutoresizingMaskIntoConstraints = false;
-
-    // // this._cameraBtn.longPressGestureRecognizer?.addTarget(self, action: #selector(handleLongPress(_:)))
-    // this._cameraBtn.longPressGestureRecognizer?.addTargetAction(this, 'handleLongPress');
-    // // view.addSubview(captureButton)
-    // this.view.addSubview(this._cameraBtn);
-    // CLog('this._cameraBtn:', this._cameraBtn);
-    // // this._cameraBtn.centerXAnchor.constraint(equalTo: view.centerXAnchor, constant: 0).isActive = true
-    // this._cameraBtn.centerXAnchor.constraintEqualToAnchorConstant(this.view.centerXAnchor, 0);
-    // // this._cameraBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.safeAreaLayoutGuide.bottomAnchor, -40);
-    // this._cameraBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.bottomAnchor, 0);
-    // this._cameraBtn.widthAnchor.constraintEqualToConstant(40);
-    // this._cameraBtn.heightAnchor.constraintEqualToConstant(40);
-
-    // //this._cameraBtn.bottomAnchor.constraint(
-    // //      equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40).isActive = true
-    // // this._cameraBtn.widthAnchor.constraint(equalToConstant: 40).isActive = true
-    // // this._cameraBtn.heightAnchor.constraint(equalTo: this._cameraBtn.widthAnchor).isActive = true
-
-    // let blurEffect = UIBlurEffect.effectWithStyle(UIBlurEffectStyle.Dark);
-    // // this._blurView = UIVisualEffectView(effect: blurEffect)
-    // this._blurView = new UIVisualEffectView({ effect: blurEffect });
-    // this._blurView.frame = this.view.bounds;
-    // this._blurView.alpha = 0;
-    // this.view.addSubview(this._blurView);
-
-    // this.view.bringSubviewToFront(this._cameraBtn);
-    // this._cameraBtn.changeToSquare();
     if (this._owner.get().showCaptureIcon) {
       CLog('adding main capture button...');
-      /* //Basic version of button
+      /* 
+      // Basic version of button generated with creationButton() below
       if (this._cameraBtn) this._cameraBtn.removeFromSuperview();
       this._cameraBtn = createButton(this, null, null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('takePic'));
       this._cameraBtn.translatesAutoresizingMaskIntoConstraints = false;
@@ -317,8 +212,7 @@ export class MySwifty extends SwiftyCamViewController {
 
     if (this._owner.get().showToggleIcon) {
       if (this._switchBtn) this._switchBtn.removeFromSuperview();
-      CLog('adding toggle/switch camera button...');
-      // const switchCameraBtn = createButton(this, CGRectMake(width - 100, 20, 100, 50), null, 'switchCamera', null, createIcon('toggle', CGSizeMake(65, 50)));
+      CLog('creating toggle/switch camera button...');
       this._switchBtn = createButton(this, null, null, 'switchCamera', null, createIcon('toggle', CGSizeMake(65, 50)));
       // switchCameraBtn.transform = CGAffineTransformMakeScale(0.7, 0.7);
       this._switchBtn.translatesAutoresizingMaskIntoConstraints = false;
@@ -326,60 +220,24 @@ export class MySwifty extends SwiftyCamViewController {
       widthRule.active = true;
       let heightRule = this._switchBtn.heightAnchor.constraintEqualToConstant(40);
       heightRule.active = true;
-
+      //Note: need to add to view first before next 2 constraints, otherwise
+      //    compiler complains about invalid references
       this.view.addSubview(this._switchBtn);
-      // this.view.bringSubviewToFront(this._switchBtn);
-      // let leftRule = this._switchBtn.leftAnchor.constraintEqualToAnchor(this.view.leftAnchor);
-      // leftRule.active = true;
-
-      // let topRule = this._switchBtn.topAnchor.constraintEqualToAnchor(this.view.topAnchor);
-      // topRule.active = true;
-
-      // let centerRule = this._switchBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor);
-      // centerRule.active = true;
-      // let bottomRule = this._switchBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.safeAreaLayoutGuide.bottomAnchor, -40);
-      // bottomRule.active = true;
-
       let topRule = this._switchBtn.topAnchor.constraintEqualToAnchorConstant(this.view.topAnchor, 20);
       topRule.active = true;
       let leftRule = this._switchBtn.trailingAnchor.constraintEqualToAnchorConstant(this.view.trailingAnchor, -20);
       leftRule.active = true;
 
-      console.log('added main button to view ', this._switchBtn);
+      console.log('added toggle/switch camera button to view ', this._switchBtn);
     }
 
     if (this._owner.get().showFlashIcon) {
       CLog('adding _flashBtn ...');
       this._flashBtnHandler();
-      // if (this._flashBtn) this._flashBtn.removeFromSuperview();
-      // // if (this.flashEnabled) {
-      // //   this._flashBtn = createButton(this, CGRectMake(20, 20, 50, 50), null, 'toggleFlash', null, createIcon('flash'));
-      // // } else {
-      // //   this._flashBtn = createButton(this, CGRectMake(20, 20, 50, 50), null, 'toggleFlash', null, createIcon('flashOff'));
-      // // }
-      // // if (this.flashEnabled) {
-      // this._flashBtn = createButton(this, null, null, 'toggleFlash', null, this.flashEnabled ? createIcon('flash') : createIcon('flashOff'));
-      // // } else {
-      // // this._flashBtn = createButton(this, null, null, 'toggleFlash', null, createIcon('flashOff'));
-      // // }
-      // this._flashBtn.translatesAutoresizingMaskIntoConstraints = false;
-      // let widthRule = this._flashBtn.widthAnchor.constraintEqualToConstant(40);
-      // widthRule.active = true;
-      // let heightRule = this._flashBtn.heightAnchor.constraintEqualToConstant(40);
-      // heightRule.active = true;
-
-      // // this._flashBtn.transform = CGAffineTransformMakeScale(0.75, 0.75);
-      // this.view.addSubview(this._flashBtn);
-
-      // let topRule = this._flashBtn.topAnchor.constraintEqualToAnchorConstant(this.view.topAnchor, 20);
-      // topRule.active = true;
-      // let leftRule = this._flashBtn.leadingAnchor.constraintEqualToAnchorConstant(this.view.leadingAnchor, 20);
-      // leftRule.active = true;
-
-      // console.log('frame: ', 20, 20, 50, 50);
     }
+
     if (this._owner.get().shouldLockRotation) {
-      this.setupiOSController();
+      this.setupiOSRotationController();
     }
 
     console.log('done with viewDidLoad');
@@ -561,7 +419,6 @@ export class MySwifty extends SwiftyCamViewController {
   public switchCam() {
     console.log('index.ios switchCam()');
     CLog('CameraPlus switchCam, calling native lib switchCamera()');
-    // this._swiftyDelegate.switchCamera();
     this.switchCamera();
   }
 
@@ -572,13 +429,6 @@ export class MySwifty extends SwiftyCamViewController {
     CLog('CameraPlus flash enabled:', this._flashEnabled);
     if (this._owner.get().showFlashIcon) this._flashBtnHandler();
   }
-
-  // public thisImageHasBeenSavedInPhotoAlbumWithErrorUsingContextInfo(image, error, context) {
-  //   CLog('thisImageHasBeenSavedInPhotoAlbumWithErrorUsingContextInfo', image);
-  //   if (error) {
-  //     CLog(error);
-  //   }
-  // }
 
   public tookPhoto(photo: UIImage) {
     this._photoToSave = photo;
@@ -890,12 +740,12 @@ export class MySwifty extends SwiftyCamViewController {
   private _currentOrientationMask: UIInterfaceOrientationMask;
 
   /**
-   * Sets up the iOS Controller configuration
+   * Sets up the iOS root view controller to handle rotation locks
    */
-  private setupiOSController() {
+  private setupiOSRotationController() {
     const curFrame = Frame.topmost();
     if (!curFrame) {
-      setTimeout(this.setupiOSController, 100);
+      setTimeout(this.setupiOSRotationController, 100);
       return;
     }
     try {
@@ -1004,8 +854,7 @@ export class MySwifty extends SwiftyCamViewController {
 }
 
 export class CameraPlus extends CameraPlusBase {
-  public static useDeviceOrientation: boolean = false; // experimental
-  // swiftyviewcontroller
+  public static useDeviceOrientation: boolean = false;
   private _swifty: MySwifty;
   private _isIPhoneX: boolean;
 
@@ -1018,16 +867,19 @@ export class CameraPlus extends CameraPlusBase {
   constructor() {
     super();
     this._onLayoutChangeListener = this._onLayoutChangeFn.bind(this);
-    // CLog('CameraPlus constructor');
+    CLog('CameraPlus constructor');
     this._swifty = MySwifty.initWithOwner(new WeakRef(this), CameraPlus.defaultCamera);
+
+    //TODO: check if this is useful
     // this._swifty.shouldPrompToAppSettings = false;
 
-    // experimenting with static flag (this is usually explicitly false)
     // enable device orientation
-    //TODO: this is not currently working
+    //TODO: check if this is currently working
     this._swifty.shouldUseDeviceOrientation = CameraPlus.useDeviceOrientation;
+
     //TODO: see if this is useful
     this._detectDevice();
+
     // console.log('done with constructor', this._swifty);
   }
 
@@ -1047,6 +899,7 @@ export class CameraPlus extends CameraPlusBase {
     this._swifty.disablePhoto = this.isPhotoDisabled();
     CLog('photo disabled:', this.isPhotoDisabled());
     // disable audio if no video support
+    //TODO: does this do anything currently?
     this._swifty.disableAudio = !this.isVideoEnabled();
     CLog('default camera:', CameraPlus.defaultCamera);
     CLog('native view:');
@@ -1055,26 +908,7 @@ export class CameraPlus extends CameraPlusBase {
     return this._swifty.view;
   }
 
-  private _cropByPreview: boolean;
-
-  public get cropByPreview() {
-    return this._cropByPreview;
-  }
-
-  public set cropByPreview(value: boolean) {
-    if (typeof value === 'string') {
-      value = Boolean(value);
-    }
-    // if (typeof value === 'boolean') {
-    //   if (this._swifty) {
-    //     this._swifty.cropByPreview = value;
-    //   }
-    // }
-
-    this._cropByPreview = value;
-  }
-
-  _updatePhotoQuality() {
+  _updateCameraQuality() {
     if (this._swifty) {
       switch (this._pictureQuality) {
         case '3840x2160':
@@ -1105,10 +939,6 @@ export class CameraPlus extends CameraPlusBase {
           this._swifty.videoQuality = VideoQuality.Low;
           this._pictureQuality = 'Low';
           break;
-        // case 'Photo':
-        //   this._swifty.videoQuality = VideoQuality;
-        //   this._pictureQuality = 'Photo';
-        //   break;
         default:
           this._swifty.videoQuality = VideoQuality.High;
           this._pictureQuality = 'High';
@@ -1122,10 +952,11 @@ export class CameraPlus extends CameraPlusBase {
   }
 
   private _pictureQuality: string = 'High';
+
   // @ts-ignore
   set pictureSize(value: string) {
     this._pictureQuality = value;
-    this._updatePhotoQuality();
+    this._updateCameraQuality();
   }
 
   get pictureSize(): string {
@@ -1147,10 +978,7 @@ export class CameraPlus extends CameraPlusBase {
   initNativeView() {
     CLog('initNativeView.');
     this.on(View.layoutChangedEvent, this._onLayoutChangeListener);
-    this._updatePhotoQuality();
-    if (this.cropByPreview) {
-      // this._swifty.cropByPreview = this.cropByPreview;
-    }
+    this._updateCameraQuality();
     this._swifty.viewWillAppear(true);
   }
 
@@ -1164,11 +992,8 @@ export class CameraPlus extends CameraPlusBase {
   onLoaded() {
     super.onLoaded();
     console.log('CameraPlus calling this._swifty.viewDidAppear(true)');
-    //Note: do this properly, hackalicious
+    //TODO: hackalicious, do this properly
     this._swifty.viewDidAppear(true);
-    // console.log('CameraPlus Adding buttons', this._swifty);
-    // this._swifty.addButtons();
-    // this._swifty.addButtons();
   }
 
   onUnloaded() {
@@ -1208,7 +1033,7 @@ export class CameraPlus extends CameraPlusBase {
    */
   public takePicture(options?: ICameraOptions): void {
     console.log('CameraPlus takePicture', options);
-    this._updatePhotoQuality();
+    this._updateCameraQuality();
     this._swifty.snapPicture(options);
   }
 
@@ -1281,13 +1106,8 @@ export class CameraPlus extends CameraPlusBase {
   }
 }
 
-const rootVC = function () {
-  const appWindow = UIApplication.sharedApplication.keyWindow;
-  return appWindow.rootViewController;
-};
-
 const createButton = function (target: any, frame: CGRect, label: string, eventName: string, align?: string, img?: UIImage, imgSelected?: UIImage): UIButton {
-  console.log('createButton()', label, eventName);
+  // console.log('createButton()', label, eventName);
   let btn: UIButton;
   if (frame) {
     btn = UIButton.alloc().initWithFrame(frame);
@@ -1307,22 +1127,12 @@ const createButton = function (target: any, frame: CGRect, label: string, eventN
   }
   if (align) {
     btn.contentHorizontalAlignment = align === 'right' ? UIControlContentHorizontalAlignment.Right : UIControlContentHorizontalAlignment.Left;
-    // if (align == 'right') {
-    //   btn.contentEdgeInsets = UIEdgeInsetsMake(0, 10, 0, 0);
-    // }
   }
   if (eventName) {
     console.log('adding event ', eventName);
     btn.addTargetActionForControlEvents(target, eventName, UIControlEvents.TouchUpInside);
   }
   return btn;
-};
-
-const addShadow = function (button: UIButton) {
-  button.layer.shadowColor = UIColor.blackColor.CGColor;
-  button.layer.shadowOffset = CGSizeMake(0, 0);
-  button.layer.shadowRadius = 5;
-  button.layer.shadowOpacity = 1;
 };
 
 const createIcon = function (type: 'flash' | 'flashOff' | 'toggle' | 'picOutline' | 'takePic' | 'gallery', size?: CGSize, color?: string) {

@@ -136,7 +136,7 @@ import UIKit
 
   /// Sets whether swipe vertically to zoom is supported
 
-  @objc public var swipeToZoom = true
+  @objc public var swipeToZoom = false
 
   /// Sets whether swipe vertically gestures should be inverted
 
@@ -310,7 +310,7 @@ import UIKit
   //
   private var systemObserver: NSKeyValueObservation?
   //
-  private var assetWriterInputPixelBufferAdator: AVAssetWriterInputPixelBufferAdaptor?
+  private var assetWriterInputPixelBufferAdaptor: AVAssetWriterInputPixelBufferAdaptor?
   //
   private var previousPresentationTimeStamp: CMTime = .zero
   //
@@ -490,15 +490,12 @@ import UIKit
     super.viewDidAppear(animated)
 
     // Subscribe to device rotation notifications
-
     if shouldUseDeviceOrientation {
       NSLog("shouldUseDeviceOrientation subscribing")
       subscribeToDeviceOrientationChangeNotifications()
-
     }
 
     // Set background audio preference
-
     setBackgroundAudioPreference()
 
     sessionQueue.async {
@@ -506,7 +503,6 @@ import UIKit
       case .success:
         // Begin Session
         self.session.startRunning()
-        // self.isSessionRunning = self.session.isRunning
 
         // Preview layer video orientation can be set only after the connection is created
         DispatchQueue.main.async {
@@ -536,10 +532,8 @@ import UIKit
   }
 
   // MARK: ViewDidDisappear
-
   /// ViewDidDisappear(_ animated:) Implementation
   //SwiftyCamera
-
   @objc override open func viewDidDisappear(_ animated: Bool) {
     super.viewDidDisappear(animated)
 
@@ -561,22 +555,20 @@ import UIKit
   // MARK: Public Functions
 
   /**
-
-     Capture photo from current session
-
-     UIImage will be returned with the SwiftyCamViewControllerDelegate function SwiftyCamDidTakePhoto(photo:)
-
-     */
-
+    Capture photo from current session
+    UIImage will be returned with the SwiftyCamViewControllerDelegate function SwiftyCamDidTakePhoto(photo:)
+  */
   @objc public func takePhoto() {
-    NSLog("SCVC takePhoto()")
+    // NSLog("SCVC takePhoto()")
     guard let device = videoDevice else {
-      NSLog("!!!!   NO VideoDevice to capture from!!!!!")
+      NSLog("!!!!   NO Camera Device to capture from!!!!!")
+      //TODO: sent an error event with more info?
       return
     }
 
+    /* TODO: Add Support for Retina Flash and use that instead of white screen view*/
     if device.hasFlash == true
-      && flashEnabled == true /* TODO: Add Support for Retina Flash and add front flash */
+      && flashEnabled == true
     {
       changeFlashSettings(device: device, mode: .on)
       capturePhotoAsyncronously(completionHandler: { _ in })
@@ -614,13 +606,9 @@ import UIKit
   }
 
   /**
-
-     Begin recording video of current session
-
-     SwiftyCamViewControllerDelegate function SwiftyCamDidBeginRecordingVideo() will be called
-
-     */
-
+    Begin recording video of current session
+    SwiftyCamViewControllerDelegate function SwiftyCamDidBeginRecordingVideo() will be called
+  */
   @objc public func startVideoRecording() {
     NSLog("SCVC startVideoRecording()")
     assert(
@@ -661,7 +649,8 @@ import UIKit
       guard let assetWriter = self.assetWriter else { fatalError("asset writer is nil") }
 
       self.setBackgroundAudioPreference()
-      // Adding audio her is necessary to mimic Snapchat/Instagram camera
+
+      // Adding audio here is necessary to mimic Snapchat/Instagram camera
       // self.session.beginConfiguration()
       // self.addAudioInput()
       // self.addAudioOutput()
@@ -705,7 +694,7 @@ import UIKit
         self.assetWriterAudioInput = assetWriterAudioInput
       }
 
-      self.assetWriterInputPixelBufferAdator = AVAssetWriterInputPixelBufferAdaptor.init(
+      self.assetWriterInputPixelBufferAdaptor = AVAssetWriterInputPixelBufferAdaptor.init(
         assetWriterInput: assetWriterVideoInput, sourcePixelBufferAttributes: nil)
 
       assetWriter.startWriting()
@@ -717,56 +706,14 @@ import UIKit
       self.shouldStartWritingSession = true
       self.willStartWritingSession = false
     }
-    // guard let movieFileOutput = movieFileOutput else {
-    //   return
-    // }
-
-    // if currentCamera == .rear && flashEnabled == true {
-    //   enableFlash()
-    // }
-
-    // if currentCamera == .front && flashEnabled == true {
-    //   flashView = UIView(frame: view.frame)
-    //   flashView?.backgroundColor = UIColor.white
-    //   flashView?.alpha = 0.85
-    //   previewLayer.addSubview(flashView!)
-    // }
-
-    // sessionQueue.async { [unowned self] in
-    //   if !movieFileOutput.isRecording {
-    //     if UIDevice.current.isMultitaskingSupported {
-    //       self.backgroundRecordingID = UIApplication.shared.beginBackgroundTask(
-    //         expirationHandler: nil)
-    //     }
-
-    //     // Update the orientation on the movie file output video connection before starting recording.
-    //     let movieFileOutputConnection = self.movieFileOutput?.connection(with: AVMediaType.video)
-
-    //     // flip video output if front facing camera is selected
-    //     if self.currentCamera == .front {
-    //       movieFileOutputConnection?.isVideoMirrored = true
-    //     }
-
-    //     movieFileOutputConnection?.videoOrientation = self.getVideoOrientation()
-
-    //     // Start recording to a temporary file.
-    //     let outputFileName = UUID().uuidString
-    //     let outputFilePath = (NSTemporaryDirectory() as NSString).appendingPathComponent(
-    //       (outputFileName as NSString).appendingPathExtension("mov")!)
-    //     movieFileOutput.startRecording(
-    //       to: URL(fileURLWithPath: outputFilePath), recordingDelegate: self)
-    //     self.isVideoRecording = true
-    //     DispatchQueue.main.async {
-    //       self.cameraDelegate?.swiftyCam(self, didBeginRecordingVideo: self.currentCamera)
-    //     }
-    //   } else {
-    //     movieFileOutput.stopRecording()
-    //   }
-    // }
   }
 
+  /**
+    Transform to adjust video recording rotation
+    SwiftyCamViewControllerDelegate function SwiftyCamDidBeginRecordingVideo() will be called
+  */
   private func getVideoTransform() -> CGAffineTransform {
-    NSLog("getVideoTransform()")
+    // NSLog("getVideoTransform()")
     switch UIDevice.current.orientation {
     case .portrait:
       NSLog(" identity")
@@ -777,41 +724,37 @@ import UIKit
     case .portraitUpsideDown:
 
       if currentCamera == .rear {
-        NSLog("rear portraitUpsideDown pi/2")
+        // NSLog("rear portraitUpsideDown pi/2")
         return CGAffineTransform(rotationAngle: .pi / 2)
       }
-      NSLog("front portraitUpsideDown pi")
+      // NSLog("front portraitUpsideDown pi")
       return CGAffineTransform(rotationAngle: .pi / 2)
     case .landscapeLeft:
 
       if currentCamera == .rear {
-        NSLog("rear landscapeLeft identity")
+        // NSLog("rear landscapeLeft identity")
         return .identity
       }
       NSLog("front landscapeLeft pi")
       return CGAffineTransform(rotationAngle: .pi)
     case .landscapeRight:
       if currentCamera == .rear {
-        NSLog("rear landscapeRight identity")
+        // NSLog("rear landscapeRight identity")
         return CGAffineTransform(rotationAngle: .pi)
       }
-      NSLog("front landscapeRight ")
+      // NSLog("front landscapeRight ")
       return .identity
     default:
-      NSLog("default identity")
+      // NSLog("default identity")
       return .identity
     }
   }
+
   /**
-
-     Stop video recording video of current session
-
-     SwiftyCamViewControllerDelegate function SwiftyCamDidFinishRecordingVideo() will be called
-
-     When video has finished processing, the URL to the video location will be returned by SwiftyCamDidFinishProcessingVideoAt(url:)
-
-     */
-
+    Stop video recording video of current session
+    SwiftyCamViewControllerDelegate function SwiftyCamDidFinishRecordingVideo() will be called
+    When video has finished processing, the URL to the video location will be returned by SwiftyCamDidFinishProcessingVideoAt(url:)
+  */
   @objc public func stopVideoRecording() {
     NSLog("SCVC stopVideoRecording()")
     assert(
@@ -879,6 +822,10 @@ import UIKit
     // }
   }
 
+  /**
+  cancel without saving video recorded
+  TODO: also cleanup the file written to
+*/
   @objc public func cancelVideoRecording() {
     assert(
       Thread.isMainThread,
@@ -904,7 +851,7 @@ import UIKit
       self.removeAudioInput()
       self.removeAudioOutput()
       self.session.commitConfiguration()
-      self.setPreviousBackgroundAudioPreference()
+      // self.setPreviousBackgroundAudioPreference()
 
       // DispatchQueue.main.async {
       //   self.didCancelRecording(at: url)
@@ -917,13 +864,9 @@ import UIKit
   }
 
   /**
-
      Switch between front and rear camera
-
      SwiftyCamViewControllerDelegate function SwiftyCamDidSwitchCameras(camera:  will be return the current camera selection
-
-     */
-
+  */
   @objc public func switchCamera() {
     NSLog("SWC viewcontroller switchCamera()")
 
@@ -1018,30 +961,11 @@ import UIKit
 
   // MARK: Private Functions
 
-  /// Configure session, add inputs and outputs
-
+  /**
+   Configure session, add inputs and outputs
+  */
   fileprivate func configureSession() {
     NSLog("viewcontroller configureSession()")
-    // guard setupResult == .success else {
-    //   return
-    // }
-
-    // // Set default camera
-
-    // currentCamera = defaultCamera
-
-    // // begin configuring session
-
-    // session.beginConfiguration()
-    // configureVideoPreset()
-    // addVideoInput()
-    // if disableAudio == false {
-    //   addAudioInput()
-    // }
-    // // configureVideoOutput()
-    // configurePhotoOutput()
-
-    // session.commitConfiguration()
     self.executeSync { [weak self] in
       guard let self = self else { return }
       self.session.beginConfiguration()
@@ -1049,7 +973,6 @@ import UIKit
       for input in self.session.inputs {
         self.session.removeInput(input)
       }
-
       self.addVideoInput()
       NSLog("configureSession() adding video input")
       self.addVideoOutput()
@@ -1068,138 +991,10 @@ import UIKit
     }
   }
 
-  /// Add inputs after changing camera()
-
-  // fileprivate func addInputs() {
-  //   NSLog("viewcontroller addInputs()")
-  //   session.beginConfiguration()
-  //   configureVideoPreset()
-  //   addVideoInput()
-  //   if disableAudio == false {
-  //     addAudioInput()
-  //   }
-  //   session.commitConfiguration()
-  // }
-
-  // Front facing camera will always be set to VideoQuality.high
-  // If set video quality is not supported, videoQuality variable will be set to VideoQuality.high
-  /// Configure image quality preset
-
-  // fileprivate func configureVideoPreset() {
-  //   if currentCamera == .front {
-  //     session.sessionPreset = videoInputPresetFromVideoQuality(quality: .high)
-  //   } else {
-  //     if session.canSetSessionPreset(videoInputPresetFromVideoQuality(quality: videoQuality)) {
-  //       session.sessionPreset = videoInputPresetFromVideoQuality(quality: videoQuality)
-  //     } else {
-  //       session.sessionPreset = videoInputPresetFromVideoQuality(quality: .high)
-  //     }
-  //   }
-  // }
-
-  /// Add Video Inputs
-
-  /*
-  fileprivate func addVideoInput() {
-    switch currentCamera {
-    case .front:
-      videoDevice = SwiftyCamViewController.deviceWithMediaType(
-        AVMediaType.video, preferringPosition: .front)
-    case .rear:
-      videoDevice = SwiftyCamViewController.deviceWithMediaType(
-        AVMediaType.video, preferringPosition: .back)
-    }
-
-    if let device = videoDevice {
-      do {
-        try device.lockForConfiguration()
-        if device.isFocusModeSupported(.continuousAutoFocus) {
-          device.focusMode = .continuousAutoFocus
-          if device.isSmoothAutoFocusSupported {
-            device.isSmoothAutoFocusEnabled = true
-          }
-        }
-
-        if device.isExposureModeSupported(.continuousAutoExposure) {
-          device.exposureMode = .continuousAutoExposure
-        }
-
-        if device.isWhiteBalanceModeSupported(.continuousAutoWhiteBalance) {
-          device.whiteBalanceMode = .continuousAutoWhiteBalance
-        }
-
-        if device.isLowLightBoostSupported && lowLightBoost == true {
-          device.automaticallyEnablesLowLightBoostWhenAvailable = true
-        }
-
-        device.unlockForConfiguration()
-      } catch {
-        NSLog("[SwiftyCam]: Error locking configuration")
-      }
-    }
-
-    do {
-      let videoDeviceInput = try AVCaptureDeviceInput(device: videoDevice!)
-
-      if session.canAddInput(videoDeviceInput) {
-        session.addInput(videoDeviceInput)
-        self.videoInput = videoDeviceInput
-      } else {
-        NSLog("[SwiftyCam]: Could not add video device input to the session")
-        print(session.canSetSessionPreset(videoInputPresetFromVideoQuality(quality: videoQuality)))
-        setupResult = .configurationFailed
-        session.commitConfiguration()
-        return
-      }
-    } catch {
-      NSLog("[SwiftyCam]: Could not create video device input: \(error)")
-      setupResult = .configurationFailed
-      return
-    }
-  }
-
-  /// Add Audio Inputs
-
-  fileprivate func addAudioInput() {
-    do {
-      //            if #available(iOS 10.0, *) {
-      //                let audioDevice = AVCaptureDevice.default(<#T##deviceType: AVCaptureDevice.DeviceType##AVCaptureDevice.DeviceType#>, for: .audio, position: <#T##AVCaptureDevice.Position#>)
-      //            } else {
-      //                // Fallback on earlier versions
-      let audioDevice = AVCaptureDevice.default(for: .audio)
-      //            }
-      // .defaultDevice(withMediaType: AVMediaTypeAudio)
-      let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice!)
-
-      if session.canAddInput(audioDeviceInput) {
-        session.addInput(audioDeviceInput)
-      } else {
-        NSLog("[SwiftyCam]: Could not add audio device input to the session")
-      }
-    } catch {
-      NSLog("[SwiftyCam]: Could not create audio device input: \(error)")
-    }
-  }
-
-  /// Configure Movie Output
-
-  // fileprivate func configureVideoOutput() {
-  //   let movieFileOutput = AVCaptureMovieFileOutput()
-
-  //   if session.canAddOutput(movieFileOutput) {
-  //     session.addOutput(movieFileOutput)
-  //     if let connection = movieFileOutput.connection(with: AVMediaType.video) {
-  //       if connection.isVideoStabilizationSupported {
-  //         connection.preferredVideoStabilizationMode = .auto
-  //       }
-  //     }
-  //     self.movieFileOutput = movieFileOutput
-  //   }
-  // }
-*/
-  /// Configure Photo Output
-  //TODO: replace with image buffer frame grab version instead
-
+  /**
+    Configure Photo Output
+    //TODO: replace with image buffer frame grab version
+  */
   fileprivate func configurePhotoOutput() {
     let photoFileOutput = AVCaptureStillImageOutput()
 
@@ -1210,8 +1005,9 @@ import UIKit
     }
   }
 
-  /// Orientation management
-
+  /**
+   Orientation management
+  */
   @objc public func subscribeToDeviceOrientationChangeNotifications() {
     NSLog("subscribeToDeviceOrientationChangeNotifications")
     deviceOrientation = UIDevice.current.orientation
@@ -1239,7 +1035,6 @@ import UIKit
   @objc public func getPreviewLayerOrientation() -> AVCaptureVideoOrientation {
     // Depends on layout orientation, not device orientation
     NSLog("current orientation of statusBar:")
-    // NSLog(UIApplication.shared.statusBarOrientation)
     switch UIApplication.shared.statusBarOrientation {
     case .portrait, .unknown:
       NSLog("portrait")
@@ -1258,11 +1053,9 @@ import UIKit
 
   @objc public func getVideoOrientation() -> AVCaptureVideoOrientation {
     NSLog("current orientation of video:")
-    // NSLog(previewLayer!.videoPreviewLayer.connection!.videoOrientation)
     guard shouldUseDeviceOrientation, let deviceOrientation = deviceOrientation else {
       return previewLayer!.videoPreviewLayer.connection!.videoOrientation
     }
-
     switch deviceOrientation {
     case .landscapeLeft:
       // keep the same if using front camera
@@ -1300,12 +1093,9 @@ import UIKit
 
   /**
      Returns a UIImage from Image Data.
-
      - Parameter imageData: Image Data returned from capturing photo from the capture session.
-
      - Returns: UIImage from the image data, adjusted for proper orientation.
-     */
-
+  */
   @objc public func processPhoto(_ imageData: Data) -> UIImage {
     let dataProvider = CGDataProvider(data: imageData as CFData)
     let cgImageRef = CGImage(
@@ -1351,10 +1141,8 @@ import UIKit
   }
 
   /// Handle Denied App Privacy Settings
-
   @objc public func promptToAppSettings() {
     // prompt User with UIAlertView
-
     DispatchQueue.main.async { [unowned self] in
       let message = NSLocalizedString(
         "AVCam doesn't have permission to use the camera, please change privacy settings",
@@ -1383,12 +1171,9 @@ import UIKit
 
   /**
      Returns an AVCapturePreset from VideoQuality Enumeration
-
      - Parameter quality: ViewQuality enum
-
      - Returns: String representing a AVCapturePreset
-     */
-
+  */
   @objc public func videoInputPresetFromVideoQuality(quality: VideoQuality)
     -> AVCaptureSession.Preset
   {
@@ -1412,8 +1197,9 @@ import UIKit
     }
   }
 
-  /// Get Devices
-
+  /**
+   Get Devices for a media type (audio or video)
+  */
   @objc public class func deviceWithMediaType(
     _ mediaType: AVMediaType, preferringPosition position: AVCaptureDevice.Position
   ) -> AVCaptureDevice? {
@@ -1423,8 +1209,9 @@ import UIKit
     return nil
   }
 
-  /// Enable or disable flash for photo
-
+  /**
+   Enable or disable flash for photo
+  */
   @objc public func changeFlashSettings(device: AVCaptureDevice, mode: AVCaptureDevice.FlashMode) {
     do {
       try device.lockForConfiguration()
@@ -1435,24 +1222,27 @@ import UIKit
     }
   }
 
-  /// Enable flash
-
+  /**
+   Enable flash
+  */
   @objc public func enableFlash() {
     if isCameraTorchOn == false {
       toggleFlash()
     }
   }
 
-  /// Disable flash
-
+  /**
+   Disable flash
+  */
   @objc public func disableFlash() {
     if isCameraTorchOn == true {
       toggleFlash()
     }
   }
 
-  /// Toggles between enabling and disabling flash
-
+  /**
+   Toggles between enabling and disabling flash
+  */
   @objc public func toggleFlash() {
     guard currentCamera == .rear else {
       // Flash is not supported for front facing camera
@@ -1482,8 +1272,11 @@ import UIKit
     }
   }
 
-  /// Sets whether SwiftyCam should enable background audio from other applications or sources
-  @objc open func setPreviousBackgroundAudioPreference() {}
+  // @objc open func setPreviousBackgroundAudioPreference() {}
+
+  /**
+   Sets whether SwiftyCam should enable background audio from other applications or sources
+  */
   @objc public func setBackgroundAudioPreference() {
     guard allowBackgroundAudio == true else {
       return
@@ -1509,78 +1302,35 @@ import UIKit
   }
 
   /// Set UITapGesture to take photo
-
   public func buttonWasTapped() {
     NSLog("cambutton buttonWasTapped")
     // takePhoto()
   }
 
   /// Set UILongPressGesture start to begin video
-
   public func buttonDidBeginLongPress() {
     NSLog("cambutton buttonDidBeginLongPress")
     // startVideoRecording()
   }
 
   /// Set UILongPressGesture begin to begin end video
-
   public func buttonDidEndLongPress() {
     NSLog("cambutton buttonDidEndLongPress")
     // stopVideoRecording()
   }
 
   /// Called if maximum duration is reached
-
   public func longPressDidReachMaximumDuration() {
     NSLog("cambutton longPressDidReachMaximumDuration")
     // stopVideoRecording()
   }
 }
 
-// MARK: AVCaptureFileOutputRecordingDelegate
-
-// extension SwiftyCamViewController: AVCaptureFileOutputRecordingDelegate {
-//   public func fileOutput(
-//     _ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL,
-//     from connections: [AVCaptureConnection], error: Error?
-//   ) {
-//     NSLog("empty stub for fileOutput")
-//     NSLog(outputFileURL.absoluteString)
-//     // Call delegate function with the URL of the outputfile
-//     DispatchQueue.main.async {
-//       self.cameraDelegate?.swiftyCam(self, didFinishProcessVideoAt: outputFileURL)
-//     }
-//   }
-
-//   /// Process newly captured video and write it to temporary directory
-
-//   public func capture(
-//     _ captureOutput: AVCaptureFileOutput!, didFinishRecordingToOutputFileAt outputFileURL: URL!,
-//     fromConnections connections: [Any]!, error: Error!
-//   ) {
-//     if let currentBackgroundRecordingID = backgroundRecordingID {
-//       backgroundRecordingID = UIBackgroundTaskIdentifier.invalid
-
-//       if currentBackgroundRecordingID != UIBackgroundTaskIdentifier.invalid {
-//         UIApplication.shared.endBackgroundTask(currentBackgroundRecordingID)
-//       }
-//     }
-//     if error != nil {
-//       NSLog("[SwiftyCam]: Movie file finishing error: \(String(describing: error))")
-//     } else {
-//       // Call delegate function with the URL of the outputfile
-//       DispatchQueue.main.async {
-//         self.cameraDelegate?.swiftyCam(self, didFinishProcessVideoAt: outputFileURL)
-//       }
-//     }
-//   }
-// }
-
 // MARK: UIGestureRecognizer Declarations
 
 extension SwiftyCamViewController {
-  /// Handle pinch gesture
 
+  /// Handle pinch gesture
   @objc fileprivate func zoomGesture(pinch: UIPinchGestureRecognizer) {
     NSLog("view zoomGesture")
     guard pinchToZoom == true, currentCamera == .rear else {
@@ -1611,7 +1361,6 @@ extension SwiftyCamViewController {
   }
 
   /// Handle single tap gesture
-
   @objc fileprivate func singleTapGesture(tap: UITapGestureRecognizer) {
     guard tapToFocus == true else {
       // Ignore taps
@@ -1647,7 +1396,6 @@ extension SwiftyCamViewController {
   }
 
   /// Handle double tap gesture
-
   @objc fileprivate func doubleTapGesture(tap: UITapGestureRecognizer) {
     guard doubleTapCameraSwitch == true else {
       return
@@ -1655,6 +1403,7 @@ extension SwiftyCamViewController {
     switchCamera()
   }
 
+  ///Handle pan gesture on preview screen, will trigger zoom
   @objc private func panGesture(pan: UIPanGestureRecognizer) {
     guard swipeToZoom == true && currentCamera == .rear else {
       // ignore pan
@@ -1708,10 +1457,8 @@ extension SwiftyCamViewController {
   }
 
   /**
-     Add pinch gesture recognizer and double tap gesture recognizer to currentView
-
+     Add pan, pinch and tap gesture recognizers to currentView
      - Parameter view: View to add gesture recognzier
-
      */
 
   fileprivate func addGestureRecognizersTo(view: UIView) {
@@ -1741,8 +1488,8 @@ extension SwiftyCamViewController {
 // MARK: UIGestureRecognizerDelegate
 
 extension SwiftyCamViewController: UIGestureRecognizerDelegate {
-  /// Set beginZoomScale when pinch begins
 
+  /// Set beginZoomScale when pinch begins
   public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
     if gestureRecognizer.isKind(of: UIPinchGestureRecognizer.self) {
       beginZoomScale = zoomScale
@@ -1750,271 +1497,6 @@ extension SwiftyCamViewController: UIGestureRecognizerDelegate {
     return true
   }
 }
-
-/*
-// Button related stuff
-@objc extension SwiftyCamViewController {
-  public func register(_ button: ASCameraButton) {
-    self.cameraButton = button
-    NSLog("register()")
-    let longPressGestureRecognizer = LongPressGestureRecognizer()
-    longPressGestureRecognizer.addTarget(self, action: #selector(self.handleButtonZoomPan(_:)))
-    longPressGestureRecognizer.addTarget(self, action: #selector(self.handleButtonLongPress(_:)))
-    longPressGestureRecognizer.minimumPressDuration = 0.0
-    longPressGestureRecognizer.delegate = self
-    button.addGestureRecognizer(longPressGestureRecognizer)
-    button.longPressGestureRecognizer = longPressGestureRecognizer
-    NSLog("done registering gesture handlers")
-  }
-
-  // Please Keep in mind that this function is called first by the gesture recognizer
-  @objc private func handleButtonZoomPan(_ sender: LongPressGestureRecognizer) {
-    // guard self.isPanToZoomEnabled else { return }
-    // guard self.isSessionRunning, let videoDevice = self.captureDevice else { return }
-    NSLog("handleButtonZoomPan")
-    switch sender.state {
-    case .began:
-      // if !self.isRecording {
-      //   self.startingZoomScale = videoDevice.videoZoomFactor
-      //   self.shouldResetZoom = true
-      // }
-      fallthrough
-    case .changed, .ended:
-      // guard !self.shouldIgnore else { return }
-
-      let location = sender.location(in: sender.view)
-
-      // if location.y >= 0 {
-      //   sender.setTranslation(.zero, in: nil)
-      // }
-
-      // let translation = sender.translation(in: nil)
-      // let mulitiplier: CGFloat = min(
-      //   max(1.0, self.maxZoomScale), videoDevice.activeFormat.videoMaxZoomFactor)
-      // let senderScale = (-1 * translation.y / self.zoomPanMaxLength) * mulitiplier  // + 1.0
-      // let scale = min(
-      //   self.maxZoomScale, max(self.minZoomScale, self.startingZoomScale * senderScale))
-      // let adjustedScale = min(videoDevice.activeFormat.videoMaxZoomFactor, max(1.0, scale))
-      // self.zoom(to: adjustedScale)
-      NSLog("changed/ended")
-    case .cancelled:
-      NSLog("cancelled")
-    // if self.shouldResetZoom {
-    // self.zoom(to: self.startingZoomScale, withRate: -1)
-    // self.shouldResetZoom = false
-    // }
-    default: break
-    }
-  }
-
-  // Please Keep in mind that this function is called second by the gesture recognizer
-  @objc fileprivate func handleButtonLongPress(_ sender: UILongPressGestureRecognizer) {
-    NSLog("handleButtonLongPress")
-    // print("sender.state", sender.state)
-    switch sender.state {
-    case .began:
-      // if !self.shouldStartWritingSession {
-      //   self.start()
-      // } else {
-      //   self.shouldStop = true
-      // }
-      NSLog("began")
-      self.cameraButton?.changeToSquare()
-    case .ended:
-      NSLog("ended")
-      guard !self.shouldIgnore else {
-        self.shouldIgnore = false
-        return
-      }
-
-      //            if self.timePassed <= self.photoCaptureThreshold {
-      //                // Take photo and discard Video
-      //                self.capturePhoto()
-      //
-      //                let shouldUnlockFlash = self.isFlashLocked == false
-      //                let shouldUnlockZoom = self.isZoomLocked == false
-      //                self.lockFlash()
-      //                self.lockZoom()
-      //
-      //                self.cancel()
-      //
-      //                self.executeAsync {
-      //                    DispatchQueue.main.async { [weak self] in
-      //                        if shouldUnlockFlash {
-      //                            self?.unlockFlash()
-      //                        }
-      //                        if shouldUnlockZoom {
-      //                            self?.unlockZoom()
-      //                        }
-      //                    }
-      //                }
-      //            } else
-      // if self.stopsRecordingOnTouchUp, self.isRecording {
-      //   self.stop()
-      // } else if self.shouldStop {
-      //   self.stop()
-      //   self.shouldStop = false
-      // }
-
-      // if self.isVideoRecording {
-      //   //stop
-      //   self.isVideoRecording = false
-      //   self.cameraButton?.changeToCircle()
-      // } else {
-      //   //start
-      //   self.isVideoRecording = true
-      //   self.cameraButton?.changeToSquare()
-      // }
-      self.cameraButton?.changeToCircle()
-      //and trigger the takePhoto
-      // self.takePhoto()
-      takePhoto();
-
-    case .cancelled:
-      NSLog("cancelled")
-      guard !self.shouldIgnore else {
-        self.shouldIgnore = false
-        return
-      }
-    // self.cancel()
-    default:
-      break
-    }
-  }
-
-  // private func start() {
-  //   self.shouldCreateTimer = true
-  //   self.startRecording()
-  // }
-
-  // private func stop() {
-  //   self.shouldCreateTimer = false
-  //   self.invalidateTimer()
-  //   self.stopRecording()
-  // }
-
-  // private func cancel() {
-  //   self.shouldCreateTimer = false
-  //   self.invalidateTimer()
-  //   self.cancelRecording()
-  // }
-
-  @objc private func updateTimer() {
-    self.timePassed += 0.1
-    // self.delegate?.asCamera?(self, didUpdateRecordingDurationTo: self.timePassed)
-
-    if self.timePassed >= self.asmaximumVideoDuration {
-      DispatchQueue.main.async { [weak self] in
-        self?.shouldIgnore = true
-        // self?.stop()
-        print("max duration passed, issuing stop")
-        self?.invalidateTimer()
-      }
-    }
-  }
-
-  private func startTimer() {
-    print("startTimer")
-    guard self.shouldCreateTimer else { return }
-    self.timer = Timer.scheduledTimer(
-      timeInterval: self.videoTimeInterval, target: self,
-      selector: #selector(self.updateTimer), userInfo: nil, repeats: true)
-  }
-
-  private func invalidateTimer() {
-    self.timer?.invalidate()
-    self.timer = nil
-    self.timePassed = 0.0
-    print("invalidateTimer")
-    // self.delegate?.asCamera?(self, didUpdateRecordingDurationTo: self.timePassed)
-  }
-}
-
-@objc extension SwiftyCamViewController: UIGestureRecognizerDelegate {
-  public func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-    // if gestureRecognizer == self.pinchGestureRecognizer {
-    //   // return self.isPinchToZoomEnabled
-    //   return true
-    // }
-
-    // if gestureRecognizer == self.singleTapGestureRecognizer {
-    //   // return self.isTapToFocusEnabled
-    //   return true
-    // }
-
-    // if gestureRecognizer == self.doubleTapGestureRecognizer {
-    //   NSLog("doubletap seen")
-    //   // return self.isDoubleTapToSwitchCameraEnabled
-    //   return true
-    // }
-
-    // if gestureRecognizer is UILongPressGestureRecognizer && gestureRecognizer.view is ASCameraButton
-    // {
-    //   return true
-    // }
-
-    // return false
-    return true
-  }
-
-  public func gestureRecognizer(
-    _ gestureRecognizer: UIGestureRecognizer, shouldReceive press: UIPress
-  ) -> Bool {
-    return false
-  }
-
-  public func gestureRecognizer(
-    _ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch
-  ) -> Bool {
-    return true
-  }
-
-  public func gestureRecognizer(
-    _ gestureRecognizer: UIGestureRecognizer,
-    shouldRequireFailureOf otherGestureRecognizer: UIGestureRecognizer
-  ) -> Bool {
-    return false
-  }
-
-  public func gestureRecognizer(
-    _ gestureRecognizer: UIGestureRecognizer,
-    shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer
-  ) -> Bool {
-    return false
-  }
-
-  public func gestureRecognizer(
-    _ gestureRecognizer: UIGestureRecognizer,
-    shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
-  ) -> Bool {
-    return false
-  }
-}
-
-private class LongPressGestureRecognizer: UILongPressGestureRecognizer {
-  override var state: UIGestureRecognizer.State {
-    didSet {
-      if self.state == .began {
-        self.startingLocation = self.location(in: self.view)
-      }
-    }
-  }
-
-  var startingLocation: CGPoint = .zero
-
-  func translation(in view: UIView?) -> CGPoint {
-    let startingLocation =
-      self.view?.convert(self.startingLocation, to: view) ?? self.startingLocation
-    let currentLocation = self.location(in: view)
-    return CGPoint(
-      x: currentLocation.x - startingLocation.x, y: currentLocation.y - startingLocation.y)
-  }
-
-  func setTranslation(_ translation: CGPoint, in view: UIView?) {
-    self.startingLocation = self.location(in: self.view)
-  }
-}
-*/
 
 extension SwiftyCamViewController {
   private func addApplicationObservers() {
@@ -2173,10 +1655,8 @@ extension SwiftyCamViewController {
     self.configureFrameRate()
   }
 
-  /// Fixing framerate does effect low light capture performance
-
-  /// Todo: Make this functionality optional.
-
+  /// Note: Fixing framerate does affect low light capture performance
+  /// TODO: Make this functionality optional.
   private func configureFrameRate(toframeRate: Int? = nil) {
     NSLog("configureFrameRate()")
     guard let videoDevice = self.videoDevice else {
@@ -2409,12 +1889,12 @@ extension SwiftyCamViewController {
   }
 }
 
-//Adding this section and next causes type issues until I rewrite for new approach and remove old recorder approach for video
-
+/*
+ delegate functions
+ */
 @objc extension SwiftyCamViewController {
   //
   // func shouldCreateAssetWriter() {
-
   // }
   ///
   // func willBeginRecordingVideo() {
@@ -2431,11 +1911,9 @@ extension SwiftyCamViewController {
   // }
   ///
   // func didBeginRecordingVideo() {
-
   // }
   ///
   // func didFinishRecordingVideo() {
-
   // }
   ///
 
@@ -2456,8 +1934,6 @@ extension SwiftyCamViewController {
     }
   }
 
-  ///
-
   func didFailToProcessVideo(_ error: Error) {
     NSLog("didFailToProcessVideo")
     NSLog(error.localizedDescription)
@@ -2473,23 +1949,18 @@ extension SwiftyCamViewController {
 
   ///
   // func didSwitchCamera() {
-
   // }
   // ///
   // func didCancelRecording(at url: URL) {
-
   // }
   ///
   // func willCaptureImage() {
-
   // }
   ///
   // func didCaptureImage() {
-
   // }
   ///
   // func didFinishProcessing(image: UIImage, with properties: CFDictionary) {
-
   // }
 }
 
@@ -2547,7 +2018,7 @@ extension SwiftyCamViewController: AVCaptureVideoDataOutputSampleBufferDelegate,
       }
     }
 
-    if let assetWriterInputPixelBufferAdator = self.assetWriterInputPixelBufferAdator,
+    if let assetWriterInputPixelBufferAdaptor = self.assetWriterInputPixelBufferAdaptor,
       let assetWriterVideoInput = self.assetWriterVideoInput,
       output == self.videoOutput,
       assetWriterVideoInput.isReadyForMoreMediaData,
@@ -2582,7 +2053,7 @@ extension SwiftyCamViewController: AVCaptureVideoDataOutputSampleBufferDelegate,
         presentationTimeStamp = newPresentationTimeStamp
       }
 
-      let success = assetWriterInputPixelBufferAdator.append(
+      let success = assetWriterInputPixelBufferAdaptor.append(
         pixelBuffer, withPresentationTime: presentationTimeStamp)
       if !success, let error = assetWriter.error {
         print(error)
@@ -2653,7 +2124,7 @@ extension SwiftyCamViewController: AVCaptureVideoDataOutputSampleBufferDelegate,
 
   private func handleVideoBuffer(_ sampleBuffer: CMSampleBuffer) {
     guard let assetWriter = self.assetWriter else { return }
-    if let assetWriterInputPixelBufferAdator = self.assetWriterInputPixelBufferAdator,
+    if let assetWriterInputPixelBufferAdaptor = self.assetWriterInputPixelBufferAdaptor,
       let assetWriterVideoInput = self.assetWriterVideoInput,
       assetWriterVideoInput.isReadyForMoreMediaData,
       let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer)
@@ -2686,7 +2157,7 @@ extension SwiftyCamViewController: AVCaptureVideoDataOutputSampleBufferDelegate,
         presentationTimeStamp = newPresentationTimeStamp
       }
 
-      let success = assetWriterInputPixelBufferAdator.append(
+      let success = assetWriterInputPixelBufferAdaptor.append(
         pixelBuffer, withPresentationTime: presentationTimeStamp)
       if !success, let error = assetWriter.error {
         print(error)

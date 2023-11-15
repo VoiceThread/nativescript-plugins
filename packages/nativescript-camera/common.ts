@@ -1,7 +1,6 @@
 /**********************************************************************************
- * (c) 2017, nStudio, LLC & LiveShopper, LLC
- *
- * Version 1.1.0                                                   team@nStudio.io
+  2017, nStudio, LLC & LiveShopper, LLC
+  2023, VoiceThread - Angel Dominguez
  **********************************************************************************/
 
 import { ContentView } from '@nativescript/core';

@@ -1,4 +1,8 @@
-// import { ContentView } from 'tns-core-modules/ui/content-view';
+/**********************************************************************************
+  2017, nStudio, LLC & LiveShopper, LLC
+  2023, VoiceThread - Angel Dominguez
+ **********************************************************************************/
+
 import { Observable, ContentView } from '@nativescript/core';
 export declare class CameraPlus extends ContentView {
   events: ICameraPlusEvents;

@@ -11,31 +11,17 @@ export function navigatingTo(args: EventData) {
   const page = <Page>args.object;
   page.bindingContext = new DemoModel(page);
 }
+
+export function navigatingFrom(args: EventData) {
+  console.log('navigatingFrom()');
+  const page = <Page>args.object;
+  const video = page.getViewById('nativeVideoPlayer') as Video;
+  video.pause();
+  video.src = null;
+}
+
 export async function onLoaded(args) {
-  // page.on('loaded', async args => {
-  console.log('page loaded');
-  // try {
-  //   await checkPermission('camera').then(async permres => {
-  //     console.log('checked permission', permres);
-  //     if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
-  //       console.log('requesting permission to camera');
-  //       await request('camera').then(async result => {
-  //         console.log('request result', result);
-  //         if (result[0] == 'authorized') {
-  //           // if (!this.cam) {
-  //           // this.cam = new CameraPlus();
-  //           this.cam = args.object.getViewById('camPlus') as CameraPlus;
-  //           // this.cam.visibility = 'visible';
-  //           // }
-  //           // this.cam.takePicture({ saveToGallery: true });
-  //         } else alert('No permission for camera, cannot take a photo!');
-  //       });
-  //     } else alert('No permission for camera! Grant this permission in app settings first');
-  //   });
-  // } catch (err) {
-  //   console.error(err);
-  // }
-  // });
+  console.log('onLoaded()');
 }
 
 export class DemoModel extends DemoSharedNativescriptCamera {
@@ -47,13 +33,8 @@ export class DemoModel extends DemoSharedNativescriptCamera {
 
   constructor(page: Page) {
     super();
-    // page.on('onLoaded', args => {
-    //   console.log('page loaded');
-    // });
-    this.cam = page.getViewById('camPlus') as unknown as CameraPlus;
 
-    // hide a default icon button here
-    // this.cam.showGalleryIcon = false
+    this.cam = page.getViewById('camPlus') as unknown as CameraPlus;
 
     this.cameraHeight = Screen.mainScreen.heightDIPs * 0.7;
 
@@ -107,22 +88,8 @@ export class DemoModel extends DemoSharedNativescriptCamera {
 
   public camLoaded() {
     console.log('camera loaded');
-    // checkPermission('camera').then(async permres => {
-    //   if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
-    //     await request('camera').then(async result => {
-    //       if (result[0] == 'authorized') {
-    //         if (!this.cam) {
-    //           this.cam = new CameraPlus();
-    //         }
-    //         // this.cam.takePicture({ saveToGallery: true });
-    //       } else alert('No permission for camera, cannot take a photo!');
-    //     });
-    //   } else alert('No permission for camera! Grant this permission in app settings first');
-    // });
   }
-  protected onLoaded() {
-    console.log('_onLoaded()');
-  }
+
   public async recordDemoVideo() {
     try {
       let canPick = true;
