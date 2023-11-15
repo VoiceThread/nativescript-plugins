@@ -997,6 +997,9 @@ export class CameraPlus extends CameraPlusBase {
   }
 
   onUnloaded() {
+    if (this._swifty.isRecording) {
+      this._swifty.stopVideoRecording();
+    }
     this._swifty.viewDidDisappear(true);
     super.onUnloaded();
   }

@@ -22,7 +22,7 @@
           id="camPlus"
           loaded="camLoaded"
           enableVideo="true"
-          disablePhoto="false"
+          disablePhoto="true"
           confirmVideo="true"
           saveToGallery="true"
           showCaptureIcon="true"

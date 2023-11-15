@@ -535,12 +535,12 @@ import UIKit
   /// ViewDidDisappear(_ animated:) Implementation
   //SwiftyCamera
   @objc override open func viewDidDisappear(_ animated: Bool) {
+    NSLog("viewDidDisappear()")
     super.viewDidDisappear(animated)
 
     // If session is running, stop the session
     if isSessionRunning == true {
       session.stopRunning()
-      // isSessionRunning = false
     }
 
     // Disble flash if it is currently enabled
