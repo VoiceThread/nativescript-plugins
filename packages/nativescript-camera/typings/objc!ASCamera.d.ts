@@ -64,6 +64,10 @@ declare class SwiftyCamButton extends UIButton {
   static systemButtonWithPrimaryAction(primaryAction: UIAction): SwiftyCamButton; // inherited from UIButton
 
   delegate: SwiftyCamButtonDelegate;
+
+  changeToCircle(): void;
+
+  changeToSquare(): void;
 }
 
 interface SwiftyCamButtonDelegate {
@@ -284,8 +288,6 @@ declare class SwiftyCamViewController
   setBackgroundAudioPreference(): void;
 
   setMaxiumVideoDuration(): number;
-
-  setPreviousBackgroundAudioPreference(): void;
 
   startVideoRecording(): void;
 

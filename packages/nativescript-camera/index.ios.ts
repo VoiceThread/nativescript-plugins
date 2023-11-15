@@ -694,9 +694,11 @@ export class MySwifty extends SwiftyCamViewController {
       if (this.isRecording) {
         console.log('Recording in progress, stopping recording');
         this.stopVideoRecording();
+        this._cameraBtn.changeToCircle();
       } else {
         console.log('Video enabled, starting recording');
         this.startVideoRecording();
+        this._cameraBtn.changeToSquare();
       }
     } else if (!this._disablePhoto) {
       console.log('Photo enabled, taking pic');
@@ -725,8 +727,10 @@ export class MySwifty extends SwiftyCamViewController {
   /// Called when the maximum duration is reached
   public longPressDidReachMaximumDuration() {
     CLog('SwiftyCamButtonDelegate called longPressDidReachMaximumDuration()');
-    if (this._enableVideo) this.stopVideoRecording();
-    else console.warn('video not enabled, ignoring long press max duration');
+    if (this._enableVideo) {
+      this.stopVideoRecording();
+      this._cameraBtn.changeToCircle();
+    } else console.warn('video not enabled, ignoring long press max duration');
   }
 
   /// Sets the maximum duration of the video recording
@@ -1000,6 +1004,7 @@ export class CameraPlus extends CameraPlusBase {
     if (this._swifty.isRecording) {
       this._swifty.stopVideoRecording();
     }
+    //TODO: hackalicious, do this properly
     this._swifty.viewDidDisappear(true);
     super.onUnloaded();
   }

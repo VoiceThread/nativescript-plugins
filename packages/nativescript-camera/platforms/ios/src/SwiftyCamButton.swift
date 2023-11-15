@@ -214,7 +214,7 @@ import UIKit
         self.innerCircle = nil
       })
   }*/
-  public func changeToSquare() {
+  @objc public func changeToSquare() {
     let bounds = self.bounds
     UIView.animate(
       withDuration: 0.2, delay: 0.0, options: .curveLinear,
@@ -225,7 +225,7 @@ import UIKit
       }, completion: nil)
   }
 
-  public func changeToCircle() {
+  @objc public func changeToCircle() {
     let bounds = self.bounds
     UIView.animate(
       withDuration: 0.2, delay: 0.0, options: .curveLinear,
