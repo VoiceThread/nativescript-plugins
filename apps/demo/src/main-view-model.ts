@@ -31,10 +31,11 @@ export class MainViewModel extends Observable {
     });
   }
   async viewCamera() {
+    let permsok = true;
     //check for permissions first before routing
     try {
       await checkPermission('camera').then(async permres => {
-        console.log('checked permission', permres);
+        console.log('checked camera permission', permres);
         if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
           if (permres[0] == 'authorized' && permres[1] == true) {
             console.log('authorized');
@@ -54,21 +55,29 @@ export class MainViewModel extends Observable {
               // }
               // this.cam.takePicture({ saveToGallery: true });
             } else {
-              alert('No permission for camera, cannot open camera demo!');
-              return;
+              console.error('Unable to request permission!');
+              permsok = false;
+              // alert('No permission for camera, cannot open camera demo!');
+              // return;
             }
           });
-        } else alert('No permission for camera! Grant this permission in app settings first');
+        } else await alert('No permission for camera! Grant this permission in app settings first');
       });
     } catch (err) {
       console.error(err);
     }
+    if (!permsok) {
+      console.error('No permission for camera! Grant this permission in app settings first');
+      await alert('No permission for camera! Grant this permission in app settings first');
+      return;
+    }
     try {
       await checkPermission('microphone').then(async permres => {
-        console.log('checked permission', permres);
+        console.log('checked microphone permission', permres);
         if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
           if (permres[0] == 'authorized' && permres[1] == true) {
             console.log('authorized');
+            console.log('loading camera demo');
             Frame.topmost().navigate({
               moduleName: 'plugin-demos/nativescript-camera',
             });
@@ -80,15 +89,16 @@ export class MainViewModel extends Observable {
             if (result[0] == 'authorized' && permres[1] == true) {
               // if (!this.cam) {
               // this.cam = new CameraPlus();
+              console.log('loading camera demo');
               Frame.topmost().navigate({
                 moduleName: 'plugin-demos/nativescript-camera',
               });
               // this.cam.visibility = 'visible';
               // }
               // this.cam.takePicture({ saveToGallery: true });
-            } else alert('No permission for microphone, cannot open camera demo!');
+            } else await alert('No permission for microphone, cannot open camera demo!');
           });
-        } else alert('No permission for microphone! Grant this permission in app settings first');
+        } else await alert('No permission for microphone! Grant this permission in app settings first');
       });
     } catch (err) {
       console.error(err);
