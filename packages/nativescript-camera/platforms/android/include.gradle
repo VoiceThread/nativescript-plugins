@@ -18,7 +18,7 @@ dependencies {
 //     implementation('io.github.triniwiz:fancycamera:3.0.0-alpha22'){
 //         transitive = true
 //     }
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    // implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "com.google.android.gms:play-services-tasks:18.0.2"
     api "androidx.appcompat:appcompat:1.5.1"
     //noinspection KtxExtensionAvailable
