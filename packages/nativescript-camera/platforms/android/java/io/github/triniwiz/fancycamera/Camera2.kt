@@ -643,7 +643,7 @@ class Camera2 @JvmOverloads constructor(
         }
     }
 
-    override var allowExifRotation: Boolean = true
+    override var allowExifRotation: Boolean = false
     override var autoSquareCrop: Boolean = false
     override var autoFocus: Boolean = false
     override var saveToGallery: Boolean = false
@@ -1201,6 +1201,7 @@ class Camera2 @JvmOverloads constructor(
 
     @SuppressLint("RestrictedApi")
     override fun startRecording() {
+        Log.d("co.fitcom.videorecorder", "override fun startRecording()")
         if (!hasAudioPermission() || !hasCameraPermission()) {
             return
         }
@@ -1391,6 +1392,7 @@ class Camera2 @JvmOverloads constructor(
     }
 
     override fun takePhoto() {
+        Log.d("co.fitcom.videorecorder", "takePhoto()")
         val df = SimpleDateFormat("yyyyMMddHHmmss", Locale.US)
         val today = Calendar.getInstance().time
         val fileName = "PIC_" + df.format(today) + ".jpg"
