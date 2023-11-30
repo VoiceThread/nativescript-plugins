@@ -29,7 +29,6 @@
           showToggleIcon="true"
           showFlashIcon="true"
           confirmPhotos="true"
-          flashOffIcon="icon"
           autoSquareCrop="false"
           insetButtons="true"
           insetButtonsPercent="0.02"

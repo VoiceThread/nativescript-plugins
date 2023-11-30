@@ -83,7 +83,7 @@ export class CameraPlus extends CameraPlusBase {
     this.flashOnIcon = this.flashOnIcon ? this.flashOnIcon : 'ic_flash_on_white';
 
     this.flashOffIcon = this.flashOffIcon ? this.flashOffIcon : 'ic_flash_off_white';
-
+    console.log('this.flashOffIcon', this.flashOffIcon);
     this.toggleCameraIcon = this.toggleCameraIcon ? this.toggleCameraIcon : 'ic_switch_camera_white';
 
     this.takePicIcon = this.takePicIcon ? this.takePicIcon : 'ic_camera_alt_white';
@@ -126,28 +126,36 @@ export class CameraPlus extends CameraPlusBase {
     if (this._camera) {
       switch (value) {
         case WhiteBalance.Cloudy:
-          this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.Cloudy);
+          // this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.Cloudy);
+          this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.valueOf('Cloudy'));
           break;
         case WhiteBalance.Fluorescent:
-          this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.Fluorescent);
+          // this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.Fluorescent);
+          this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.valueOf('Fluorescent'));
           break;
         case WhiteBalance.Incandescent:
-          this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.Incandescent);
+          // this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.Incandescent);
+          this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.valueOf('Incandescent'));
           break;
         case WhiteBalance.Shadow:
-          this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.Shadow);
+          // this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.Shadow);
+          this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.valueOf('Shadow'));
           break;
         case WhiteBalance.Sunny:
-          this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.Sunny);
+          // this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.Sunny);
+          this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.valueOf('Sunny'));
           break;
         case WhiteBalance.Twilight:
-          this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.Twilight);
+          // this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.Twilight);
+          this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.valueOf('Twilight'));
           break;
         case WhiteBalance.WarmFluorescent:
-          this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.WarmFluorescent);
+          // this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.WarmFluorescent);
+          this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.valueOf('WarmFluorescent'));
           break;
         default:
-          this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.Auto);
+          // this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.Auto);
+          this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.valueOf('Auto'));
           break;
       }
     }
@@ -366,14 +374,18 @@ export class CameraPlus extends CameraPlusBase {
   }
 
   set cameraId(id: any) {
+    console.log('set cameraID() id:', id, io.github.triniwiz.fancycamera.CameraPosition.valueOf('BACK'));
     if (this._camera) {
       switch (id) {
         case CAMERA_FACING_FRONT:
-          this._camera.setPosition(io.github.triniwiz.fancycamera.CameraPosition.FRONT);
+          // this._camera.setPosition(io.github.triniwiz.fancycamera.CameraPosition.FRONT);
+          this._camera.setPosition(io.github.triniwiz.fancycamera.CameraPosition.valueOf('FRONT'));
           this._cameraId = CAMERA_FACING_FRONT;
           break;
         default:
-          this._camera.setPosition(io.github.triniwiz.fancycamera.CameraPosition.BACK);
+          // this._camera.setPosition(io.github.triniwiz.fancycamera.CameraPosition.BACK);
+          this._camera.setPosition(io.github.triniwiz.fancycamera.CameraPosition.valueOf('BACK'));
+
           this._cameraId = CAMERA_FACING_BACK;
           break;
       }
@@ -447,25 +459,32 @@ export class CameraPlus extends CameraPlusBase {
       this._camera.setSaveToGallery(!!options.saveToGallery);
       switch (options.quality) {
         case CameraVideoQuality.HIGHEST:
-          this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.HIGHEST);
+          //this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.HIGHEST);
+          this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('HIGHEST'));
           break;
         case CameraVideoQuality.LOWEST:
-          this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.LOWEST);
+          // this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.LOWEST);
+          this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('HIGHEST'));
           break;
         case CameraVideoQuality.MAX_2160P:
-          this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.MAX_2160P);
+          // this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.MAX_2160P);
+          this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('MAX_2160P'));
           break;
         case CameraVideoQuality.MAX_1080P:
-          this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.MAX_1080P);
+          // this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.MAX_1080P);
+          this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('MAX_1080P'));
           break;
         case CameraVideoQuality.MAX_720P:
-          this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.MAX_720P);
+          // this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.MAX_720P);
+          this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('MAX_720P'));
           break;
         case CameraVideoQuality.QVGA:
-          this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.QVGA);
+          // this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.QVGA);
+          this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('QVGA'));
           break;
         default:
-          this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.MAX_480P);
+          // this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.MAX_480P);
+          this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('MAX_480P'));
           break;
       }
       // -1 uses profile value;
@@ -510,9 +529,12 @@ export class CameraPlus extends CameraPlusBase {
   public getCurrentCamera(): 'front' | 'rear' {
     if (!this._camera) return 'rear';
     switch (this._camera.getPosition()) {
-      case io.github.triniwiz.fancycamera.CameraPosition.FRONT:
+      // case io.github.triniwiz.fancycamera.CameraPosition.FRONT:
+      case io.github.triniwiz.fancycamera.CameraPosition.valueOf('FRONT'):
+        console.log('getCurrentCamera() front');
         return 'front';
       default:
+        console.log('getCurrentCamera() rear');
         return 'rear';
     }
   }
@@ -552,7 +574,9 @@ export class CameraPlus extends CameraPlusBase {
    */
   public getFlashMode() {
     if (this.hasFlash()) {
-      if (this._camera.getFlashMode() !== io.github.triniwiz.fancycamera.CameraFlashMode.OFF) {
+      console.log('getFlashMode() ', this._camera.getFlashMode());
+      // if (this._camera.getFlashMode() !== io.github.triniwiz.fancycamera.CameraFlashMode.OFF) {
+      if (this._camera.getFlashMode() !== io.github.triniwiz.fancycamera.CameraFlashMode.valueOf('OFF')) {
         return 'on';
       }
       return 'off';
@@ -590,6 +614,7 @@ export class CameraPlus extends CameraPlusBase {
     this._flashBtn.setImageResource((android as any).R.color.transparent);
 
     const flashIcon = currentFlashMode === FLASH_MODE_OFF ? this.flashOffIcon : this.flashOnIcon;
+    console.log('flash icon is now ', flashIcon, 'off icon is ', this.flashOffIcon);
     const imageDrawable = CamHelpers.getImageDrawable(flashIcon);
     this._flashBtn.setImageResource(imageDrawable);
   }
