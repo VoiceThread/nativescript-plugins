@@ -3,6 +3,7 @@
 - [@voicethread/nativescript-custom-rotors](packages/nativescript-custom-rotors/README.md)
 - [@voicethread/nativescript-downloader](packages/nativescript-downloader/README.md)
 - [@voicethread/nativescript-filepicker](packages/nativescript-filepicker/README.md)
+- [@voicethread/rive](packages/rive/README.md)
 
 # How to use?
 

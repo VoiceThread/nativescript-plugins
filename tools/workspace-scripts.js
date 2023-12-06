@@ -96,6 +96,13 @@ module.exports = {
           description: '@voicethread/nativescript-audio-recorder: Build',
         },
       },
+      // @voicethread/rive
+      'nativescript-rive': {
+        build: {
+          script: 'nx run nativescript-rive:build.all',
+          description: '@voicethread/nativescript-rive: Build',
+        },
+      },
       'build-all': {
         script: 'nx run-many --target=build.all --all',
         description: 'Build all packages',
@@ -125,6 +132,10 @@ module.exports = {
       'nativescript-audio-recorder': {
         script: 'nx run nativescript-audio-recorder:focus',
         description: 'Focus on @voicethread/nativescript-audio-recorder',
+      },
+      'rive': {
+        script: 'nx run rive:focus',
+        description: 'Focus on @voicethread/rive',
       },
       reset: {
         script: 'nx g @voicethread/plugin-tools:focus-packages',
