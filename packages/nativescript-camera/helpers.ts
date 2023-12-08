@@ -233,14 +233,15 @@ export function createImageConfirmationDialog(file, retakeText = 'Retake', saveT
 
       const layout = new android.widget.LinearLayout(Application.android.context) as android.widget.LinearLayout;
       layout.setOrientation(1);
-
+      layout.setMinimumHeight(800);
+      layout.setMinimumWidth(600);
       // - Brad - working on OOM issue - use better Bitmap creation
       // https://developer.android.com/topic/performance/graphics/load-bitmap.html
       const bitmapFactoryOpts = new android.graphics.BitmapFactory.Options();
       bitmapFactoryOpts.inJustDecodeBounds = true;
       let picture = android.graphics.BitmapFactory.decodeFile(file, bitmapFactoryOpts);
-
-      bitmapFactoryOpts.inSampleSize = calculateInSampleSize(bitmapFactoryOpts, 300, 300);
+      bitmapFactoryOpts.inMutable = false;
+      bitmapFactoryOpts.inSampleSize = calculateInSampleSize(bitmapFactoryOpts, 600, 800);
 
       // decode with inSampleSize set now
       bitmapFactoryOpts.inJustDecodeBounds = false;
@@ -251,7 +252,8 @@ export function createImageConfirmationDialog(file, retakeText = 'Retake', saveT
 
       const scale = Application.android.context.getResources().getDisplayMetrics().density;
       img.setPadding(0, 10 * scale, 0, 0);
-
+      img.setMinimumHeight(800);
+      img.setMinimumWidth(600);
       img.setImageBitmap(picture);
       layout.addView(img);
       alert.setView(layout);

@@ -1,4 +1,5 @@
-/*Copyright (c) 2016, Andrew Walz.
+/* Copyright (c) 2016, Andrew Walz
+  2023 VoiceThread - Angel Dominguez
 
  Redistribution and use in source and binary forms, with or without modification,are permitted provided that the following conditions are met:
 
@@ -11,7 +12,8 @@
  THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
  BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. */
+ LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 
 import UIKit
 
@@ -142,44 +144,10 @@ import UIKit
 
   //UI Animations
   private func drawButton() {
-    // self.backgroundColor = UIColor.clear
-    // circleBorder = CALayer()
-    // circleBorder.backgroundColor = UIColor.clear.cgColor
-    // circleBorder.borderWidth = 6.0
-    // circleBorder.borderColor = UIColor.white.cgColor
-    // circleBorder.bounds = self.bounds
-    // circleBorder.position = CGPoint(x: self.bounds.midX, y: self.bounds.midY)
-    // circleBorder.cornerRadius = self.frame.size.width / 2
-    // layer.insertSublayer(circleBorder, at: 0)
     self.backgroundColor = UIColor.white.withAlphaComponent(0.8)
     self.layer.cornerRadius = self.bounds.width / 2
     self.transform = CGAffineTransform.identity
     self.layer.masksToBounds = true
-
-    // let xCord = self.bounds.width / 2
-    // let yCord = self.bounds.height / 2
-    // let center = CGPoint(x: xCord, y: yCord)
-    // bgPath = UIBezierPath(
-    //   arcCenter: center, radius: xCord + 15, startAngle: -.pi / 2, endAngle: .pi * 3 / 2,
-    //   clockwise: true)
-    // bgPath.close()
-
-    // shapeLayer = CAShapeLayer()
-    // shapeLayer.path = bgPath.cgPath
-    // shapeLayer.lineWidth = 8
-    // shapeLayer.fillColor = nil
-    // shapeLayer.strokeColor = UIColor.lightGray.withAlphaComponent(0.8).cgColor
-    // self.layer.addSublayer(shapeLayer)
-
-    // progressLayer = CAShapeLayer()
-    // progressLayer.path = bgPath.cgPath
-    // progressLayer.lineWidth = 8
-    // progressLayer.lineCap = CAShapeLayerLineCap.round
-    // progressLayer.fillColor = nil
-    // progressLayer.strokeColor = UIColor.white.cgColor
-    // progressLayer.strokeEnd = 0.0
-    // self.layer.addSublayer(progressLayer)
-
     NSLog("done drawButton()")
   }
 
