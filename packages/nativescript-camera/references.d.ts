@@ -1,3 +1,3 @@
 /// <reference path="../../references.d.ts" />
-/// <reference path="typings/fancycamera.d.ts" />
-/// <reference path="typings/objc!ASCamera.d.ts" />
+/// <reference path="typings/FancyCamera.d.ts" />
+/// <reference path="typings/SwiftyCam.d.ts" />

@@ -7,8 +7,10 @@
 
 android {
   compileSdkVersion 34
+  buildToolsVersion "33.0.2"
+
   defaultConfig {
-    minSdkVersion 21
+    minSdkVersion 21 //camera2 requires API21+
     targetSdkVersion 34
     generatedDensities = []
   }
