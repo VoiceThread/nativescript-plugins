@@ -46,9 +46,9 @@ abstract class CameraEventListenerUI : CameraEventListener {
                                 }
                                 onCameraVideoUI(file)
                             }
-                            WHAT_CAMERA_ANALYSIS_EVENT -> {
-                                onCameraAnalysisUI(msg.obj as ImageAnalysis)
-                            }
+                            // WHAT_CAMERA_ANALYSIS_EVENT -> {
+                            //     onCameraAnalysisUI(msg.obj as ImageAnalysis)
+                            // }
                             WHAT_CAMERA_CLOSE_EVENT -> onCameraCloseUI()
                             WHAT_CAMERA_OPEN_EVENT -> onCameraOpenUI()
                             WHAT_READY_EVENT -> onReadyUI()
@@ -147,20 +147,6 @@ abstract class CameraEventListenerUI : CameraEventListener {
         handler!!.sendMessage(message)
     }
 
-    override fun onCameraAnalysis(analysis: ImageAnalysis) {
-        if (Looper.myLooper() == Looper.getMainLooper()) {
-            onCameraAnalysisUI(analysis)
-            return
-        }
-        ensureHandler()
-        val message = handler!!.obtainMessage()
-        message.what = WHAT_CAMERA_ANALYSIS_EVENT
-        val bundle = Bundle()
-        message.data = bundle
-        message.obj = analysis
-        handler!!.sendMessage(message)
-    }
-
     override fun onCameraError(message: String, ex: Exception) {
         if (Looper.myLooper() == Looper.getMainLooper()) {
             onCameraErrorUI(message, ex)
@@ -188,7 +174,7 @@ abstract class CameraEventListenerUI : CameraEventListener {
 
     abstract fun onCameraVideoStartUI()
 
-    abstract fun onCameraAnalysisUI(analysis: ImageAnalysis)
+    // abstract fun onCameraAnalysisUI(analysis: ImageAnalysis)
 
     abstract fun onCameraErrorUI(message: String, ex: Exception)
 

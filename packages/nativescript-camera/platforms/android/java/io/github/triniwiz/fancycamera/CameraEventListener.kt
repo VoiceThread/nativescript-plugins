@@ -16,7 +16,6 @@ interface CameraEventListener {
     fun onCameraClose()
     fun onCameraPhoto(file: File?)
     fun onCameraVideo(file: File?)
-    fun onCameraAnalysis(analysis: ImageAnalysis)
     fun onCameraError(message: String, ex: Exception)
     fun onCameraVideoStart()
 }

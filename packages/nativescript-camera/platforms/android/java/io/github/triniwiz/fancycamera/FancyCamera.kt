@@ -94,27 +94,7 @@ class FancyCamera : FrameLayout {
         }
         set(value) {
             cameraView.whiteBalance = value
-        }
-    var detectorType: DetectorType
-        get() {
-            return cameraView.detectorType
-        }
-        set(value) {
-            cameraView.detectorType = value
-        }
-
-
-    fun setDetectorWithName(name: String?) {
-        if (name == null) {
-            detectorType = DetectorType.None
-            return
-        }
-
-        DetectorType.fromName(name)?.let { name ->
-            detectorType = name
-        }
-
-    }
+        }    
 
     var ratio: String
         get() {
@@ -242,100 +222,12 @@ class FancyCamera : FrameLayout {
         }
 
     private fun init(context: Context, attrs: AttributeSet?) {
-        cameraView = if (forceV1) {
-            Camera(context, attrs)
-        } else {
-            if (Build.VERSION.SDK_INT < 21) {
-                Camera(context, attrs)
-            } else {
-                Camera2(context, attrs)
-            }
-        }
+        if (Build.VERSION.SDK_INT < 21) {
+            throw Exception("This camera plugin is only supported on API 21+")            
+        }        
+        cameraView =  Camera2(context, attrs)
         addView(cameraView)
     }
-
-    fun setonSurfaceUpdateListener(callback: SurfaceUpdateListener?) {
-        cameraView.onSurfaceUpdateListener = callback
-    }
-
-    fun setOnBarcodeScanningListener(callback: ImageAnalysisCallback?) {
-        cameraView.setOnBarcodeScanningListener(callback)
-    }
-
-    fun setOnFacesDetectedListener(callback: ImageAnalysisCallback?) {
-        cameraView.setOnFacesDetectedListener(callback)
-    }
-
-    fun setOnImageLabelingListener(callback: ImageAnalysisCallback?) {
-        cameraView.setOnImageLabelingListener(callback)
-    }
-
-    fun setOnObjectDetectedListener(callback: ImageAnalysisCallback?) {
-        cameraView.setOnObjectDetectedListener(callback)
-    }
-
-    fun setOnPoseDetectedListener(callback: ImageAnalysisCallback?) {
-        cameraView.setOnPoseDetectedListener(callback)
-    }
-
-    fun setOnTextRecognitionListener(callback: ImageAnalysisCallback?) {
-        cameraView.setOnTextRecognitionListener(callback)
-    }
-
-    fun setOnSelfieSegmentationListener(callback: ImageAnalysisCallback?) {
-        cameraView.setOnSelfieSegmentationListener(callback)
-    }
-
-    var barcodeScannerOptions: Any?
-        get() {
-            return cameraView.barcodeScannerOptions
-        }
-        set(value) {
-            if (CameraBase.isBarcodeScanningSupported) {
-                cameraView.barcodeScannerOptions = value
-            }
-        }
-
-    var faceDetectionOptions: Any?
-        get() {
-            return cameraView.faceDetectionOptions
-        }
-        set(value) {
-            if (CameraBase.isFaceDetectionSupported) {
-                cameraView.faceDetectionOptions = value
-            }
-        }
-
-    var imageLabelingOptions: Any?
-        get() {
-            return cameraView.imageLabelingOptions
-        }
-        set(value) {
-            if (CameraBase.isImageLabelingSupported) {
-                cameraView.imageLabelingOptions = value
-            }
-        }
-
-    var objectDetectionOptions: Any?
-        get() {
-            return cameraView.objectDetectionOptions
-        }
-        set(value) {
-            if (CameraBase.isObjectDetectionSupported) {
-                cameraView.objectDetectionOptions = value
-            }
-        }
-
-
-    var selfieSegmentationOptions: Any?
-        get() {
-            return cameraView.selfieSegmentationOptions
-        }
-        set(value) {
-            if (CameraBase.isSelfieSegmentationSupported) {
-                cameraView.selfieSegmentationOptions = value
-            }
-        }
 
 
     var overridePhotoWidth: Int

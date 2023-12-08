@@ -20,7 +20,6 @@ import androidx.annotation.RequiresApi
 import androidx.camera.camera2.interop.Camera2CameraInfo
 import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.core.*
-import androidx.camera.core.ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.video.*
 import androidx.camera.video.VideoCapture
@@ -52,9 +51,7 @@ class Camera2 @JvmOverloads constructor(
     private var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
     private var cameraProvider: ProcessCameraProvider? = null
     private var imageCapture: ImageCapture? = null
-    private var imageAnalysis: androidx.camera.core.ImageAnalysis? = null
     private var videoCapture: VideoCapture<Recorder>? = null
-    private var imageAnalysisExecutor = Executors.newSingleThreadExecutor()
     private var imageCaptureExecutor = Executors.newSingleThreadExecutor()
     private var videoCaptureExecutor = Executors.newSingleThreadExecutor()
     private var camera: androidx.camera.core.Camera? = null
@@ -198,312 +195,6 @@ class Camera2 @JvmOverloads constructor(
 
     private var previewView: PreviewView = PreviewView(context, attrs, defStyleAttr)
 
-    @SuppressLint("UnsafeOptInUsageError")
-    private fun handleBarcodeScanning(proxy: ImageProxy): Task<Boolean>? {
-        if (!isBarcodeScanningSupported || !(detectorType == DetectorType.Barcode || detectorType == DetectorType.All)) {
-            return null
-        }
-        val image = proxy.image ?: return null
-        val rotationAngle = proxy.imageInfo.rotationDegrees
-        val InputImageClazz = Class.forName("com.google.mlkit.vision.common.InputImage")
-        val BarcodeScannerClazz =
-            Class.forName("io.github.triniwiz.fancycamera.barcodescanning.BarcodeScanner")
-        val barcodeScanner = BarcodeScannerClazz.newInstance()
-        val fromMediaImage =
-            InputImageClazz.getMethod("fromMediaImage", Image::class.java, Int::class.java)
-        val inputImage = fromMediaImage.invoke(null, image, rotationAngle)
-        val BarcodeScannerOptionsClazz =
-            Class.forName("io.github.triniwiz.fancycamera.barcodescanning.BarcodeScanner\$Options")
-        val processImageMethod = BarcodeScannerClazz.getDeclaredMethod(
-            "processImage",
-            InputImageClazz,
-            BarcodeScannerOptionsClazz
-        )
-        val returnTask = TaskCompletionSource<Boolean>()
-        val task = processImageMethod.invoke(
-            barcodeScanner,
-            inputImage,
-            barcodeScannerOptions!!
-        ) as Task<String>
-        task.addOnSuccessListener(imageAnalysisExecutor) {
-            if (it.isNotEmpty()) {
-                mainHandler.post {
-                    onBarcodeScanningListener?.onSuccess(it)
-                }
-            }
-        }.addOnFailureListener(imageAnalysisExecutor) {
-            mainHandler.post {
-                onBarcodeScanningListener?.onError(
-                    it.message
-                        ?: "Failed to complete face detection.", it
-                )
-            }
-        }.addOnCompleteListener(imageAnalysisExecutor) {
-            returnTask.setResult(true)
-        }
-        return returnTask.task
-    }
-
-    @SuppressLint("UnsafeOptInUsageError")
-    private fun handleFaceDetection(proxy: ImageProxy): Task<Boolean>? {
-        if (!isFaceDetectionSupported || !(detectorType == DetectorType.Face || detectorType == DetectorType.All)) {
-            return null
-        }
-        val image = proxy.image ?: return null
-        val rotationAngle = proxy.imageInfo.rotationDegrees
-        val InputImageClazz = Class.forName("com.google.mlkit.vision.common.InputImage")
-        val FaceDetectionClazz =
-            Class.forName("io.github.triniwiz.fancycamera.facedetection.FaceDetection")
-        val faceDetection = FaceDetectionClazz.newInstance()
-        val fromMediaImage =
-            InputImageClazz.getMethod("fromMediaImage", Image::class.java, Int::class.java)
-        val inputImage = fromMediaImage.invoke(null, image, rotationAngle)
-        val FaceDetectionOptionsClazz =
-            Class.forName("io.github.triniwiz.fancycamera.facedetection.FaceDetection\$Options")
-        val processImageMethod = FaceDetectionClazz.getDeclaredMethod(
-            "processImage",
-            InputImageClazz,
-            FaceDetectionOptionsClazz
-        )
-        val returnTask = TaskCompletionSource<Boolean>()
-        val task = processImageMethod.invoke(
-            faceDetection,
-            inputImage,
-            faceDetectionOptions!!
-        ) as Task<String>
-        task.addOnSuccessListener(imageAnalysisExecutor) {
-            if (it.isNotEmpty()) {
-                mainHandler.post {
-                    onFacesDetectedListener?.onSuccess(it)
-                }
-            }
-        }.addOnFailureListener(imageAnalysisExecutor) {
-            mainHandler.post {
-                onFacesDetectedListener?.onError(
-                    it.message
-                        ?: "Failed to complete face detection.", it
-                )
-            }
-        }.addOnCompleteListener(imageAnalysisExecutor) {
-            returnTask.setResult(true)
-        }
-        return returnTask.task
-    }
-
-    @SuppressLint("UnsafeOptInUsageError")
-    private fun handleImageLabeling(proxy: ImageProxy): Task<Boolean>? {
-        if (!isImageLabelingSupported || !(detectorType == DetectorType.Image || detectorType == DetectorType.All)) {
-            return null
-        }
-        val image = proxy.image ?: return null
-        val rotationAngle = proxy.imageInfo.rotationDegrees
-        val InputImageClazz = Class.forName("com.google.mlkit.vision.common.InputImage")
-        val ImageLabelingClazz =
-            Class.forName("io.github.triniwiz.fancycamera.imagelabeling.ImageLabeling")
-        val imageLabeling = ImageLabelingClazz.newInstance()
-        val fromMediaImage =
-            InputImageClazz.getMethod("fromMediaImage", Image::class.java, Int::class.java)
-        val inputImage = fromMediaImage.invoke(null, image, rotationAngle)
-        val ImageLabelingOptionsClazz =
-            Class.forName("io.github.triniwiz.fancycamera.imagelabeling.ImageLabeling\$Options")
-        val processImageMethod = ImageLabelingClazz.getDeclaredMethod(
-            "processImage",
-            InputImageClazz,
-            ImageLabelingOptionsClazz
-        )
-        val returnTask = TaskCompletionSource<Boolean>()
-        val task = processImageMethod.invoke(
-            imageLabeling,
-            inputImage,
-            imageLabelingOptions!!
-        ) as Task<String>
-        task.addOnSuccessListener(imageAnalysisExecutor) {
-            if (it.isNotEmpty()) {
-                mainHandler.post {
-                    onImageLabelingListener?.onSuccess(it)
-                }
-            }
-        }.addOnFailureListener(imageAnalysisExecutor) {
-            mainHandler.post {
-                onImageLabelingListener?.onError(
-                    it.message
-                        ?: "Failed to complete face detection.", it
-                )
-            }
-        }.addOnCompleteListener(imageAnalysisExecutor) {
-            returnTask.setResult(true)
-        }
-        return returnTask.task
-    }
-
-    @SuppressLint("UnsafeOptInUsageError")
-    private fun handleObjectDetection(proxy: ImageProxy): Task<Boolean>? {
-        if (!isObjectDetectionSupported || !(detectorType == DetectorType.Object || detectorType == DetectorType.All)) {
-            return null
-        }
-        val image = proxy.image ?: return null
-        val rotationAngle = proxy.imageInfo.rotationDegrees
-        val InputImageClazz = Class.forName("com.google.mlkit.vision.common.InputImage")
-        val ObjectDetectionClazz =
-            Class.forName("io.github.triniwiz.fancycamera.objectdetection.ObjectDetection")
-        val objectDetection = ObjectDetectionClazz.newInstance()
-        val fromMediaImage =
-            InputImageClazz.getMethod("fromMediaImage", Image::class.java, Int::class.java)
-        val inputImage = fromMediaImage.invoke(null, image, rotationAngle)
-        val ObjectDetectionOptionsClazz =
-            Class.forName("io.github.triniwiz.fancycamera.objectdetection.ObjectDetection\$Options")
-        val processImageMethod = ObjectDetectionClazz.getDeclaredMethod(
-            "processImage",
-            InputImageClazz,
-            ObjectDetectionOptionsClazz
-        )
-        val returnTask = TaskCompletionSource<Boolean>()
-        val task = processImageMethod.invoke(
-            objectDetection,
-            inputImage,
-            objectDetectionOptions!!
-        ) as Task<String>
-        task.addOnSuccessListener(imageAnalysisExecutor) {
-            if (it.isNotEmpty()) {
-                mainHandler.post {
-                    onObjectDetectedListener?.onSuccess(it)
-                }
-            }
-        }.addOnFailureListener(imageAnalysisExecutor) {
-            mainHandler.post {
-                onObjectDetectedListener?.onError(
-                    it.message
-                        ?: "Failed to complete face detection.", it
-                )
-            }
-        }.addOnCompleteListener(imageAnalysisExecutor) {
-            returnTask.setResult(true)
-        }
-        return returnTask.task
-    }
-
-    @SuppressLint("UnsafeOptInUsageError")
-    private fun handlePoseDetection(proxy: ImageProxy): Task<Boolean>? {
-        if (!isPoseDetectionSupported || !(detectorType == DetectorType.Pose || detectorType == DetectorType.All)) {
-            return null
-        }
-        val image = proxy.image ?: return null
-        val rotationAngle = proxy.imageInfo.rotationDegrees
-        val InputImageClazz = Class.forName("com.google.mlkit.vision.common.InputImage")
-        val PoseDetectionClazz =
-            Class.forName("io.github.triniwiz.fancycamera.posedetection.PoseDetection")
-        val poseDetection = PoseDetectionClazz.newInstance()
-        val fromMediaImage =
-            InputImageClazz.getMethod("fromMediaImage", Image::class.java, Int::class.java)
-        val inputImage = fromMediaImage.invoke(null, image, rotationAngle)
-        val processImageMethod =
-            PoseDetectionClazz.getDeclaredMethod("processImage", InputImageClazz)
-        val returnTask = TaskCompletionSource<Boolean>()
-        val task = processImageMethod.invoke(poseDetection, inputImage) as Task<String>
-        task.addOnSuccessListener(imageAnalysisExecutor) {
-            if (it.isNotEmpty()) {
-                mainHandler.post {
-                    onPoseDetectedListener?.onSuccess(it)
-                }
-            }
-        }.addOnFailureListener(imageAnalysisExecutor) {
-            mainHandler.post {
-                onPoseDetectedListener?.onError(
-                    it.message
-                        ?: "Failed to complete text recognition.", it
-                )
-            }
-        }.addOnCompleteListener(imageAnalysisExecutor) {
-            returnTask.setResult(true)
-        }
-        return returnTask.task
-    }
-
-    @SuppressLint("UnsafeOptInUsageError")
-    private fun handleTextRecognition(proxy: ImageProxy): Task<Boolean>? {
-        if (!isTextRecognitionSupported || !(detectorType == DetectorType.Text || detectorType == DetectorType.All)) {
-            return null
-        }
-        val image = proxy.image ?: return null
-        val rotationAngle = proxy.imageInfo.rotationDegrees
-        val InputImageClazz = Class.forName("com.google.mlkit.vision.common.InputImage")
-        val TextRecognitionClazz =
-            Class.forName("io.github.triniwiz.fancycamera.textrecognition.TextRecognition")
-        val textRecognition = TextRecognitionClazz.newInstance()
-        val fromMediaImage =
-            InputImageClazz.getMethod("fromMediaImage", Image::class.java, Int::class.java)
-        val inputImage = fromMediaImage.invoke(null, image, rotationAngle)
-        val processImageMethod =
-            TextRecognitionClazz.getDeclaredMethod("processImage", InputImageClazz)
-        val returnTask = TaskCompletionSource<Boolean>()
-        val task = processImageMethod.invoke(textRecognition, inputImage) as Task<String>
-        task.addOnSuccessListener(imageAnalysisExecutor) {
-            if (it.isNotEmpty()) {
-                mainHandler.post {
-                    onTextRecognitionListener?.onSuccess(it)
-                }
-            }
-        }.addOnFailureListener(imageAnalysisExecutor) {
-            mainHandler.post {
-                onTextRecognitionListener?.onError(
-                    it.message
-                        ?: "Failed to complete text recognition.", it
-                )
-            }
-        }.addOnCompleteListener(imageAnalysisExecutor) {
-            returnTask.setResult(true)
-        }
-        return returnTask.task
-    }
-
-    @SuppressLint("UnsafeOptInUsageError")
-    private fun handleSelfieSegmentation(proxy: ImageProxy): Task<Boolean>? {
-        if (!isSelfieSegmentationSupported || !(detectorType == DetectorType.Selfie || detectorType == DetectorType.All)) {
-            return null
-        }
-        val image = proxy.image ?: return null
-        val rotationAngle = proxy.imageInfo.rotationDegrees
-        val InputImageClazz = Class.forName("com.google.mlkit.vision.common.InputImage")
-        val SelfieSegmentationClazz =
-            Class.forName("io.github.triniwiz.fancycamera.selfiesegmentation.SelfieSegmentation")
-        val selfieSegmentation = SelfieSegmentationClazz.newInstance()
-        val fromMediaImage =
-            InputImageClazz.getMethod("fromMediaImage", Image::class.java, Int::class.java)
-        val inputImage = fromMediaImage.invoke(null, image, rotationAngle)
-
-        val SelfieSegmentationOptionsClazz =
-            Class.forName("io.github.triniwiz.fancycamera.selfiesegmentation.SelfieSegmentation\$Options")
-
-        val processImageMethod = SelfieSegmentationClazz.getDeclaredMethod(
-            "processImage",
-            InputImageClazz,
-            SelfieSegmentationOptionsClazz
-        )
-
-        val returnTask = TaskCompletionSource<Boolean>()
-        val task = processImageMethod.invoke(
-            selfieSegmentation,
-            inputImage,
-            selfieSegmentationOptions
-        ) as Task<Any>
-        task.addOnSuccessListener(imageAnalysisExecutor) {
-            if (it != null) {
-                mainHandler.post {
-                    onSelfieSegmentationListener?.onSuccess(it)
-                }
-            }
-        }.addOnFailureListener(imageAnalysisExecutor) {
-            mainHandler.post {
-                onSelfieSegmentationListener?.onError(
-                    it.message
-                        ?: "Failed to complete text recognition.", it
-                )
-            }
-        }.addOnCompleteListener(imageAnalysisExecutor) {
-            returnTask.setResult(true)
-        }
-        return returnTask.task
-    }
 
     private fun getFocusMeteringActions(): Int {
         var actions = FocusMeteringAction.FLAG_AF or FocusMeteringAction.FLAG_AE
@@ -597,9 +288,7 @@ class Camera2 @JvmOverloads constructor(
             handleAutoFocus()
         }
         addView(previewView)
-        detectSupport()
-        initOptions()
-
+        
         // TODO: Bind this to the view's onCreate method
         cameraProviderFuture = ProcessCameraProvider.getInstance(context)
         cameraProviderFuture.addListener({
@@ -652,38 +341,6 @@ class Camera2 @JvmOverloads constructor(
     override var maxVideoFrameRate: Int = -1
     override var disableHEVC: Boolean = false
 
-
-    override var detectorType: DetectorType = DetectorType.None
-        @SuppressLint("UnsafeOptInUsageError")
-        set(value) {
-            field = value
-            if (!isRecording) {
-                if (imageAnalysis == null) {
-                    setUpAnalysis()
-                }
-                if (value == DetectorType.None) {
-                    if (cameraProvider?.isBound(imageAnalysis!!) == true) {
-                        cameraProvider?.unbind(imageAnalysis!!)
-                    }
-                } else {
-                    videoCapture?.let {
-                        if (cameraProvider?.isBound(it) == true) {
-                            cameraProvider?.unbind(it)
-                        }
-                    }
-
-                    if (cameraProvider?.isBound(imageAnalysis!!) == false) {
-                        camera = cameraProvider?.bindToLifecycle(
-                            context as LifecycleOwner,
-                            selectorFromPosition(),
-                            imageAnalysis
-                        )
-                        handleAutoFocus()
-                    }
-                }
-            }
-        }
-
     override val numberOfCameras: Int
         get() {
             if (cameraManager == null) {
@@ -734,7 +391,7 @@ class Camera2 @JvmOverloads constructor(
         }
         imageCapture?.targetRotation = rotation
         videoCapture?.targetRotation = rotation
-        imageAnalysis?.targetRotation = rotation
+        // imageAnalysis?.targetRotation = rotation
     }
 
     private fun getDeviceRotation(): Int {
@@ -808,83 +465,6 @@ class Camera2 @JvmOverloads constructor(
         }
         set(value) {}
 
-
-    @SuppressLint("UnsafeOptInUsageError")
-    private fun setUpAnalysis() {
-        val builder = androidx.camera.core.ImageAnalysis.Builder()
-            .apply {
-                if (getDeviceRotation() > -1) {
-                    setTargetRotation(getDeviceRotation())
-                }
-                setBackpressureStrategy(STRATEGY_KEEP_ONLY_LATEST)
-            }
-        val extender = Camera2Interop.Extender(builder)
-        imageAnalysis = builder.build()
-        imageAnalysis?.setAnalyzer(imageAnalysisExecutor) {
-
-            if (it.image != null && currentFrame != processEveryNthFrame) {
-                incrementCurrentFrame()
-                return@setAnalyzer
-            }
-
-            if (retrieveLatestImage) {
-                latestImage = BitmapUtils.getBitmap(it)
-            }
-
-            if (it.image != null) {
-                val tasks = mutableListOf<Task<*>>()
-                //BarcodeScanning
-                val barcodeTask = handleBarcodeScanning(it)
-                if (barcodeTask != null) {
-                    tasks.add(barcodeTask)
-                }
-
-                // FaceDetection
-                val faceTask = handleFaceDetection(it)
-                if (faceTask != null) {
-                    tasks.add(faceTask)
-                }
-
-                //PoseDetection
-                val poseTask = handlePoseDetection(it)
-                if (poseTask != null) {
-                    tasks.add(poseTask)
-                }
-
-                //ImageLabeling
-                val imageTask = handleImageLabeling(it)
-                if (imageTask != null) {
-                    tasks.add(imageTask)
-                }
-
-                //ObjectDetection
-                val objectTask = handleObjectDetection(it)
-                if (objectTask != null) {
-                    tasks.add(objectTask)
-                }
-
-                // TextRecognition
-                val textTask = handleTextRecognition(it)
-                if (textTask != null) {
-                    tasks.add(textTask)
-                }
-
-                // SelfieSegmentation
-                val selfieTask = handleSelfieSegmentation(it)
-                if (selfieTask != null) {
-                    tasks.add(selfieTask)
-                }
-
-                if (tasks.isNotEmpty()) {
-                    val proxy = it
-                    Tasks.whenAllComplete(tasks).addOnCompleteListener {
-                        proxy.close()
-                        resetCurrentFrame()
-                    }
-                }
-            }
-        }
-    }
 
     private var cachedPictureRatioSizeMap: MutableMap<String, MutableList<Size>> = HashMap()
     private var cachedPreviewRatioSizeMap: MutableMap<String, MutableList<Size>> = HashMap()
@@ -1025,23 +605,12 @@ class Camera2 @JvmOverloads constructor(
 
 
 
-        camera = if (detectorType != DetectorType.None && isMLSupported) {
-            if (imageAnalysis == null) {
-                setUpAnalysis()
-            }
-            cameraProvider?.bindToLifecycle(
-                context as LifecycleOwner,
-                selectorFromPosition(),
-                preview,
-                imageAnalysis
-            )
-        } else {
+        camera =
             cameraProvider?.bindToLifecycle(
                 context as LifecycleOwner,
                 selectorFromPosition(),
                 preview
             )
-        }
         if (pendingAutoFocus) {
             handleAutoFocus()
         }
@@ -1098,16 +667,11 @@ class Camera2 @JvmOverloads constructor(
 
         videoCapture = null
         imageCapture = null
-        imageAnalysis?.clearAnalyzer()
-        imageAnalysis = null
         camera = null
         preview?.setSurfaceProvider(null)
         preview = null
 
-        if (detectorType != DetectorType.None) {
-            setUpAnalysis()
-        }
-
+        
         initPreview()
 
         initVideoCapture()
@@ -1771,7 +1335,7 @@ class Camera2 @JvmOverloads constructor(
             preview = null
             imageCapture = null
             videoCapture = null
-            imageAnalysis = null
+            // imageAnalysis = null
             camera = null
         }
         deInitListener()

@@ -83,7 +83,7 @@ export class CameraPlus extends CameraPlusBase {
     this.flashOnIcon = this.flashOnIcon ? this.flashOnIcon : 'ic_flash_on_white';
 
     this.flashOffIcon = this.flashOffIcon ? this.flashOffIcon : 'ic_flash_off_white';
-    console.log('this.flashOffIcon', this.flashOffIcon);
+
     this.toggleCameraIcon = this.toggleCameraIcon ? this.toggleCameraIcon : 'ic_switch_camera_white';
 
     this.takePicIcon = this.takePicIcon ? this.takePicIcon : 'ic_camera_alt_white';
@@ -353,7 +353,6 @@ export class CameraPlus extends CameraPlusBase {
           owner.isRecording = false;
         }
       },
-      onCameraAnalysisUI(imageAnalysis: io.github.triniwiz.fancycamera.ImageAnalysis): void {},
     });
     const listener = new listenerImpl();
     listener.owner = new WeakRef(this);
@@ -378,14 +377,11 @@ export class CameraPlus extends CameraPlusBase {
     if (this._camera) {
       switch (id) {
         case CAMERA_FACING_FRONT:
-          // this._camera.setPosition(io.github.triniwiz.fancycamera.CameraPosition.FRONT);
           this._camera.setPosition(io.github.triniwiz.fancycamera.CameraPosition.valueOf('FRONT'));
           this._cameraId = CAMERA_FACING_FRONT;
           break;
         default:
-          // this._camera.setPosition(io.github.triniwiz.fancycamera.CameraPosition.BACK);
           this._camera.setPosition(io.github.triniwiz.fancycamera.CameraPosition.valueOf('BACK'));
-
           this._cameraId = CAMERA_FACING_BACK;
           break;
       }
@@ -531,10 +527,10 @@ export class CameraPlus extends CameraPlusBase {
     switch (this._camera.getPosition()) {
       // case io.github.triniwiz.fancycamera.CameraPosition.FRONT:
       case io.github.triniwiz.fancycamera.CameraPosition.valueOf('FRONT'):
-        console.log('getCurrentCamera() front');
+        // console.log('getCurrentCamera() front');
         return 'front';
       default:
-        console.log('getCurrentCamera() rear');
+        // console.log('getCurrentCamera() rear');
         return 'rear';
     }
   }
