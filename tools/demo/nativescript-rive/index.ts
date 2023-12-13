@@ -1,6 +1,7 @@
 import { DemoSharedBase } from '../utils';
+import {} from '@voicethread/nativescript-rive';
 
-export class DemoNativescriptSharedRive extends DemoSharedBase {
+export class DemoSharedNativescriptRive extends DemoSharedBase {
   testIt() {
     console.log('test rive!');
   }

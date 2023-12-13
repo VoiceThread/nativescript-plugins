@@ -1,16 +1,18 @@
-<Page xmlns="http://schemas.nativescript.org/tns.xsd" xmlns:rive="@voicethread/nativescript-rive" navigatingTo="navigatingTo" class="page">
+<Page xmlns="http://schemas.nativescript.org/tns.xsd" navigatingTo="navigatingTo" class="page"
+ xmlns:rive="@voicethread/nativescript-rive" 
+ >
     <Page.actionBar>
         <ActionBar title="rive" icon="" class="action-bar">
         </ActionBar>
     </Page.actionBar>
     <StackLayout class="p-20">
         <ScrollView class="h-full">
-          <StackLayout backgroundColor="red">
-                <!-- src="~/assets/rive/compass.riv"  -->
-            <!-- <rive:RiveView
-            src="https://cdn.rive.app/animations/vehicles.riv"
-            autoPlay="true"
-                width="200" height="200"/> -->
+          <StackLayout backgroundColor="teal">
+            <!-- src="https://cdn.rive.app/animations/vehicles.riv" -->
+            <!-- autoPlay="true" -->
+            <rive:RiveView
+                src="~/assets/rive/compass.riv" 
+                width="200" height="200"/>
 
           </StackLayout>
         </ScrollView>

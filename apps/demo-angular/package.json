@@ -7,7 +7,7 @@
     "@voicethread/nativescript-downloader": "file:../../dist/packages/nativescript-downloader",
     "@voicethread/nativescript-audio-player": "file:../../dist/packages/nativescript-audio-player",
     "@voicethread/nativescript-audio-recorder": "file:../../dist/packages/nativescript-audio-recorder",
-    "@voicethread/rive": "file:../../dist/packages/rive"
+    "@voicethread/nativescript-rive": "file:../../dist/packages/nativescript-rive"
   },
   "devDependencies": {
     "@nativescript/android": "~8.4.0",

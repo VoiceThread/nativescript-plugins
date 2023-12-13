@@ -44,8 +44,8 @@
       "@voicethread/nativescript-audio-recorder": [
         "packages/nativescript-audio-recorder/index.d.ts"
       ],
-      "@voicethread/rive": [
-        "packages/rive/index.d.ts"
+      "@voicethread/nativescript-rive": [
+        "packages/nativescript-rive/index.d.ts"
       ]
     }
   },
