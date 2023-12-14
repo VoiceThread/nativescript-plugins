@@ -53,6 +53,8 @@ export class CameraPlus extends CameraPlusBase {
   @GetSetProperty()
   public takePicIcon: string = 'ic_camera_white';
   @GetSetProperty()
+  public takeVideoIcon: string = 'ic_video_white';
+  @GetSetProperty()
   public insetButtons: boolean = false;
   @GetSetProperty()
   public insetButtonsPercent: number = 0.1;
@@ -707,11 +709,34 @@ export class CameraPlus extends CameraPlusBase {
   }
 
   private _initTakePicButton() {
-    this._takePicBtn = CamHelpers.createImageButton();
-    const takePicDrawable = CamHelpers.getImageDrawable(this.takePicIcon);
-    this._takePicBtn.setImageResource(takePicDrawable); // set the icon
-    const shape = CamHelpers.createTransparentCircleDrawable();
-    this._takePicBtn.setBackgroundDrawable(shape); // set the transparent background
+    // this._takePicBtn = CamHelpers.createImageButton();
+
+    if (this.enableVideo) {
+      //video mode show a circle icon
+
+      this._takePicBtn = new android.widget.ImageButton(Application.android.context) as android.widget.ImageButton;
+      // this._takePicBtn.setPadding(24, 24, 24, 24);
+      this._takePicBtn.setMaxHeight(48);
+      this._takePicBtn.setMaxWidth(48);
+      const takePicDrawable = CamHelpers.getImageDrawable(this.takeVideoIcon);
+      this._takePicBtn.setImageResource(takePicDrawable); // set the icon
+      // this._takePicBtn.setBackgroundDrawable(shape); // set the transparent background
+      const shape = new android.graphics.drawable.GradientDrawable();
+      shape.setColor(0x99000000);
+      shape.setCornerRadius(96);
+      shape.setAlpha(0);
+      this._takePicBtn.setBackgroundDrawable(shape);
+    } else {
+      //if we're in camera mode, show the takePhoto icon
+      this._takePicBtn = CamHelpers.createImageButton();
+      const takePicDrawable = CamHelpers.getImageDrawable(this.takePicIcon);
+      this._takePicBtn.setImageResource(takePicDrawable); // set the icon
+      const shape = CamHelpers.createTransparentCircleDrawable();
+      this._takePicBtn.setBackgroundDrawable(shape); // set the transparent background
+    }
+
+    // const shape = CamHelpers.createTransparentCircleDrawable();
+    // this._takePicBtn.setBackgroundDrawable(shape); // set the transparent background
     const ref = new WeakRef(this);
     this._takePicBtn.setOnClickListener(
       new android.view.View.OnClickListener({
