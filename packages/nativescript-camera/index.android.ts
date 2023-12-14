@@ -60,6 +60,10 @@ export class CameraPlus extends CameraPlusBase {
   public enableVideo: boolean;
   @GetSetProperty()
   public isRecording: boolean;
+  @GetSetProperty()
+  public disablePhoto: boolean;
+  // private _enableVideo: boolean;
+  // private _disablePhoto: boolean;
   public events: ICameraPlusEvents;
   private _nativeView;
   private _owner: WeakRef<any>;
@@ -98,6 +102,10 @@ export class CameraPlus extends CameraPlusBase {
 
   private isVideoEnabled() {
     return this.enableVideo === true || CameraPlus.enableVideo;
+  }
+
+  private isPhotoDisabled() {
+    return this.disablePhoto === true || CameraPlus.disablePhoto;
   }
 
   // @ts-ignore
@@ -358,6 +366,13 @@ export class CameraPlus extends CameraPlusBase {
     listener.owner = new WeakRef(this);
     this._camera.setListener(listener);
     this.cameraId = this._cameraId;
+    CLog('initNativeView()');
+    this.enableVideo = this.isVideoEnabled();
+    CLog('video enabled:', this.isVideoEnabled());
+    this.disablePhoto = this.isPhotoDisabled();
+    CLog('photo disabled:', this.isPhotoDisabled());
+    CLog('CameraPlus.enableVideo', CameraPlus.enableVideo);
+    CLog('CameraPlus.disablePhoto', CameraPlus.disablePhoto);
   }
 
   disposeNativeView() {
@@ -701,19 +716,37 @@ export class CameraPlus extends CameraPlusBase {
     this._takePicBtn.setOnClickListener(
       new android.view.View.OnClickListener({
         onClick: args => {
-          CLog(`The default Take Picture event will attempt to save the image to gallery.`);
-          const opts = {
-            saveToGallery: true,
-            confirm: this.confirmPhotos ? true : false,
-            autoSquareCrop: this.autoSquareCrop,
-          };
-          const owner = ref.get();
-          if (owner) {
-            owner.takePicture(opts);
+          CLog(`_initTakePicButton OnClickListener()`);
+          if (this.enableVideo && this.disablePhoto) {
+            if (this.isRecording) {
+              console.log('Recording in progress, stopping recording');
+              this.stopRecording();
+              // this._cameraBtn.changeToCircle();
+            } else {
+              console.log('Video enabled, starting recording');
+              this.record();
+              // this._cameraBtn.changeToSquare();
+            }
+          } else if (!this.disablePhoto) {
+            console.log('Photo enabled, taking pic');
+            // this.takePicture();
+            const opts = {
+              saveToGallery: this.saveToGallery,
+              confirm: this.confirmPhotos,
+              autoSquareCrop: this.autoSquareCrop,
+            };
+            const owner = ref.get();
+            if (owner) {
+              console.log('_initTakePicButton() calling takePicture with options', opts);
+              owner.takePicture(opts);
+            }
+          } else {
+            console.warn('neither photo or video enabled, ignoring tap');
           }
         },
       })
     );
+
     const takePicParams = new android.widget.RelativeLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
     if (this.insetButtons === true) {
       const layoutHeight = this._nativeView.getHeight();
