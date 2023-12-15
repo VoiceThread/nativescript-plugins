@@ -55,6 +55,8 @@ export class CameraPlus extends CameraPlusBase {
   @GetSetProperty()
   public takeVideoIcon: string = 'ic_video_white';
   @GetSetProperty()
+  public stopVideoIcon: string = 'ic_video_red';
+  @GetSetProperty()
   public insetButtons: boolean = false;
   @GetSetProperty()
   public insetButtonsPercent: number = 0.1;
@@ -742,14 +744,18 @@ export class CameraPlus extends CameraPlusBase {
       new android.view.View.OnClickListener({
         onClick: args => {
           CLog(`_initTakePicButton OnClickListener()`);
-          if (this.enableVideo && this.disablePhoto) {
+          if (this.enableVideo) {
             if (this.isRecording) {
               console.log('Recording in progress, stopping recording');
               this.stopRecording();
               // this._cameraBtn.changeToCircle();
+              const takePicDrawable = CamHelpers.getImageDrawable(this.takeVideoIcon);
+              this._takePicBtn.setImageResource(takePicDrawable); // set the icon
             } else {
               console.log('Video enabled, starting recording');
               this.record();
+              const takePicDrawable = CamHelpers.getImageDrawable(this.stopVideoIcon);
+              this._takePicBtn.setImageResource(takePicDrawable); // set the icon
               // this._cameraBtn.changeToSquare();
             }
           } else if (!this.disablePhoto) {
