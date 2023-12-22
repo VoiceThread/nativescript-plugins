@@ -211,74 +211,76 @@ class Camera2 @JvmOverloads constructor(
     }
 
     private fun setupGestureListeners() {
-//        val listener =
-//            object : ScaleGestureDetector.SimpleOnScaleGestureListener(), GestureDetector.OnGestureListener {
-//                override fun onScale(detector: ScaleGestureDetector): Boolean {
-//                    camera?.cameraInfo?.zoomState?.value?.let { zoomState ->
-//                        camera?.cameraControl?.setZoomRatio(
-//                            detector.scaleFactor * zoomState.zoomRatio
-//                        )
-//                        onZoomChange()
-//                    }
-//                    return true
-//                }
-//
-//                override fun onDown(p0: MotionEvent): Boolean = false
-//
-//                override fun onShowPress(p0: MotionEvent) = Unit
-//
-//                override fun onSingleTapUp(event: MotionEvent): Boolean {
-//                    val factory: MeteringPointFactory = previewView.meteringPointFactory
-//                    val autoFocusPoint = factory.createPoint(event.x, event.y)
-//                    try {
-//                        camera?.cameraControl?.cancelFocusAndMetering()
-//                        camera?.cameraControl?.startFocusAndMetering(
-//                            FocusMeteringAction.Builder(
-//                                autoFocusPoint,
-//                                getFocusMeteringActions()
-//                            ).apply {
-//                                //focus only when the user tap the preview
-//                                disableAutoCancel()
-//                            }.build()
-//                        )
-//                        cancelAndDisposeFocusTimer()
-//                        autoFocusTimer = Timer("autoFocusTimer")
-//                        autoFocusTimer?.schedule(object : TimerTask() {
-//                            override fun run() {
-//                                handleAutoFocus()
-//                            }
-//                        }, 5000)
-//                    } catch (e: CameraInfoUnavailableException) {
-//                        Log.d("ERROR", "cannot access camera", e)
-//                    }
-//                    return true
-//                }
-//
-////                override fun onScroll(
-////                    p0: MotionEvent,
-////                    p1: MotionEvent,
-////                    p2: Float,
-////                    p3: Float
-////                ): Boolean  = false
-//
-//                override fun onLongPress(p0: MotionEvent) = Unit
-//
-////                override fun onFling(
-////                    p0: MotionEvent,
-////                    p1: MotionEvent,
-////                    p2: Float,
-////                    p3: Float
-////                ): Boolean = false
-//
-//            }
-//        val scaleGestureDetector = ScaleGestureDetector(context, listener)
-//        val gestureDetectorCompat = GestureDetectorCompat(context, listener)
-//        previewView.setOnTouchListener { view, event ->
-//            if (enablePinchZoom) scaleGestureDetector.onTouchEvent(event)
-//            if (enableTapToFocus) gestureDetectorCompat.onTouchEvent(event)
-//            view.performClick()
-//            true
-//        }
+       val listener =
+           object : ScaleGestureDetector.SimpleOnScaleGestureListener(), GestureDetector.OnGestureListener {
+               override fun onScale(detector: ScaleGestureDetector): Boolean {
+                Log.d("co.fitcom.videorecorder","onScale: "+detector.scaleFactor)
+                   camera?.cameraInfo?.zoomState?.value?.let { zoomState ->
+                       camera?.cameraControl?.setZoomRatio(
+                           detector.scaleFactor * zoomState.zoomRatio
+                       )
+                       onZoomChange()
+                   }
+                   return true
+               }
+
+               override fun onDown(p0: MotionEvent): Boolean = false
+
+               override fun onShowPress(p0: MotionEvent) = Unit
+
+               override fun onSingleTapUp(event: MotionEvent): Boolean {
+                   val factory: MeteringPointFactory = previewView.meteringPointFactory
+                   val autoFocusPoint = factory.createPoint(event.x, event.y)
+                   try {
+                    Log.d("onSingleTapUp", "Tap at "+event.x+",  "+  event.y)
+                       camera?.cameraControl?.cancelFocusAndMetering()
+                       camera?.cameraControl?.startFocusAndMetering(
+                           FocusMeteringAction.Builder(
+                               autoFocusPoint,
+                               getFocusMeteringActions()
+                           ).apply {
+                               //focus only when the user tap the preview
+                               disableAutoCancel()
+                           }.build()
+                       )
+                       cancelAndDisposeFocusTimer()
+                       autoFocusTimer = Timer("autoFocusTimer")
+                       autoFocusTimer?.schedule(object : TimerTask() {
+                           override fun run() {
+                               handleAutoFocus()
+                           }
+                       }, 5000)
+                   } catch (e: CameraInfoUnavailableException) {
+                       Log.d("ERROR", "cannot access camera", e)
+                   }
+                   return true
+               }
+
+               override fun onScroll(
+                   p0: MotionEvent,
+                   p1: MotionEvent,
+                   p2: Float,
+                   p3: Float
+               ): Boolean  = false
+
+               override fun onLongPress(p0: MotionEvent) = Unit
+
+               override fun onFling(
+                   p0: MotionEvent,
+                   p1: MotionEvent,
+                   p2: Float,
+                   p3: Float
+               ): Boolean = false
+
+           }
+       val scaleGestureDetector = ScaleGestureDetector(context, listener)
+       val gestureDetectorCompat = GestureDetectorCompat(context, listener)
+       previewView.setOnTouchListener { view, event ->
+           if (enablePinchZoom) scaleGestureDetector.onTouchEvent(event)
+           if (enableTapToFocus) gestureDetectorCompat.onTouchEvent(event)
+           view.performClick()
+           true
+       }
     }
 
 
@@ -334,7 +336,7 @@ class Camera2 @JvmOverloads constructor(
 
     override var allowExifRotation: Boolean = false
     override var autoSquareCrop: Boolean = false
-    override var autoFocus: Boolean = false
+    override var autoFocus: Boolean = true
     override var saveToGallery: Boolean = false
     override var maxAudioBitRate: Int = -1
     override var maxVideoBitrate: Int = -1
