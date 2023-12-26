@@ -215,8 +215,7 @@ class Camera2 @JvmOverloads constructor(
     }
 
     private fun setupGestureListeners() {
-       val listener =
-           object : ScaleGestureDetector.SimpleOnScaleGestureListener(), GestureDetector.OnGestureListener {
+       val listener = object : ScaleGestureDetector.SimpleOnScaleGestureListener(), GestureDetector.OnGestureListener {
                override fun onScale(detector: ScaleGestureDetector): Boolean {
                 Log.d("org.nativescript.plugindemo","onScale detector.scaleFactor: "+detector.scaleFactor)
                    camera?.cameraInfo?.zoomState?.value?.let { zoomState ->
@@ -259,22 +258,9 @@ class Camera2 @JvmOverloads constructor(
                    }
                    return true
                }
-
-               override fun onScroll(
-                   p0: MotionEvent,
-                   p1: MotionEvent,
-                   p2: Float,
-                   p3: Float
-               ): Boolean  = false
-
-               override fun onLongPress(p0: MotionEvent) = Unit
-
-               override fun onFling(
-                   p0: MotionEvent,
-                   p1: MotionEvent,
-                   p2: Float,
-                   p3: Float
-               ): Boolean = false
+               override fun onScroll(p0: MotionEvent?, p1: MotionEvent, p2: Float, p3: Float) = false;
+               override fun onFling(p0: MotionEvent?, p1: MotionEvent, p2: Float, p3: Float) = false;
+               override fun onLongPress(p0: MotionEvent) = Unit            
 
            }
        val scaleGestureDetector = ScaleGestureDetector(context, listener)
@@ -867,7 +853,7 @@ class Camera2 @JvmOverloads constructor(
                                 }
                             }
                         } else {
-                            if (isForceStopping) {
+                            /*if (isForceStopping) {
                                 if (file != null) {
                                     file!!.delete()
                                 }
@@ -877,7 +863,7 @@ class Camera2 @JvmOverloads constructor(
                                 synchronized(mLock) {
                                     isForceStopping = false
                                 }
-                            } else {
+                            } else {*/
                                 if (saveToGallery && hasStoragePermission()) {
                                     val values = ContentValues().apply {
                                         put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
@@ -932,7 +918,7 @@ class Camera2 @JvmOverloads constructor(
                                 } else {
                                     listener?.onCameraVideo(file)
                                 }
-                            }
+                            //}
                         }
                     }
                 }
