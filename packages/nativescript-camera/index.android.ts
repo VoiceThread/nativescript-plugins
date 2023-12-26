@@ -130,6 +130,7 @@ export class CameraPlus extends CameraPlusBase {
   set zoom(value: number) {
     if (this._camera) {
       this._camera.setZoom(value);
+      CLog('set zoom', value);
     }
   }
 
@@ -282,6 +283,8 @@ export class CameraPlus extends CameraPlusBase {
           if (owner.isRecording) {
             owner.isRecording = false;
           }
+        } else {
+          console.error('!!! No owner reference found when handling onCameraVideoUI event');
         }
       },
       async onCameraPhotoUI(event?: java.io.File) {
@@ -355,6 +358,8 @@ export class CameraPlus extends CameraPlusBase {
         if (owner) {
           owner.isRecording = true;
           owner.sendEvent(CameraPlus.videoRecordingStartedEvent, owner.camera);
+        } else {
+          console.error('!!! No owner reference found when handling onCameraVideoUI event');
         }
       },
       onCameraVideoUI(event?: java.io.File): void {
@@ -363,6 +368,8 @@ export class CameraPlus extends CameraPlusBase {
           owner.sendEvent(CameraPlus.videoRecordingReadyEvent, event.getAbsolutePath());
           CLog(`Recording complete`);
           owner.isRecording = false;
+        } else {
+          console.error('!!! No owner reference found when handling onCameraVideoUI event');
         }
       },
     });
@@ -428,6 +435,7 @@ export class CameraPlus extends CameraPlusBase {
 
   private releaseCamera() {
     if (this._camera) {
+      console.log('releaseCamera()');
       this._camera.release();
     }
   }
@@ -468,7 +476,12 @@ export class CameraPlus extends CameraPlusBase {
   }
 
   public async record(options?: IVideoOptions) {
-    options = options || {};
+    options = options || {
+      disableHEVC: true,
+      saveToGallery: false,
+      quality: CameraVideoQuality.MAX_720P,
+    };
+    console.log('android.ts record()', options);
     if (this._camera) {
       this._camera.setDisableHEVC(!!options.disableHEVC);
       this._camera.setSaveToGallery(!!options.saveToGallery);
@@ -499,7 +512,7 @@ export class CameraPlus extends CameraPlusBase {
           break;
         default:
           // this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.MAX_480P);
-          this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('MAX_480P'));
+          this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('MAX_720P'));
           break;
       }
       // -1 uses profile value;
@@ -524,6 +537,8 @@ export class CameraPlus extends CameraPlusBase {
     if (this._camera) {
       CLog(`*** stopping mediaRecorder ***`);
       this._camera.stopRecording();
+    } else {
+      console.error("NO camera instance attached, can't stop recording!");
     }
   }
 
@@ -744,10 +759,11 @@ export class CameraPlus extends CameraPlusBase {
       new android.view.View.OnClickListener({
         onClick: args => {
           CLog(`_initTakePicButton OnClickListener()`);
+          const owner = ref.get();
           if (this.enableVideo) {
-            if (this.isRecording) {
+            if (owner.isRecording) {
               console.log('Recording in progress, stopping recording');
-              this.stopRecording();
+              this.stop();
               // this._cameraBtn.changeToCircle();
               const takePicDrawable = CamHelpers.getImageDrawable(this.takeVideoIcon);
               this._takePicBtn.setImageResource(takePicDrawable); // set the icon
@@ -766,7 +782,7 @@ export class CameraPlus extends CameraPlusBase {
               confirm: this.confirmPhotos,
               autoSquareCrop: this.autoSquareCrop,
             };
-            const owner = ref.get();
+
             if (owner) {
               console.log('_initTakePicButton() calling takePicture with options', opts);
               owner.takePicture(opts);

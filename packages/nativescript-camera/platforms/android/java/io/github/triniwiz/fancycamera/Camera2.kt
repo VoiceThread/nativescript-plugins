@@ -126,6 +126,8 @@ class Camera2 @JvmOverloads constructor(
             storedZoomRatio = value
             storedZoom = -1f
             handleZoom()
+            Log.d("org.nativescript.plugindemo", "Camera2.kt: zoomRatio set: " + value )
+            
         }
 
     var storedZoom: Float = -1.0F
@@ -149,6 +151,8 @@ class Camera2 @JvmOverloads constructor(
             }
             storedZoomRatio = -1f
             handleZoom()
+            Log.d("org.nativescript.plugindemo", "Camera2.kt: zoom set: " + value )
+            Log.d("org.nativescript.plugindemo", "Camera2.kt: storedZoom set: " + storedZoom )
         }
     override var whiteBalance: WhiteBalance = WhiteBalance.Auto
         set(value) {
@@ -214,7 +218,7 @@ class Camera2 @JvmOverloads constructor(
        val listener =
            object : ScaleGestureDetector.SimpleOnScaleGestureListener(), GestureDetector.OnGestureListener {
                override fun onScale(detector: ScaleGestureDetector): Boolean {
-                Log.d("co.fitcom.videorecorder","onScale: "+detector.scaleFactor)
+                Log.d("org.nativescript.plugindemo","onScale detector.scaleFactor: "+detector.scaleFactor)
                    camera?.cameraInfo?.zoomState?.value?.let { zoomState ->
                        camera?.cameraControl?.setZoomRatio(
                            detector.scaleFactor * zoomState.zoomRatio
@@ -232,7 +236,7 @@ class Camera2 @JvmOverloads constructor(
                    val factory: MeteringPointFactory = previewView.meteringPointFactory
                    val autoFocusPoint = factory.createPoint(event.x, event.y)
                    try {
-                    Log.d("onSingleTapUp", "Tap at "+event.x+",  "+  event.y)
+                    Log.d("org.nativescript.plugindemo", "onSingleTapUp Tap at "+event.x+",  "+  event.y)
                        camera?.cameraControl?.cancelFocusAndMetering()
                        camera?.cameraControl?.startFocusAndMetering(
                            FocusMeteringAction.Builder(
@@ -251,7 +255,7 @@ class Camera2 @JvmOverloads constructor(
                            }
                        }, 5000)
                    } catch (e: CameraInfoUnavailableException) {
-                       Log.d("ERROR", "cannot access camera", e)
+                       Log.d("org.nativescript.plugindemo", "ERROR! cannot access camera", e)
                    }
                    return true
                }
@@ -341,7 +345,7 @@ class Camera2 @JvmOverloads constructor(
     override var maxAudioBitRate: Int = -1
     override var maxVideoBitrate: Int = -1
     override var maxVideoFrameRate: Int = -1
-    override var disableHEVC: Boolean = false
+    override var disableHEVC: Boolean = true
 
     override val numberOfCameras: Int
         get() {
@@ -392,8 +396,7 @@ class Camera2 @JvmOverloads constructor(
             else -> Surface.ROTATION_0
         }
         imageCapture?.targetRotation = rotation
-        videoCapture?.targetRotation = rotation
-        // imageAnalysis?.targetRotation = rotation
+        videoCapture?.targetRotation = rotation        
     }
 
     private fun getDeviceRotation(): Int {
@@ -418,7 +421,7 @@ class Camera2 @JvmOverloads constructor(
         }
     }
 
-    override var quality: Quality = Quality.MAX_480P
+    override var quality: Quality = Quality.MAX_720P
         set(value) {
             if (!isRecording && field != value) {
                 field = value
@@ -635,15 +638,16 @@ class Camera2 @JvmOverloads constructor(
     @SuppressLint("RestrictedApi")
     private fun initVideoCapture() {
         if (pause) {
+            Log.d("org.nativescript.plugindemo","initVideoCapture() pause set so returning early")
             return
         }
         if (hasCameraPermission() && hasAudioPermission()) {
-
+            Log.d("org.nativescript.plugindemo","initVideoCapture() setting quality to: " + quality)
             val recorder = Recorder.Builder()
                 .setQualitySelector(
                     QualitySelector.from(
                         getRecorderQuality(quality),
-                        FallbackStrategy.lowerQualityOrHigherThan(androidx.camera.video.Quality.SD)
+                        FallbackStrategy.lowerQualityOrHigherThan(androidx.camera.video.Quality.HD)
                     )
                 ).setExecutor(videoCaptureExecutor)
                 .build()
@@ -660,6 +664,7 @@ class Camera2 @JvmOverloads constructor(
     @SuppressLint("RestrictedApi", "UnsafeOptInUsageError")
     private fun refreshCamera() {
         if (pause) {
+            Log.d("org.nativescript.plugindemo","refreshCamera() pause set so returning early")
             return
         }
         cancelAndDisposeFocusTimer()
@@ -721,6 +726,8 @@ class Camera2 @JvmOverloads constructor(
         isStarted = true
         resetCurrentFrame()
         listener?.onCameraOpen()
+        Log.d("org.nativescript.plugindemo","max zoom ratio "+camera?.cameraInfo?.zoomState?.value?.maxZoomRatio)
+        Log.d("org.nativescript.plugindemo","min zoom ratio "+camera?.cameraInfo?.zoomState?.value?.minZoomRatio)
     }
 
     override fun startPreview() {
@@ -757,18 +764,21 @@ class Camera2 @JvmOverloads constructor(
 
     private fun onZoomChange() {
         val currentZoomRatio = camera?.cameraInfo?.zoomState?.value?.zoomRatio ?: 1.0f
+        Log.d("org.nativescript.plugindemo","onZoomChange currentZoomRatio:" + currentZoomRatio)
         if (lastZoomRatio == currentZoomRatio || lastZoomRatio < 1.0f && currentZoomRatio < 1.0f || lastZoomRatio >= 1.0f && currentZoomRatio >= 1.0f) {
             return
         }
         lastZoomRatio = currentZoomRatio
+        Log.d("org.nativescript.plugindemo","onZoomChange lastZoomRatio:" + lastZoomRatio)
         updateImageCapture()
         return
     }
 
     @SuppressLint("RestrictedApi")
     override fun startRecording() {
-        Log.d("co.fitcom.videorecorder", "override fun startRecording()")
+        Log.d("org.nativescript.plugindemo", "override fun startRecording()")
         if (!hasAudioPermission() || !hasCameraPermission()) {
+            Log.d("org.nativescript.plugindemo", "ERROR! Need mic and camera to start recording! Returning")
             return
         }
         deInitListener()
@@ -949,16 +959,16 @@ class Camera2 @JvmOverloads constructor(
 
     @SuppressLint("RestrictedApi")
     override fun stopRecording() {
-        Log.d("co.fitcom.videorecorder", "override fun stopRecording()")
+        Log.d("org.nativescript.plugindemo", "override fun stopRecording()")
         if (flashMode == CameraFlashMode.ON) {
             camera?.cameraControl?.enableTorch(false)
         }
         recording?.stop()
-        Log.d("co.fitcom.videorecorder", "override fun stopRecording() issues recording.stop()")
+        Log.d("org.nativescript.plugindemo", "override fun stopRecording() issues recording.stop()")
     }
 
     override fun takePhoto() {
-        Log.d("co.fitcom.videorecorder", "takePhoto()")
+        Log.d("org.nativescript.plugindemo", "takePhoto()")
         val df = SimpleDateFormat("yyyyMMddHHmmss", Locale.US)
         val today = Calendar.getInstance().time
         val fileName = "PIC_" + df.format(today) + ".jpg"
@@ -1289,7 +1299,7 @@ class Camera2 @JvmOverloads constructor(
 
                 }
             } catch (_: Exception) {
-                Log.d("co.fitcom.videorecorder", "Camera2.kt: toggleCamera() caught an error!")
+                Log.d("org.nativescript.plugindemo", "Camera2.kt: toggleCamera() caught an error!")
             }
         }
     }
@@ -1303,18 +1313,18 @@ class Camera2 @JvmOverloads constructor(
     }
 
     override fun stop() {
-        Log.d("co.fitcom.videorecorder", "override fun stop()")
+        Log.d("org.nativescript.plugindemo", "override fun stop()")
         if (!isForceStopping) {
             if (isRecording) {
                 Log.d(
-                    "co.fitcom.videorecorder",
+                    "org.nativescript.plugindemo",
                     "override fun stop() currently recording,  calling stopRecording()"
                 )
                 isForceStopping = true
                 stopRecording()
             } else {
                 Log.d(
-                    "co.fitcom.videorecorder",
+                    "org.nativescript.plugindemo",
                     "override fun stop() Not recording,  calling safeUnbindAll()"
                 )
                 safeUnbindAll()
@@ -1324,8 +1334,13 @@ class Camera2 @JvmOverloads constructor(
 
 
     override fun release() {
+        Log.d(
+            "org.nativescript.plugindemo",
+            "calling release()"
+        )
         cancelAndDisposeFocusTimer()
-        if (!isForceStopping) {
+        
+        // if (!isForceStopping) {
             if (isRecording) {
                 isForceStopping = true
                 stopRecording()
@@ -1339,7 +1354,14 @@ class Camera2 @JvmOverloads constructor(
             videoCapture = null
             // imageAnalysis = null
             camera = null
+        /*  }else {
+            Log.d(
+            "org.nativescript.plugindemo",
+            "isForceStopping is true, no extra actions called"
+            )
         }
+        */
         deInitListener()
+        
     }
 }

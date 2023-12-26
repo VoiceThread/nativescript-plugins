@@ -11,8 +11,9 @@
     </ActionBar>
   </Page.actionBar>
   <StackLayout class="p-20">
-    <ScrollView class="h-full">
-      <StackLayout>
+    <ScrollView class="h-full"
+      id="CamScrollView">
+      <StackLayout >
         <StackLayout class="p-10">
           <Label text="Anything else can go in your page or you can let the camera take up entire page layout. You can also add layout containers inside the CameraPlus to overlay view elements over the camera preview if needed."
             textWrap="true" />
@@ -22,13 +23,13 @@
           id="camPlus"
           loaded="camLoaded"
           enableVideo="true"
-          disablePhoto="true"
-          confirmVideo="true"
+          disablePhoto="false"
           saveToGallery="true"
           showCaptureIcon="true"
           showToggleIcon="true"
           showFlashIcon="true"
           confirmPhotos="true"
+          confirmVideo="true"
           autoSquareCrop="false"
           insetButtons="true"
           insetButtonsPercent="0.02"
@@ -42,9 +43,10 @@
           controls="true"
           loop="false"
           autoplay="false"
-          height="600"
+          height="300"
           src=""
-          opacity="1" />
+          opacity="1"
+          visibility="collapsed"/>
 
         <Image height="200"
           id="testImagePickResult"

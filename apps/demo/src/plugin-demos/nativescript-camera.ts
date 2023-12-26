@@ -1,4 +1,4 @@
-import { Observable, EventData, Page, ImageAsset, alert, ImageSource, Frame, Screen, Image, File } from '@nativescript/core';
+import { Observable, EventData, Page, ImageAsset, alert, ImageSource, Frame, Screen, Image, File, ScrollView, isAndroid } from '@nativescript/core';
 import { DemoSharedNativescriptCamera } from '@demo/shared';
 import { CameraPlus } from '@voicethread/nativescript-camera';
 import { ObservableProperty } from './observable-property';
@@ -16,12 +16,13 @@ export function navigatingFrom(args: EventData) {
   console.log('navigatingFrom()');
   const page = <Page>args.object;
   const video = page.getViewById('nativeVideoPlayer') as Video;
-  video.pause();
-  video.src = null;
+  if (video) {
+    video.src = null;
+  }
 }
 
 export async function onLoaded(args) {
-  console.log('onLoaded()');
+  console.log('onLoaded()', args.object);
 }
 
 export class DemoModel extends DemoSharedNativescriptCamera {
@@ -43,7 +44,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
     }
 
     this.cam.on(CameraPlus.errorEvent, args => {
-      console.log('*** CameraPlus errorEvent ***', args);
+      console.log('*** CameraPlus errorEvent ***', args.eventName);
     });
 
     this.cam.on(CameraPlus.toggleCameraEvent, (args: any) => {
@@ -65,7 +66,6 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       console.log('File has length', videoFile.size);
       const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
       video.visibility = 'visible';
-      // video.visibility = 'visible';
       video.opacity = 1;
       console.log('event passed path: ', args.data);
       video.src = args.data;
@@ -86,8 +86,9 @@ export class DemoModel extends DemoSharedNativescriptCamera {
     this._counter = 1;
   }
 
-  public camLoaded() {
-    console.log('camera loaded');
+  public camLoaded(args) {
+    //TODO: not currently hooked into NS event properly
+    console.log('camera loaded', args, args.object);
   }
 
   public async recordDemoVideo() {
