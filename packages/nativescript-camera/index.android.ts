@@ -755,12 +755,23 @@ export class CameraPlus extends CameraPlusBase {
     // const shape = CamHelpers.createTransparentCircleDrawable();
     // this._takePicBtn.setBackgroundDrawable(shape); // set the transparent background
     const ref = new WeakRef(this);
-    this._takePicBtn.setOnClickListener(
-      new android.view.View.OnClickListener({
-        onClick: args => {
+    let isButtonLongPressed = false;
+
+    this._takePicBtn.setOnTouchListener(
+      new android.view.View.OnTouchListener({
+        onTouch: (argsView: android.view.View, pEvent: android.view.MotionEvent) => {
           CLog(`_initTakePicButton OnClickListener()`);
+          console.log('action:', pEvent.getAction());
           const owner = ref.get();
           if (this.enableVideo) {
+            //check if we're currently doing a long click
+            if (isButtonLongPressed) {
+              if (pEvent.getAction() == android.view.MotionEvent.ACTION_UP) {
+                //Note: if scrollview moves with this view inside, this will trigger false positives
+                console.log('long press released, stopping video');
+                isButtonLongPressed = false;
+              } else return false;
+            }
             if (owner.isRecording) {
               console.log('Recording in progress, stopping recording');
               this.stop();
@@ -790,6 +801,20 @@ export class CameraPlus extends CameraPlusBase {
           } else {
             console.warn('neither photo or video enabled, ignoring tap');
           }
+          return false;
+        },
+      })
+    );
+
+    this._takePicBtn.setOnLongClickListener(
+      new android.view.View.OnLongClickListener({
+        onLongClick: (argsView: android.view.View) => {
+          CLog(`_initTakePicButton OnLongClickListener()`);
+          if (this.enableVideo) {
+            CLog('recordVideo mode, setting isButtonLongPressed flag');
+            isButtonLongPressed = true;
+          } else console.log('no long click support for photo/preview mode');
+          return true;
         },
       })
     );
