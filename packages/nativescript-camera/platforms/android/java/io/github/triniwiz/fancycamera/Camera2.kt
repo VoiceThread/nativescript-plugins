@@ -60,7 +60,7 @@ class Camera2 @JvmOverloads constructor(
     private var isStarted = false
     private var isRecording = false
     private var file: File? = null
-    private var isForceStopping = true
+    // private var isForceStopping = true
     private var mLock = Any()
     private var cameraManager: CameraManager? = null
     private var recording: Recording? = null
@@ -843,15 +843,15 @@ class Camera2 @JvmOverloads constructor(
                                 Exception()
                             }
                             listener?.onCameraError("${event.error}", e)
-                            if (isForceStopping) {
+                            // if (isForceStopping) {
                                 ContextCompat.getMainExecutor(context).execute {
                                     safeUnbindAll()
                                 }
 
                                 synchronized(mLock) {
-                                    isForceStopping = false
+                                    // isForceStopping = false
                                 }
-                            }
+                            // }
                         } else {
                             /*if (isForceStopping) {
                                 if (file != null) {
@@ -938,7 +938,7 @@ class Camera2 @JvmOverloads constructor(
                     it.unbind(imageCapture!!)
                 }
             }
-            isForceStopping = false
+            // isForceStopping = false
             listener?.onCameraError("Failed to record video.", e)
         }
     }
@@ -1300,13 +1300,13 @@ class Camera2 @JvmOverloads constructor(
 
     override fun stop() {
         Log.d("org.nativescript.plugindemo", "override fun stop()")
-        if (!isForceStopping) {
+        // if (!isForceStopping) {
             if (isRecording) {
                 Log.d(
                     "org.nativescript.plugindemo",
                     "override fun stop() currently recording,  calling stopRecording()"
                 )
-                isForceStopping = true
+                // isForceStopping = true
                 stopRecording()
             } else {
                 Log.d(
@@ -1315,7 +1315,7 @@ class Camera2 @JvmOverloads constructor(
                 )
                 safeUnbindAll()
             }
-        }
+        // }
     }
 
 
@@ -1328,7 +1328,7 @@ class Camera2 @JvmOverloads constructor(
         
         // if (!isForceStopping) {
             if (isRecording) {
-                isForceStopping = true
+                // isForceStopping = true
                 stopRecording()
             }
 

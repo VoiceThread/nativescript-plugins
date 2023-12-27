@@ -284,7 +284,7 @@ class FancyCamera : FrameLayout {
 
     }
 
-    private var isForceStopping: Boolean = false
+    // private var isForceStopping: Boolean = false
 
     var isAudioLevelsEnabled: Boolean
         get() {
