@@ -53,10 +53,11 @@ export class DemoModel extends DemoSharedNativescriptCamera {
 
     this.cam.on(CameraPlus.photoCapturedEvent, (args: any) => {
       console.log(`photoCapturedEvent listener on main-view-model.ts  ${args}`);
-      console.log((<any>args).data);
+      // console.log((<any>args).data);
       ImageSource.fromAsset((<any>args).data).then(res => {
         const testImg = Frame.topmost().getViewById('testImagePickResult') as Image;
         testImg.src = res;
+        console.log('height:', res.height, 'width:', res.width);
       });
     });
 
@@ -160,7 +161,8 @@ export class DemoModel extends DemoSharedNativescriptCamera {
             if (!this.cam) {
               this.cam = new CameraPlus();
             }
-            this.cam.takePicture({ saveToGallery: true });
+            // this.cam.takePicture({ saveToGallery: true });
+            this.cam.takePicture();
           } else alert('No permission for camera, cannot take a photo!');
         });
       } else alert('No permission for camera! Grant this permission in app settings first');

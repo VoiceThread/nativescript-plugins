@@ -105,7 +105,7 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
    *  *ANDROID ONLY* A string representing the size of picture {@link takePicture} will output. Available sizes can be fetched using {@link getAvailablePictureSizes}
    */
   @GetSetProperty()
-  public pictureSize: string = '0x0';
+  public pictureSize: string = '768x1024';
 
   /**
    * @param ratio string

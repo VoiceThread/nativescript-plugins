@@ -80,6 +80,7 @@ export class CameraPlus extends CameraPlusBase {
   private _toggleCamBtn: android.widget.ImageButton = null; // reference to native toggle camera button
   private _videoOptions: IVideoOptions;
   private _videoPath: string;
+  private isButtonLongPressed = false;
   readonly _context; // defining this to pass TS warning, NS provides the context during lifecycle
   _lastCameraOptions: ICameraOptions[];
   constructor() {
@@ -206,6 +207,7 @@ export class CameraPlus extends CameraPlusBase {
         sizes.push(`${size.getWidth()}x${size.getHeight()}`);
       }
     }
+    console.dir('picture sizes available, ', sizes);
     return sizes;
   }
 
@@ -420,12 +422,28 @@ export class CameraPlus extends CameraPlusBase {
   public takePicture(options?: ICameraOptions): void {
     if (this._camera) {
       options = options || {};
-      CLog(JSON.stringify(options));
+      CLog('takePicture() options:', JSON.stringify(options));
+      // const owner = this._owner ? this._owner.get() : null;
 
       if (!!options.useCameraOptions && typeof options.width === 'number' && typeof options.height === 'number') {
-        (this._camera as any).setOverridePhotoWidth(options.width);
-        (this._camera as any).setOverridePhotoHeight(options.height);
+        //Note: this doesn't do anything
+        // (this._camera as any).setOverridePhotoWidth(options.width);
+        // (this._camera as any).setOverridePhotoHeight(options.height);
+        //set the explicit height/width
+        //this._camera.setPictureSize(options.width + 'x' + options.height); //3:4 ratio
+        // owner.pictureSize = options.width + 'x' + options.height;
+        // this.pictureSize = options.width + 'x' + options.height;
+        // console.log('options for width and height set, setting picture size to ', options.width + 'x' + options.height);
+      } else {
+        //set default photo size
+        // this._camera.setPictureSize('768x1024'); //3:4 ratio
+        // owner.pictureSize = '768x1024';
+        // console.log('options for width and height set, setting picture size to ', '768x1024');
       }
+      // console.log('using picture size', this._camera.getPictureSize());
+      console.log('using picture size', this.pictureSize);
+      // let sizes = this.getAvailablePictureSizes('4x3');
+      // console.dir('available sizes', sizes);
       this._camera.setSaveToGallery(!!options.saveToGallery);
       this._camera.setAutoSquareCrop(!!options.autoSquareCrop);
       this._lastCameraOptions.push(options);
@@ -755,7 +773,6 @@ export class CameraPlus extends CameraPlusBase {
     // const shape = CamHelpers.createTransparentCircleDrawable();
     // this._takePicBtn.setBackgroundDrawable(shape); // set the transparent background
     const ref = new WeakRef(this);
-    let isButtonLongPressed = false;
 
     this._takePicBtn.setOnTouchListener(
       new android.view.View.OnTouchListener({
@@ -764,40 +781,63 @@ export class CameraPlus extends CameraPlusBase {
           console.log('action:', pEvent.getAction());
           const owner = ref.get();
           if (this.enableVideo) {
-            //check if we're currently doing a long click
-            if (isButtonLongPressed) {
-              if (pEvent.getAction() == android.view.MotionEvent.ACTION_UP) {
+            //Video recording
+            console.log('video mode handling');
+            //check if we're currently doing a long click for snapchat style recording UI
+            if (pEvent.getAction() == android.view.MotionEvent.ACTION_UP) {
+              if (this.isButtonLongPressed) {
                 //Note: if scrollview moves with this view inside, this will trigger false positives
-                console.log('long press released, stopping video');
-                isButtonLongPressed = false;
-              } else return false;
+                console.log('long press released, stopping video and setting isButtonLongPressed to false');
+                this.isButtonLongPressed = false;
+                this.stop();
+                // this._cameraBtn.changeToCircle();
+                const takePicDrawable = CamHelpers.getImageDrawable(this.takeVideoIcon);
+                this._takePicBtn.setImageResource(takePicDrawable); // set the icon
+                return false;
+              } else {
+                console.log('not an Action_up ignoring', pEvent.getAction());
+                return true;
+              }
+            } else if (pEvent.getAction() == android.view.MotionEvent.ACTION_DOWN) {
+              if (!this.isButtonLongPressed && !owner.isRecording) {
+                console.log('Video enabled, starting recording');
+                this.record();
+                const takePicDrawable = CamHelpers.getImageDrawable(this.stopVideoIcon);
+                this._takePicBtn.setImageResource(takePicDrawable); // set the icon
+              }
             }
-            if (owner.isRecording) {
-              console.log('Recording in progress, stopping recording');
-              this.stop();
-              // this._cameraBtn.changeToCircle();
-              const takePicDrawable = CamHelpers.getImageDrawable(this.takeVideoIcon);
-              this._takePicBtn.setImageResource(takePicDrawable); // set the icon
-            } else {
-              console.log('Video enabled, starting recording');
-              this.record();
-              const takePicDrawable = CamHelpers.getImageDrawable(this.stopVideoIcon);
-              this._takePicBtn.setImageResource(takePicDrawable); // set the icon
-              // this._cameraBtn.changeToSquare();
-            }
+            // else {
+            //   console.log('not currently a long-press, handling as tap');
+            //   if (owner.isRecording) {
+            //     console.log('Recording in progress, stopping recording');
+            //     this.stop();
+            //     // this._cameraBtn.changeToCircle();
+            //     const takePicDrawable = CamHelpers.getImageDrawable(this.takeVideoIcon);
+            //     this._takePicBtn.setImageResource(takePicDrawable); // set the icon
+            //   } else {
+            //     console.log('Video enabled, starting recording');
+            //     this.record();
+            //     const takePicDrawable = CamHelpers.getImageDrawable(this.stopVideoIcon);
+            //     this._takePicBtn.setImageResource(takePicDrawable); // set the icon
+            //     // this._cameraBtn.changeToSquare();
+            //   }
+            // }
           } else if (!this.disablePhoto) {
-            console.log('Photo enabled, taking pic');
-            // this.takePicture();
-            const opts = {
-              saveToGallery: this.saveToGallery,
-              confirm: this.confirmPhotos,
-              autoSquareCrop: this.autoSquareCrop,
-            };
+            //Photo Capture
+            if (!this.isButtonLongPressed && pEvent.getAction() == android.view.MotionEvent.ACTION_DOWN) {
+              console.log('Photo enabled, taking pic on ACTION_DOWN');
+              // this.takePicture();
+              const opts = {
+                saveToGallery: this.saveToGallery,
+                confirm: this.confirmPhotos,
+                autoSquareCrop: this.autoSquareCrop,
+              };
 
-            if (owner) {
-              console.log('_initTakePicButton() calling takePicture with options', opts);
-              owner.takePicture(opts);
-            }
+              if (owner) {
+                console.log('_initTakePicButton() calling takePicture with options', opts);
+                owner.takePicture(opts);
+              }
+            } else console.log('Ignoring action');
           } else {
             console.warn('neither photo or video enabled, ignoring tap');
           }
@@ -812,9 +852,9 @@ export class CameraPlus extends CameraPlusBase {
           CLog(`_initTakePicButton OnLongClickListener()`);
           if (this.enableVideo) {
             CLog('recordVideo mode, setting isButtonLongPressed flag');
-            isButtonLongPressed = true;
+            this.isButtonLongPressed = true;
           } else console.log('no long click support for photo/preview mode');
-          return true;
+          return false;
         },
       })
     );

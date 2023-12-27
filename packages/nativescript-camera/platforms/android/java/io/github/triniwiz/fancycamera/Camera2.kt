@@ -176,7 +176,7 @@ class Camera2 @JvmOverloads constructor(
                 refreshCamera()
             }
         }
-    override var pictureSize: String = "0x0"
+    override var pictureSize: String = "768x1024"
         get() {
             if (field == "0x0") {
                 val size = cachedPictureRatioSizeMap[displayRatio]?.get(0)
@@ -470,7 +470,7 @@ class Camera2 @JvmOverloads constructor(
                 imageCapture = null
             }
         }
-
+        Log.d("org.nativescript.plugindemo","updateImageCapture() pictureSize:" + pictureSize)
         val builder = ImageCapture.Builder().apply {
 
             if (getDeviceRotation() > -1) {
@@ -499,6 +499,7 @@ class Camera2 @JvmOverloads constructor(
             }
             setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
             setFlashMode(getFlashMode())
+
         }
 
         val extender = Camera2Interop.Extender(builder)
