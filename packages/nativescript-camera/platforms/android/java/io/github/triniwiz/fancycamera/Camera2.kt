@@ -383,16 +383,19 @@ class Camera2 @JvmOverloads constructor(
         }
         imageCapture?.targetRotation = rotation
         videoCapture?.targetRotation = rotation        
+        Log.d("org.nativescript.plugindemo","orientationUpdated() rotaiton= " + rotation);
     }
 
     private fun getDeviceRotation(): Int {
-        return when (this.rotation) {
+        val retrot = when (this.rotation) {
             CameraOrientation.PORTRAIT_UPSIDE_DOWN -> Surface.ROTATION_270
             CameraOrientation.PORTRAIT -> Surface.ROTATION_90
             CameraOrientation.LANDSCAPE_LEFT -> Surface.ROTATION_0
             CameraOrientation.LANDSCAPE_RIGHT -> Surface.ROTATION_180
             else -> -1
         }
+        Log.d("org.nativescript.plugindemo","getDeviceRotation() rotation= " + retrot);
+        return retrot;
     }
 
     private fun safeUnbindAll() {
@@ -645,6 +648,7 @@ class Camera2 @JvmOverloads constructor(
                     targetRotation = getDeviceRotation()
                 }
             }
+            
         }
     }
 

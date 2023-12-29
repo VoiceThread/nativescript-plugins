@@ -3,7 +3,7 @@
   2023, VoiceThread - Angel Dominguez
  **********************************************************************************/
 
-import { ContentView } from '@nativescript/core';
+import { ContentView, File } from '@nativescript/core';
 import { CameraPlus as CameraPlusDefinition } from '.';
 
 export class CameraUtil {
@@ -263,6 +263,11 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
    * Stop recording video
    */
   abstract stop(): void;
+
+  /*
+   * Merge an array of video filenames, must all be valid mp4 format video files with same audio encoding
+   */
+  abstract mergeVideoFiles(audioFiles: string[], outputPath: string): Promise<File>;
 
   /**
    * Returns true if the device has at least one camera.

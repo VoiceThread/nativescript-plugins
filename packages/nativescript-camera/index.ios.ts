@@ -1112,6 +1112,68 @@ export class CameraPlus extends CameraPlusBase {
       }
     }
   }
+
+  /*
+   * Merge an array of video filenames, must all be valid mp4 format video files with same audio encoding
+   */
+  public mergeVideoFiles(inputFiles: string[], outputPath: string): Promise<File> {
+    return new Promise((resolve, reject) => {
+      if (!inputFiles || inputFiles.length <= 0) return reject('inputFiles is empty!');
+      if (!outputPath) return reject('outputPath should be a valid path string');
+
+      if (File.exists(outputPath)) {
+        // remove file if it exists
+        File.fromPath(outputPath).removeSync(err => {
+          console.error('Unable to remove existing file!', err);
+          return reject('Unable to remove existing file!' + err.message);
+        });
+      }
+      if (inputFiles.length == 1) {
+        let suc = NSFileManager.defaultManager.copyItemAtPathToPathError(inputFiles[0], outputPath);
+        if (!suc) {
+          console.error('Unable to copy file!');
+          return reject('Unable to copy file!');
+        }
+        return resolve(File.fromPath(outputPath));
+      }
+      let composition = AVMutableComposition.new();
+      for (let i = 0; i < inputFiles.length; i++) {
+        let compositionAudioTrack: AVMutableCompositionTrack = composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeAudio, 0);
+        let asset = AVURLAsset.assetWithURL(NSURL.fileURLWithPath(inputFiles[i]));
+        let track = asset.tracksWithMediaType(AVMediaTypeAudio)[0];
+        let timeRange = CMTimeRangeMake(CMTimeMake(0, 600), track.timeRange.duration);
+        compositionAudioTrack.insertTimeRangeOfTrackAtTimeError(timeRange, track, composition.duration);
+      }
+      let mergeAudioUrl = NSURL.fileURLWithPath(outputPath);
+      let assetExport = new AVAssetExportSession({ asset: composition, presetName: AVAssetExportPresetAppleM4A });
+      assetExport.outputFileType = AVFileTypeAppleM4A;
+      assetExport.outputURL = mergeAudioUrl;
+      assetExport.exportAsynchronouslyWithCompletionHandler(() => {
+        switch (assetExport.status) {
+          case AVAssetExportSessionStatus.Failed:
+            // console.log('failed (assetExport?.error)', assetExport.error);
+            reject(assetExport.error);
+            break;
+          case AVAssetExportSessionStatus.Cancelled:
+            // console.log('cancelled (assetExport?.error)');
+            break;
+          case AVAssetExportSessionStatus.Unknown:
+            // console.log('unknown(assetExport?.error)');
+            break;
+          case AVAssetExportSessionStatus.Waiting:
+            // console.log('waiting(assetExport?.error)');
+            break;
+          case AVAssetExportSessionStatus.Exporting:
+            // console.log('exporting(assetExport?.error)');
+            break;
+          case AVAssetExportSessionStatus.Completed:
+            // console.log('Audio Concatenation Complete');
+            resolve(File.fromPath(outputPath));
+            break;
+        }
+      });
+    });
+  }
 }
 
 const createButton = function (target: any, frame: CGRect, label: string, eventName: string, align?: string, img?: UIImage, imgSelected?: UIImage): UIButton {

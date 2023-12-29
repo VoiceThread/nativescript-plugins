@@ -3,7 +3,7 @@
   2023, VoiceThread - Angel Dominguez
  **********************************************************************************/
 
-import { Application, ImageAsset, Device, View, Utils, AndroidApplication } from '@nativescript/core';
+import { Application, ImageAsset, Device, View, File, Utils, AndroidApplication } from '@nativescript/core';
 import * as types from '@nativescript/core/utils/types';
 import { CameraPlusBase, CameraVideoQuality, CLog, GetSetProperty, ICameraOptions, ICameraPlusEvents, IChooseOptions, IVideoOptions, WhiteBalance } from './common';
 import * as CamHelpers from './helpers';
@@ -907,5 +907,175 @@ export class CameraPlus extends CameraPlusBase {
     } catch (ex) {
       CLog('_initDefaultButtons error', ex);
     }
+  }
+  /*
+   * Merge an array of video filenames, must all be valid mp4 format video files with same audio encoding
+   */
+  public mergeVideoFiles(inputFiles: string[], outputPath: string): Promise<File> {
+    return new Promise((resolve, reject) => {
+      //Note: This will only merge video tracks from  mp4 files, and only succeed if all input have same audio and video format/encoding
+      //MediaMuxer support for multiple audio/video tracks only on API 26+ only
+      if (+Device.sdkVersion < 26) {
+        console.error('This is only supported on API 26+');
+        return reject('This is only supported on API 26+');
+      }
+      if (!inputFiles || inputFiles.length <= 0) return reject('inputFiles is empty!');
+      if (!outputPath) return reject('outputPath should be a valid path string');
+      if (File.exists(outputPath)) {
+        // remove file if it exists
+        File.fromPath(outputPath).removeSync(err => {
+          console.error('Unable to remove file!', err);
+          return reject('Unable to remove file!' + err.message);
+        });
+      }
+      if (inputFiles.length == 1) {
+        let fileData = File.fromPath(inputFiles[0]).readSync();
+        File.fromPath(outputPath).writeSync(fileData);
+        return resolve(File.fromPath(outputPath));
+      }
+
+      // Create the MediaMuxer and specify the output file
+      const muxer = new android.media.MediaMuxer(outputPath, android.media.MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+      const MAX_SAMPLE_SIZE = 8 * 1024 * 1024;
+      const APPEND_DELAY = 200; //we add a little delay between segments to make segmentation a little more obvious
+      var totalDuration = 0;
+      var audioFormat: android.media.MediaFormat = null;
+      var videoFormat: android.media.MediaFormat = null;
+      var audioTrackIndex = -1;
+      var videoTrackIndex = -1;
+      var outRotation = 0;
+      try {
+        let muxerStarted: Boolean = false;
+        for (let i = 0; i < inputFiles.length; i++) {
+          console.log('Processing file', inputFiles[i], 'index', i);
+          let mediadata = new android.media.MediaMetadataRetriever();
+          mediadata.setDataSource(inputFiles[i]);
+          var trackDuration = 0;
+          try {
+            trackDuration = +mediadata.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION);
+            console.log('trackDuration ', trackDuration); //returned in milliseconds
+            let orientation = mediadata.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION);
+            outRotation = +orientation;
+            console.log('orientation:', orientation);
+          } catch (err) {
+            console.error('Unable to extract trackDuration from metadata!');
+          }
+
+          //find video format
+          let videoExtractor: android.media.MediaExtractor = new android.media.MediaExtractor();
+          videoExtractor.setDataSource(inputFiles[i]);
+          let videoTracks = videoExtractor.getTrackCount();
+          if (!videoFormat) {
+            for (let j = 0; j < videoExtractor.getTrackCount(); j++) {
+              let mf = videoExtractor.getTrackFormat(j);
+              let mime = mf.getString(android.media.MediaFormat.KEY_MIME);
+              if (mime.startsWith('video/')) {
+                videoExtractor.selectTrack(j);
+                videoFormat = videoExtractor.getTrackFormat(j);
+                console.log('found a video format', videoFormat);
+                break;
+              }
+            }
+          }
+          //TODO: check that all format match
+
+          //find audio format
+          let audioExtractor: android.media.MediaExtractor = new android.media.MediaExtractor();
+          audioExtractor.setDataSource(inputFiles[i]);
+          let audioTracks = audioExtractor.getTrackCount();
+          if (!audioFormat) {
+            for (let j = 0; j < audioExtractor.getTrackCount(); j++) {
+              let mf = audioExtractor.getTrackFormat(j);
+              let mime = mf.getString(android.media.MediaFormat.KEY_MIME);
+              if (mime.startsWith('audio/')) {
+                audioExtractor.selectTrack(j);
+                audioFormat = audioExtractor.getTrackFormat(j);
+                console.log('found an audio format', audioFormat);
+                break;
+              }
+            }
+          }
+          //TODO: check that all format match
+          if (audioTrackIndex == -1) {
+            audioTrackIndex = muxer.addTrack(audioFormat);
+          }
+          if (videoTrackIndex == -1) {
+            videoTrackIndex = muxer.addTrack(videoFormat);
+          }
+          var sawEOS = false;
+          var sawAudioEOS = false;
+          var bufferSize = MAX_SAMPLE_SIZE;
+          let audioBuf = java.nio.ByteBuffer.allocate(bufferSize);
+          let videoBuf = java.nio.ByteBuffer.allocate(bufferSize);
+          var offset = 0;
+          var bufferInfo: android.media.MediaCodec.BufferInfo = new android.media.MediaCodec.BufferInfo();
+
+          // start muxer if not started yet
+          if (!muxerStarted) {
+            muxer.setOrientationHint(outRotation); //ensure merged video has same orientation as inputs
+            muxer.start();
+            muxerStarted = true;
+          }
+          //add file data
+          //write video
+          while (!sawEOS) {
+            bufferInfo.offset = offset;
+            bufferInfo.size = videoExtractor.readSampleData(videoBuf, offset);
+            console.log('read video buffer size', bufferInfo.size);
+            if (bufferInfo.size < 0) {
+              sawEOS = true;
+              bufferInfo.size = 0;
+              // totalDuration += trackDuration;
+              // videoFormat = null;
+            } else {
+              bufferInfo.presentationTimeUs = videoExtractor.getSampleTime() + totalDuration + APPEND_DELAY;
+              console.log(' writing video data with PresentationTimeUs (ms) => ', bufferInfo.presentationTimeUs);
+              bufferInfo.flags = android.media.MediaCodec.BUFFER_FLAG_KEY_FRAME;
+              muxer.writeSampleData(videoTrackIndex, videoBuf, bufferInfo);
+              videoExtractor.advance();
+            }
+          }
+          //write audio
+          while (!sawAudioEOS) {
+            bufferInfo.offset = offset;
+            bufferInfo.size = audioExtractor.readSampleData(audioBuf, offset);
+            console.log('read audio buffer size', bufferInfo.size);
+            if (bufferInfo.size < 0) {
+              sawAudioEOS = true;
+              bufferInfo.size = 0;
+              // totalDuration += trackDuration;
+              // audioFormat = null;
+            } else {
+              bufferInfo.presentationTimeUs = audioExtractor.getSampleTime() + totalDuration + APPEND_DELAY;
+              console.log(' writing audio data with PresentationTimeUs (ms) => ', bufferInfo.presentationTimeUs);
+              bufferInfo.flags = android.media.MediaCodec.BUFFER_FLAG_KEY_FRAME;
+              muxer.writeSampleData(audioTrackIndex, audioBuf, bufferInfo);
+              audioExtractor.advance();
+            }
+          }
+
+          mediadata.release();
+          mediadata = null;
+          videoExtractor.release();
+          videoExtractor = null;
+          audioExtractor.release();
+          audioExtractor = null;
+          // totalDuration += (trackDuration * 1_000)
+          totalDuration += trackDuration;
+
+          console.log('totalDuration (ms) => ', totalDuration);
+        }
+        console.log('done with input files');
+        console.log(' stopping muxer');
+        muxer.stop();
+        console.log('releasing muxer');
+        muxer.release();
+        console.log('finished merging video segments into ', outputPath);
+        return resolve(File.fromPath(outputPath));
+      } catch (err) {
+        console.error(err, err.message);
+        return reject('Error during merge: ' + err.message);
+      }
+    });
   }
 }

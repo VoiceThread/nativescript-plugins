@@ -3,7 +3,7 @@
   2023, VoiceThread - Angel Dominguez
  **********************************************************************************/
 
-import { Observable, ContentView } from '@nativescript/core';
+import { Observable, ContentView, File } from '@nativescript/core';
 export declare class CameraPlus extends ContentView {
   events: ICameraPlusEvents;
 
@@ -235,6 +235,7 @@ export declare class CameraPlus extends ContentView {
    * Returns true if the current camera has a flash mode.
    */
   hasFlash(): boolean;
+  mergeVideoFiles(audioFiles: string[], outputPath: string): Promise<File>;
 }
 
 export interface ICameraOptions {

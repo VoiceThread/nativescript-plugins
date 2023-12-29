@@ -1,4 +1,4 @@
-import { Observable, EventData, Page, ImageAsset, alert, ImageSource, Frame, Screen, Image, File, ScrollView, isAndroid } from '@nativescript/core';
+import { Observable, EventData, Page, ImageAsset, alert, ImageSource, Frame, Screen, Image, File, ScrollView, isAndroid, Button, path, knownFolders } from '@nativescript/core';
 import { DemoSharedNativescriptCamera } from '@demo/shared';
 import { CameraPlus } from '@voicethread/nativescript-camera';
 import { ObservableProperty } from './observable-property';
@@ -31,6 +31,8 @@ export class DemoModel extends DemoSharedNativescriptCamera {
   public cam: CameraPlus;
   @ObservableProperty()
   public cameraHeight: number;
+
+  public videoSegments = [];
 
   constructor(page: Page) {
     super();
@@ -72,6 +74,16 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       video.src = args.data;
       video.loop = true;
       video.play();
+      //add to current array of movie segments
+      this.videoSegments.push(video.src);
+      const mergeButton = Frame.topmost().getViewById('mergeButton') as Button;
+      if (this.videoSegments.length > 1) {
+        console.log('# segments to merge', this.videoSegments.length);
+        //show the ui to merge
+        mergeButton.visibility = 'visible';
+      } else {
+        mergeButton.visibility = 'hidden';
+      }
     });
 
     this.cam.on(CameraPlus.videoRecordingStartedEvent, (args: any) => {
@@ -133,6 +145,34 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       console.log(`*** after this.cam.stop() ***`);
     } catch (err) {
       console.log(err);
+    }
+  }
+
+  public async mergeVideos() {
+    console.log('mergeVideos()');
+    let tempFileName, outputPath;
+    for (let i = 1; i < 999999999; i++) {
+      tempFileName = 'videorecording-' + i + '.mp4';
+      outputPath = path.join(knownFolders.documents().path, tempFileName);
+      if (!File.exists(outputPath)) break;
+    }
+
+    console.log('No session final filename yet, starting new session for final recording:', outputPath);
+
+    let previewfile = await this.cam.mergeVideoFiles(this.videoSegments, outputPath);
+    if (previewfile.size) {
+      console.log('video preview files merged');
+      console.log('File has length', previewfile.size);
+      const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
+      video.visibility = 'visible';
+      video.opacity = 1;
+      if (video.src) video.stop();
+      video.src = null;
+      video.src = outputPath;
+      video.loop = false;
+      // video.play();
+    } else {
+      console.error('EMPTY merged video file!');
     }
   }
 

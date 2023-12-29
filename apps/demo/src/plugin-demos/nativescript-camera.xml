@@ -75,9 +75,16 @@
             row="1"
             col="0"
             class="btn btn-primary" />
+          <Button text="Merge Videos"
+            tap="{{ mergeVideos }}"
+            row="1"
+            col="1"
+            id="mergeButton"
+            visibility="hidden"
+            class="btn btn-primary" />
           <Button text="Toggle Flash"
             tap="{{ toggleFlashOnCam }}"
-            row="1"
+            row="2"
             col="1"
             class="btn btn-primary" />
           <Button text="Toggle Camera"
