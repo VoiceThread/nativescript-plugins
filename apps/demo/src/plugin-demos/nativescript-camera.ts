@@ -15,10 +15,12 @@ export function navigatingTo(args: EventData) {
 export function navigatingFrom(args: EventData) {
   console.log('navigatingFrom()');
   const page = <Page>args.object;
-  const video = page.getViewById('nativeVideoPlayer') as Video;
+  const video: Video = page.getViewById('nativeVideoPlayer') as Video;
   if (video) {
+    video.pause();
+    // video.stop();
     video.src = null;
-  }
+  } else console.warn('Unable to clear video player when leaving page!');
 }
 
 export async function onLoaded(args) {
@@ -89,7 +91,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
     this.cam.on(CameraPlus.videoRecordingStartedEvent, (args: any) => {
       console.log(`videoRecordingStartedEvent listener fired`, args.data);
       const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
-      video.visibility = 'collapsed';
+      video.visibility = 'hidden';
     });
 
     this.cam.on(CameraPlus.videoRecordingFinishedEvent, (args: any) => {
@@ -131,7 +133,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       }
       console.log(`*** start recording ***`);
       this.cam.record({
-        saveToGallery: false,
+        saveToGallery: true,
       });
     } catch (err) {
       console.log(err);
@@ -157,7 +159,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       if (!File.exists(outputPath)) break;
     }
 
-    console.log('No session final filename yet, starting new session for final recording:', outputPath);
+    console.log('starting merge for final recording at:', outputPath);
 
     let previewfile = await this.cam.mergeVideoFiles(this.videoSegments, outputPath);
     if (previewfile.size) {
@@ -166,10 +168,10 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
       video.visibility = 'visible';
       video.opacity = 1;
-      if (video.src) video.stop();
+      if (video.src && isAndroid) video.stop();
       video.src = null;
       video.src = outputPath;
-      video.loop = false;
+      video.loop = true;
       // video.play();
     } else {
       console.error('EMPTY merged video file!');

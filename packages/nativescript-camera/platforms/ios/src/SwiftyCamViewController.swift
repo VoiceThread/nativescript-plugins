@@ -526,6 +526,7 @@ import UIKit
         ?? AVAssetWriterInput(
           mediaType: AVMediaType.video, outputSettings: videoCompressionSettings)
       assetWriterVideoInput.expectsMediaDataInRealTime = true
+      //TODO: ensure the assigned transform produces video with same orientation as device screen
       assetWriterVideoInput.transform = self.getVideoTransform()
       NSLog("Assigned transform")
       if assetWriter.canAdd(assetWriterVideoInput) {
@@ -571,7 +572,7 @@ import UIKit
     // NSLog("getVideoTransform()")
     switch UIDevice.current.orientation {
     case .portrait:
-      NSLog(" identity")
+      NSLog(" portrait identity")
       if currentCamera == .rear {
         return CGAffineTransform(rotationAngle: .pi / 2)
       }
@@ -579,28 +580,28 @@ import UIKit
     case .portraitUpsideDown:
 
       if currentCamera == .rear {
-        // NSLog("rear portraitUpsideDown pi/2")
+        NSLog("rear portraitUpsideDown pi/2")
         return CGAffineTransform(rotationAngle: .pi / 2)
       }
-      // NSLog("front portraitUpsideDown pi")
+      NSLog("front portraitUpsideDown pi")
       return CGAffineTransform(rotationAngle: .pi / 2)
     case .landscapeLeft:
 
       if currentCamera == .rear {
-        // NSLog("rear landscapeLeft identity")
+        NSLog("rear landscapeLeft portrait")
         return .identity
       }
-      NSLog("front landscapeLeft pi")
+      NSLog("front landscapeLeft pi identity")
       return CGAffineTransform(rotationAngle: .pi)
     case .landscapeRight:
       if currentCamera == .rear {
-        // NSLog("rear landscapeRight identity")
+        NSLog("rear landscapeRight identity")
         return CGAffineTransform(rotationAngle: .pi)
       }
-      // NSLog("front landscapeRight ")
+      NSLog("front landscapeRight identity")
       return .identity
     default:
-      // NSLog("default identity")
+      NSLog("default identity")
       return .identity
     }
   }
