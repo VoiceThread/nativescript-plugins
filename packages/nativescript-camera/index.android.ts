@@ -496,7 +496,7 @@ export class CameraPlus extends CameraPlusBase {
   public async record(options?: IVideoOptions) {
     options = options || {
       disableHEVC: true,
-      saveToGallery: false,
+      saveToGallery: true,
       quality: CameraVideoQuality.MAX_720P,
     };
     console.log('android.ts record()', options);
@@ -936,7 +936,7 @@ export class CameraPlus extends CameraPlusBase {
 
       // Create the MediaMuxer and specify the output file
       const muxer = new android.media.MediaMuxer(outputPath, android.media.MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
-      const MAX_SAMPLE_SIZE = 8 * 1024 * 1024;
+      const MAX_SAMPLE_SIZE = 1024 * 1024;
       const APPEND_DELAY = 200; //we add a little delay between segments to make segmentation a little more obvious
       var totalDuration = 0;
       var audioFormat: android.media.MediaFormat = null;
@@ -947,7 +947,7 @@ export class CameraPlus extends CameraPlusBase {
       try {
         let muxerStarted: Boolean = false;
         for (let i = 0; i < inputFiles.length; i++) {
-          console.log('Processing file', inputFiles[i], 'index', i);
+          console.log('\n\nProcessing file', inputFiles[i], 'index', i);
           let mediadata = new android.media.MediaMetadataRetriever();
           mediadata.setDataSource(inputFiles[i]);
           var trackDuration = 0;
@@ -961,114 +961,121 @@ export class CameraPlus extends CameraPlusBase {
             console.error('Unable to extract trackDuration from metadata!');
           }
 
-          //find video format
+          //find video format and select the video track to read from later
           let videoExtractor: android.media.MediaExtractor = new android.media.MediaExtractor();
           videoExtractor.setDataSource(inputFiles[i]);
           let videoTracks = videoExtractor.getTrackCount();
-          if (!videoFormat) {
-            for (let j = 0; j < videoExtractor.getTrackCount(); j++) {
-              let mf = videoExtractor.getTrackFormat(j);
-              let mime = mf.getString(android.media.MediaFormat.KEY_MIME);
-              if (mime.startsWith('video/')) {
-                videoExtractor.selectTrack(j);
+
+          for (let j = 0; j < videoTracks; j++) {
+            let mf = videoExtractor.getTrackFormat(j);
+            let mime = mf.getString(android.media.MediaFormat.KEY_MIME);
+            if (mime.startsWith('video/')) {
+              videoExtractor.selectTrack(j);
+              if (!videoFormat) {
                 videoFormat = videoExtractor.getTrackFormat(j);
-                console.log('found a video format', videoFormat);
-                break;
+                // console.log('found a video format', videoFormat);
               }
+              break;
             }
           }
-          //TODO: check that all format match
 
-          //find audio format
+          // console.log('videoExtractor', videoExtractor);
+          //TODO: check that all other segment formats match first segment
+
+          //find audio format and select the audio track to read from later
           let audioExtractor: android.media.MediaExtractor = new android.media.MediaExtractor();
           audioExtractor.setDataSource(inputFiles[i]);
           let audioTracks = audioExtractor.getTrackCount();
-          if (!audioFormat) {
-            for (let j = 0; j < audioExtractor.getTrackCount(); j++) {
-              let mf = audioExtractor.getTrackFormat(j);
-              let mime = mf.getString(android.media.MediaFormat.KEY_MIME);
-              if (mime.startsWith('audio/')) {
-                audioExtractor.selectTrack(j);
+
+          for (let j = 0; j < audioTracks; j++) {
+            let mf = audioExtractor.getTrackFormat(j);
+            let mime = mf.getString(android.media.MediaFormat.KEY_MIME);
+            if (mime.startsWith('audio/')) {
+              audioExtractor.selectTrack(j);
+              if (!audioFormat) {
                 audioFormat = audioExtractor.getTrackFormat(j);
-                console.log('found an audio format', audioFormat);
-                break;
+                // console.log('found an audio format', audioFormat);
               }
+              break;
             }
           }
-          //TODO: check that all format match
+
           if (audioTrackIndex == -1) {
             audioTrackIndex = muxer.addTrack(audioFormat);
+            // console.log('added an audio track to muxer');
           }
           if (videoTrackIndex == -1) {
             videoTrackIndex = muxer.addTrack(videoFormat);
+            // console.log('added a video track to muxer');
           }
-          var sawEOS = false;
-          var sawAudioEOS = false;
-          var bufferSize = MAX_SAMPLE_SIZE;
+          videoExtractor.seekTo(0, android.media.MediaExtractor.SEEK_TO_CLOSEST_SYNC);
+          audioExtractor.seekTo(0, android.media.MediaExtractor.SEEK_TO_CLOSEST_SYNC);
+
+          // console.log('audioTrackIndex', audioTrackIndex, 'videoTrackIndex', videoTrackIndex);
+          let sawEOS = false;
+          let sawAudioEOS = false;
+          let bufferSize = MAX_SAMPLE_SIZE;
           let audioBuf = java.nio.ByteBuffer.allocate(bufferSize);
           let videoBuf = java.nio.ByteBuffer.allocate(bufferSize);
-          var offset = 0;
-          var bufferInfo: android.media.MediaCodec.BufferInfo = new android.media.MediaCodec.BufferInfo();
+          let offset = 100;
+          let videoBufferInfo: android.media.MediaCodec.BufferInfo = new android.media.MediaCodec.BufferInfo();
+          let audioBufferInfo: android.media.MediaCodec.BufferInfo = new android.media.MediaCodec.BufferInfo();
 
           // start muxer if not started yet
           if (!muxerStarted) {
+            // console.log('Starting muxer after setting rotation', outRotation);
             muxer.setOrientationHint(outRotation); //ensure merged video has same orientation as inputs
             muxer.start();
             muxerStarted = true;
           }
           //add file data
           //write video
+          // console.log('sawEOS', sawEOS, 'sawAudioEOS', sawAudioEOS);
           while (!sawEOS) {
-            bufferInfo.offset = offset;
-            bufferInfo.size = videoExtractor.readSampleData(videoBuf, offset);
-            console.log('read video buffer size', bufferInfo.size);
-            if (bufferInfo.size < 0) {
+            let videoSize = videoExtractor.readSampleData(videoBuf, offset);
+            // console.log('read video buffer size', videoSize);
+            if (videoSize < 0) {
+              // console.log('no more buffer left, done with video');
               sawEOS = true;
-              bufferInfo.size = 0;
-              // totalDuration += trackDuration;
-              // videoFormat = null;
             } else {
-              bufferInfo.presentationTimeUs = videoExtractor.getSampleTime() + totalDuration + APPEND_DELAY;
-              console.log(' writing video data with PresentationTimeUs (ms) => ', bufferInfo.presentationTimeUs);
-              bufferInfo.flags = android.media.MediaCodec.BUFFER_FLAG_KEY_FRAME;
-              muxer.writeSampleData(videoTrackIndex, videoBuf, bufferInfo);
+              //trying to set properties directly on BufferInfo objects doesn't work, need to use the set function
+              videoBufferInfo.set(offset, videoSize, videoExtractor.getSampleTime() + totalDuration * 1000 + APPEND_DELAY, android.media.MediaCodec.BUFFER_FLAG_KEY_FRAME);
+              // console.log('videoBufferInfo data', videoBufferInfo.offset, videoBufferInfo.size, videoBufferInfo.presentationTimeUs, videoBufferInfo.flags);
+              muxer.writeSampleData(videoTrackIndex, videoBuf, videoBufferInfo);
               videoExtractor.advance();
             }
           }
+
           //write audio
           while (!sawAudioEOS) {
-            bufferInfo.offset = offset;
-            bufferInfo.size = audioExtractor.readSampleData(audioBuf, offset);
-            console.log('read audio buffer size', bufferInfo.size);
-            if (bufferInfo.size < 0) {
+            let audioSize = audioExtractor.readSampleData(audioBuf, offset);
+            if (audioSize < 0) {
+              console.log('no more buffer left, done with audio');
               sawAudioEOS = true;
-              bufferInfo.size = 0;
-              // totalDuration += trackDuration;
-              // audioFormat = null;
             } else {
-              bufferInfo.presentationTimeUs = audioExtractor.getSampleTime() + totalDuration + APPEND_DELAY;
-              console.log(' writing audio data with PresentationTimeUs (ms) => ', bufferInfo.presentationTimeUs);
-              bufferInfo.flags = android.media.MediaCodec.BUFFER_FLAG_KEY_FRAME;
-              muxer.writeSampleData(audioTrackIndex, audioBuf, bufferInfo);
+              audioBufferInfo.set(offset, audioSize, audioExtractor.getSampleTime() + totalDuration * 1000 + APPEND_DELAY, android.media.MediaCodec.BUFFER_FLAG_KEY_FRAME);
+              // console.log('audioBufferInfo data', audioBufferInfo.offset, audioBufferInfo.size, audioBufferInfo.presentationTimeUs, audioBufferInfo.flags);
+              muxer.writeSampleData(audioTrackIndex, audioBuf, audioBufferInfo);
               audioExtractor.advance();
             }
           }
 
           mediadata.release();
           mediadata = null;
+          videoBufferInfo = audioBufferInfo = null;
+          audioBuf = videoBuf = null;
           videoExtractor.release();
           videoExtractor = null;
           audioExtractor.release();
           audioExtractor = null;
-          // totalDuration += (trackDuration * 1_000)
           totalDuration += trackDuration;
-
-          console.log('totalDuration (ms) => ', totalDuration);
+          Utils.GC();
+          console.log('\ntotalDuration (ms) => ', totalDuration);
         }
-        console.log('done with input files');
-        console.log(' stopping muxer');
+        // console.log('done merging input files');
+        // console.log(' stopping muxer');
         muxer.stop();
-        console.log('releasing muxer');
+        // console.log('releasing muxer');
         muxer.release();
         console.log('finished merging video segments into ', outputPath);
         return resolve(File.fromPath(outputPath));

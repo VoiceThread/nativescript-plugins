@@ -777,6 +777,7 @@ class Camera2 @JvmOverloads constructor(
         val today = Calendar.getInstance().time
         val fileName = "VID_" + df.format(today) + ".mp4"
         file = if (saveToGallery && hasStoragePermission()) {
+            Log.d("org.nativescript.plugindemo", "saveToGallery set and have Storage Permissions")
             val externalDir = context.getExternalFilesDir(Environment.DIRECTORY_DCIM)
             if (externalDir == null) {
                 listener?.onCameraError(
@@ -792,6 +793,7 @@ class Camera2 @JvmOverloads constructor(
             }
 
         } else {
+            Log.d("org.nativescript.plugindemo", "not saving to gallery, either saveToGallery not set or don't have Storage Permissions")
             File(context.getExternalFilesDir(null), fileName)
         }
 
@@ -870,6 +872,7 @@ class Camera2 @JvmOverloads constructor(
                                 }
                             } else {*/
                                 if (saveToGallery && hasStoragePermission()) {
+                                    Log.d("org.nativescript.plugindemo", "Done recording. saveToGallery set and have Storage Permissions")
                                     val values = ContentValues().apply {
                                         put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
                                         put(
@@ -917,6 +920,7 @@ class Camera2 @JvmOverloads constructor(
                                             values.put(MediaStore.Video.Media.IS_PENDING, 0);
                                             context.contentResolver.update(uri, values, null, null);
                                         }
+                                        Log.d("org.nativescript.plugindemo", "Done saving video to gallery!")
                                         listener?.onCameraVideo(file)
                                     }
 
