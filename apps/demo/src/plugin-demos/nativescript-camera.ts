@@ -78,14 +78,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       video.play();
       //add to current array of movie segments
       this.videoSegments.push(videoFile.path);
-      const mergeButton = Frame.topmost().getViewById('mergeButton') as Button;
-      if (this.videoSegments.length > 1) {
-        console.log('# segments to merge', this.videoSegments.length);
-        //show the ui to merge
-        mergeButton.visibility = 'visible';
-      } else {
-        mergeButton.visibility = 'hidden';
-      }
+      this.refreshUI();
     });
 
     this.cam.on(CameraPlus.videoRecordingStartedEvent, (args: any) => {
@@ -104,6 +97,23 @@ export class DemoModel extends DemoSharedNativescriptCamera {
   public camLoaded(args) {
     //TODO: not currently hooked into NS event properly
     console.log('camera loaded', args, args.object);
+  }
+  public refreshUI() {
+    const mergeButton = Frame.topmost().getViewById('mergeButton') as Button;
+
+    const deleteButton = Frame.topmost().getViewById('deleteButton') as Button;
+    if (this.videoSegments.length > 0) {
+      deleteButton.visibility = 'visible';
+    } else {
+      deleteButton.visibility = 'hidden';
+    }
+    if (this.videoSegments.length > 1) {
+      console.log('# segments avabilalbe to merge', this.videoSegments.length);
+      //show the ui to merge
+      mergeButton.visibility = 'visible';
+    } else {
+      mergeButton.visibility = 'hidden';
+    }
   }
 
   public async recordDemoVideo() {
@@ -176,6 +186,16 @@ export class DemoModel extends DemoSharedNativescriptCamera {
     } else {
       console.error('EMPTY merged video file!');
     }
+  }
+
+  public deleteLastSegment() {
+    console.log('deleteLastSegment()');
+    console.log('Segments in session:', this.videoSegments);
+    if (this.videoSegments.length > 0) {
+      this.videoSegments.pop();
+    } else console.warn('No video segments in current session!');
+    console.log(' done with function, Segments in session:', this.videoSegments);
+    this.refreshUI();
   }
 
   public toggleFlashOnCam() {
