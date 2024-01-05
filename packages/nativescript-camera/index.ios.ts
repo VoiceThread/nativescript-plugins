@@ -386,16 +386,26 @@ export class MySwifty extends SwiftyCamViewController {
     if ((this._videoOptions && this._videoOptions.saveToGallery) || this._owner.get().saveToGallery) {
       CLog('Save to Gallery option enabled, checking permission and saving if authorized');
       // TODO: discuss why callback handler(videoDidFinishSavingWithErrorContextInfo) does not emit event correctly - the path passed to the handler is the same as handled here so just go ahead and emit here for now
-      this._owner.get().sendEvent(CameraPlus.videoRecordingReadyEvent, path);
-
       const status = PHPhotoLibrary.authorizationStatus();
       if (status === PHAuthorizationStatus.Authorized) {
         UISaveVideoAtPathToSavedPhotosAlbum(path, this, 'videoDidFinishSavingWithErrorContextInfo', null);
       } else CLog('Not authorized for gallery access, cannot save!!!');
     } else {
       CLog(`video not saved to gallery but recording is at: ${path}`);
-      this._owner.get().sendEvent(CameraPlus.videoRecordingReadyEvent, path);
     }
+    this._owner.get().sendEvent(CameraPlus.videoRecordingReadyEvent, path);
+    //debug generated file
+    let options = NSDictionary.dictionaryWithObjectForKey(true, AVURLAssetPreferPreciseDurationAndTimingKey);
+    let asset = AVURLAsset.URLAssetWithURLOptions(NSURL.fileURLWithPath(path), options);
+    let videoAsset = asset.tracksWithMediaType(AVMediaTypeVideo).objectAtIndex(0);
+    let audioAsset = asset.tracksWithMediaType(AVMediaTypeAudio).objectAtIndex(0);
+    let size = videoAsset.naturalSize;
+    console.log('Output Video track has height', size.height, ' width ', size.width);
+    let currentFrameRate = videoAsset.nominalFrameRate;
+    // highestFrameRate = currentFrameRate > highestFrameRate ? currentFrameRate : highestFrameRate;
+    console.log('video FrameRate', currentFrameRate);
+    let isPortraitVideo = isVideoPortrait(videoAsset);
+    console.log('Video in portrait orientation?', isPortraitVideo);
   }
 
   public didFinishRecording(camera: CameraSelection) {
@@ -413,7 +423,7 @@ export class MySwifty extends SwiftyCamViewController {
     CLog(`video saved`, path);
 
     // ideally could just rely on this, but this will not emit the event (commenting for now and instead doing above in recordready - TODO: discuss why)
-    this._owner.get().sendEvent(CameraPlus.videoRecordingReadyEvent, path);
+    // this._owner.get().sendEvent(CameraPlus.videoRecordingReadyEvent, path);
   }
 
   public switchCam() {
@@ -1144,286 +1154,23 @@ export class CameraPlus extends CameraPlusBase {
         return resolve(File.fromPath(outputPath));
       }
 
-      /*
-      AVMutableComposition *composition = [[AVMutableComposition alloc] init];
-      AVMutableCompositionTrack *videoTrack = [composition addMutableTrackWithMediaType:AVMediaTypeVideo preferredTrackID:kCMPersistentTrackID_Invalid];
-      AVMutableCompositionTrack *audioTrack = [composition addMutableTrackWithMediaType:AVMediaTypeAudio preferredTrackID:kCMPersistentTrackID_Invalid];
-      NSMutableArray *instructions = [NSMutableArray new];
-      
-      __block BOOL errorOccurred = NO;
-      __block CMTime currentTime = kCMTimeZero;
-      __block CGSize size = CGSizeZero;
-      __block int32_t highestFrameRate = 0;
-      __block BOOL isPortrait_ = NO;
-      [fileURLs enumerateObjectsUsingBlock:^(NSURL *fileURL, NSUInteger idx, BOOL *stop) {
-        
-        NSDictionary *options = @{AVURLAssetPreferPreciseDurationAndTimingKey:@YES};
-        AVURLAsset *sourceAsset = [AVURLAsset URLAssetWithURL:fileURL options:options];
-        AVAssetTrack *videoAsset = [[sourceAsset tracksWithMediaType:AVMediaTypeVideo] firstObject];
-        AVAssetTrack *audioAsset = [[sourceAsset tracksWithMediaType:AVMediaTypeAudio] firstObject];
-        
-        size = videoAsset.naturalSize;
-        
-        NSLog(@"Video #%lu => width: %f height: %f", idx+1, size.width, size.height);
-        
-        int32_t currentFrameRate = (int)roundf(videoAsset.nominalFrameRate);
-        highestFrameRate = (currentFrameRate > highestFrameRate) ? currentFrameRate : highestFrameRate;
-        
-        NSLog(@"* %@ (%dfps)", [fileURL lastPathComponent], currentFrameRate);
-        
-        CMTime trimmingTime = CMTimeMake(lround(videoAsset.naturalTimeScale / videoAsset.nominalFrameRate), videoAsset.naturalTimeScale);
-        CMTimeRange timeRange = CMTimeRangeMake(trimmingTime, CMTimeSubtract(videoAsset.timeRange.duration, trimmingTime));
-
-        
-        NSError *videoError;
-        BOOL videoResult = [videoTrack insertTimeRange:timeRange ofTrack:videoAsset atTime:currentTime error:&videoError];
-        
-        NSError *audioError;
-        BOOL audioResult = [audioTrack insertTimeRange:timeRange ofTrack:audioAsset atTime:currentTime error:&audioError];
-        
-        if(!videoResult || !audioResult || videoError || audioError) {
-          if (completion) completion(nil, videoError? : audioError);
-          errorOccurred = YES;
-          *stop = YES;
-        } else {
-          isPortrait_ = [self isVideoPortrait:videoAsset];
-          
-          AVMutableVideoCompositionInstruction *videoCompositionInstruction = [AVMutableVideoCompositionInstruction videoCompositionInstruction];
-          
-          videoCompositionInstruction.timeRange = CMTimeRangeMake(currentTime, timeRange.duration);
-          
-          AVMutableVideoCompositionLayerInstruction *videoLayerInstruction = [AVMutableVideoCompositionLayerInstruction videoCompositionLayerInstructionWithAssetTrack:videoTrack];
-          
-          [videoLayerInstruction setTransform:videoAsset.preferredTransform atTime:currentTime];
-          videoCompositionInstruction.layerInstructions = @[videoLayerInstruction];
-          [instructions addObject:videoCompositionInstruction];
-          currentTime = CMTimeAdd(currentTime, timeRange.duration);
-        }
-      }];
-      
-      if (errorOccurred == NO) {
-        AVAssetExportSession *exportSession = [[AVAssetExportSession alloc] initWithAsset:composition presetName:AVAssetExportPresetHighestQuality];
-        NSString *fileName = [MKOVideoMerge generateFileName];
-        NSString *filePath = [MKOVideoMerge documentsPathWithFilePath:fileName];
-        exportSession.outputURL = [NSURL fileURLWithPath:filePath];
-        exportSession.outputFileType = AVFileTypeMPEG4;
-        exportSession.shouldOptimizeForNetworkUse = YES;
-        
-        AVMutableVideoComposition *mutableVideoComposition = [AVMutableVideoComposition videoComposition];
-        
-        mutableVideoComposition.instructions = instructions;
-        mutableVideoComposition.frameDuration = CMTimeMake(1, highestFrameRate);
-        CGSize naturalSize;
-        if (isPortrait_) {
-          naturalSize = CGSizeMake(size.height, size.width);
-          mutableVideoComposition.renderSize =  CGSizeMake(naturalSize.width, naturalSize.height);
-        } else {
-          mutableVideoComposition.renderSize = size;
-        }
-        mutableVideoComposition.frameDuration = CMTimeMake(1,30);
-        
-        exportSession.videoComposition = mutableVideoComposition;
-        
-        NSLog(@"Composition Duration: %ld seconds", lround(CMTimeGetSeconds(composition.duration)));
-        NSLog(@"Composition Framerate: %d fps", highestFrameRate);
-        
-        void(^exportCompletion)(void) = ^{
-          dispatch_async(dispatch_get_main_queue(), ^{
-            if (completion) completion(exportSession.outputURL, exportSession.error);
-          });
-        };
-        
-        [exportSession exportAsynchronouslyWithCompletionHandler:^{
-          switch (exportSession.status) {
-            case AVAssetExportSessionStatusFailed:{
-              exportCompletion();
-              break;
-            }
-            case AVAssetExportSessionStatusCancelled:{
-              exportCompletion();
-              break;
-            }
-            case AVAssetExportSessionStatusCompleted: {
-              NSLog(@"Successfully merged video files into: %@", fileName);
-              exportCompletion();
-              break;
-            }
-            case AVAssetExportSessionStatusUnknown: {
-              NSLog(@"Export Status: Unknown");
-            }
-            case AVAssetExportSessionStatusExporting : {
-              NSLog(@"Export Status: Exporting");
-            }
-            case AVAssetExportSessionStatusWaiting: {
-              NSLog(@"Export Status: Wating");
-            }
-          };
-        }];
-      }
-    }
-
-    + (NSURL *)applicationDocumentsDirectory {
-      return [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask] lastObject];
-    }
-
-    + (NSString *)documentsPathWithFilePath:(NSString *)filePath {
-      return [[MKOVideoMerge applicationDocumentsDirectory].path stringByAppendingPathComponent:filePath];
-    }
-
-    + (NSString *)generateFileName {
-      return [NSString stringWithFormat:@"video-%@.mp4", [[NSProcessInfo processInfo] globallyUniqueString]];
-    }
-
-
-    +(BOOL) isVideoPortrait:(AVAssetTrack *)videoTrack{
-      BOOL isPortrait = FALSE;
-    //  NSArray *tracks = [asset tracksWithMediaType:AVMediaTypeVideo];
-    //  if([tracks    count] > 0) {
-    //    AVAssetTrack *videoTrack = [tracks objectAtIndex:0];
-      
-        CGAffineTransform t = videoTrack.preferredTransform;
-        // Portrait
-        if(t.a == 0 && t.b == 1.0 && t.c == -1.0 && t.d == 0)
-        {
-          isPortrait = YES;
-        }
-        // PortraitUpsideDown
-        if(t.a == 0 && t.b == -1.0 && t.c == 1.0 && t.d == 0)  {
-          
-          isPortrait = YES;
-        }
-        // LandscapeRight
-        if(t.a == 1.0 && t.b == 0 && t.c == 0 && t.d == 1.0)
-        {
-          isPortrait = FALSE;
-        }
-        // LandscapeLeft
-        if(t.a == -1.0 && t.b == 0 && t.c == 0 && t.d == -1.0)
-        {
-          isPortrait = FALSE;
-        }
-    //  }
-      return isPortrait;
-    }
-
-*/
-
-      /*
-        let maxRenderSize = CGSize(width: 1280.0, height: 720.0)
-        var currentTime = CMTime.zero
-        var renderSize = CGSize.zero
-        // Create empty Layer Instructions, that we will be passing to Video Composition and finally to Exporter.
-        var instructions = [AVMutableVideoCompositionInstruction]()
-
-        urls.enumerated().forEach { index, url in
-            let asset = AVAsset(url: url)
-            let assetTrack = asset.tracks.first!
-            
-            // Create instruction for a video and append it to array.
-            let instruction = this.instruction(assetTrack, asset: asset, time: currentTime, duration: assetTrack.timeRange.duration, maxRenderSize: maxRenderSize)
-            instructions.append(instruction.videoCompositionInstruction)
-            
-            // Set render size (orientation) according first video.                       
-            if index == 0 {
-                renderSize = instruction.isPortrait ? CGSize(width: maxRenderSize.height, height: maxRenderSize.width) : CGSize(width: maxRenderSize.width, height: maxRenderSize.height)
-            }
-            
-            do {
-                let timeRange = CMTimeRangeMake(start: .zero, duration: assetTrack.timeRange.duration)
-                // Insert video to Mutable Composition at right time.
-                try insertTimeRange(timeRange, of: asset, at: currentTime)
-                currentTime = CMTimeAdd(currentTime, assetTrack.timeRange.duration)
-            } catch let error {
-                completion(nil, error)
-            }
-        }
-        
-        // Create Video Composition and pass Layer Instructions to it.
-        let videoComposition = AVMutableVideoComposition()
-        videoComposition.instructions = instructions
-        // Do not forget to set frame duration and render size. It will crash if you dont.
-        videoComposition.frameDuration = CMTimeMake(value: 1, timescale: 30)
-        videoComposition.renderSize = renderSize
-        
-        guard let exporter = AVAssetExportSession(asset: self, presetName: AVAssetExportPreset1280x720) else {
-            completion(nil, nil)
-            return
-        }
-        exporter.outputURL = outputURL
-        exporter.outputFileType = .mp4
-        // Pass Video Composition to the Exporter.
-        exporter.videoComposition = videoComposition
-        
-        exporter.exportAsynchronously {
-            DispatchQueue.main.async {
-                completion(exporter.outputURL, nil)
-            }
-        }
-    }
-    
-    static func instruction(_ assetTrack: AVAssetTrack, asset: AVAsset, time: CMTime, duration: CMTime, maxRenderSize: CGSize)
-        -> (videoCompositionInstruction: AVMutableVideoCompositionInstruction, isPortrait: Bool) {
-            let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: assetTrack)
-
-            // Find out orientation from preffered transform.
-            let assetInfo = orientationFromTransform(assetTrack.preferredTransform)
-            
-            // Calculate scale ratio according orientation.
-            var scaleRatio = maxRenderSize.width / assetTrack.naturalSize.width
-            if assetInfo.isPortrait {
-                scaleRatio = maxRenderSize.height / assetTrack.naturalSize.height
-            }
-            
-            // Set correct transform.
-            var transform = CGAffineTransform(scaleX: scaleRatio, y: scaleRatio)
-            transform = assetTrack.preferredTransform.concatenating(transform)
-            layerInstruction.setTransform(transform, at: .zero)
-            
-            // Create Composition Instruction and pass Layer Instruction to it.
-            let videoCompositionInstruction = AVMutableVideoCompositionInstruction()
-            videoCompositionInstruction.timeRange = CMTimeRangeMake(start: time, duration: duration)
-            videoCompositionInstruction.layerInstructions = [layerInstruction]
-            
-            return (videoCompositionInstruction, assetInfo.isPortrait)
-    }
-    
-    static func orientationFromTransform(_ transform: CGAffineTransform) -> (orientation: UIImage.Orientation, isPortrait: Bool) {
-        var assetOrientation = UIImage.Orientation.up
-        var isPortrait = false
-        
-        switch [transform.a, transform.b, transform.c, transform.d] {
-        case [0.0, 1.0, -1.0, 0.0]:
-            assetOrientation = .right
-            isPortrait = true
-            
-        case [0.0, -1.0, 1.0, 0.0]:
-            assetOrientation = .left
-            isPortrait = true
-            
-        case [1.0, 0.0, 0.0, 1.0]:
-            assetOrientation = .up
-            
-        case [-1.0, 0.0, 0.0, -1.0]:
-            assetOrientation = .down
-
-        default:
-            break
-        }
-    
-        return (assetOrientation, isPortrait)
-    }
-    */
       let composition = AVMutableComposition.new();
       let audioTrack: AVMutableCompositionTrack = composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeAudio, kCMPersistentTrackID_Invalid);
       let videoTrack: AVMutableCompositionTrack = composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeVideo, kCMPersistentTrackID_Invalid);
 
       let instructions = NSMutableArray.new();
+
+      // var arrayLayerInstructions:[AVMutableVideoCompositionLayerInstruction];
+
       let currentTime = kCMTimeZero;
       let size: CGSize = CGSizeZero;
       let highestFrameRate = 0;
-      let isPortrait = false;
+      let isPortraitVideo = false;
       let haveError = false;
-      let outputTransform;
+      let outputTransform: CGAffineTransform;
+
+      // let orientation = UIDevice.currentDevice.orientation;
+
       for (let i = 0; i < inputFiles.length; i++) {
         console.log('Extracting audio and video tracks from ', inputFiles[i]);
         // let asset = AVURLAsset.assetWithURL(NSURL.fileURLWithPath(inputFiles[i]));
@@ -1442,7 +1189,7 @@ export class CameraPlus extends CameraPlusBase {
         }
         size = videoAsset.naturalSize;
         console.log('Video track has height', size.height, ' width ', size.width);
-
+        // console.log("orientation",videoAsset.
         let currentFrameRate = videoAsset.nominalFrameRate;
         highestFrameRate = currentFrameRate > highestFrameRate ? currentFrameRate : highestFrameRate;
         console.log('currentFrameRate', currentFrameRate, ' highestFrameRate', highestFrameRate);
@@ -1456,28 +1203,48 @@ export class CameraPlus extends CameraPlusBase {
           haveError = true;
           return;
         }
-        isPortrait = this.isVideoPortrait(videoAsset);
+        isPortraitVideo = isVideoPortrait(videoAsset);
+        console.log('Video in portrait orientation?', isPortraitVideo);
+
         // var scaleRatio = 1;
         // var transform = CGAffineTransform(1,1)
         // transform = videoAsset.preferredTransform.concatenating(transform)
 
-        let videoCompositionInstruction: AVMutableVideoCompositionInstruction = AVMutableVideoCompositionInstruction.videoCompositionInstruction(); //new AVMutableVideoCompositionInstruction({ coder: null });
-        videoCompositionInstruction.timeRange = CMTimeRangeMake(currentTime, timeRange.duration);
+        // let videoCompositionInstruction: AVMutableVideoCompositionInstruction = AVMutableVideoCompositionInstruction.videoCompositionInstruction(); //new AVMutableVideoCompositionInstruction({ coder: null });
+        // videoCompositionInstruction.timeRange = CMTimeRangeMake(currentTime, timeRange.duration);
         let videoLayerInstruction: AVMutableVideoCompositionLayerInstruction = AVMutableVideoCompositionLayerInstruction.videoCompositionLayerInstructionWithAssetTrack(videoTrack); //new AVMutableVideoCompositionLayerInstruction({ coder: null });
+
+        outputTransform = videoAsset.preferredTransform;
 
         //find out what transform to use for this clip to rotate to portrait
         // let newTransform: CGAffineTransform = videoAsset.preferredTransform;
+        // console.log('current transform', newTransform);
+        // this.getVideoTransform(newTransform, orientation);
         // newTransform = CGAffineTransformScale(newTransform, size.width, size.height);
         // newTransform = CGAffineTransformRotate(newTransform, -Math.PI / 2);
         // outputTransform = newTransform;
         // videoLayerInstruction.setTransformAtTime(newTransform, currentTime);
+        // let a = CGAffineTransformMake(0, 1, -1, 0, 0, 0);
+        // CGAffineTransformRotate
+        // a.a = 0;
+        // a.b = 1;
+        // a.c = -1;
+        // a.d = 0;
+        // let t = a;
+        // videoLayerInstruction.setTransformAtTime(a, currentTime);
 
         //or use original transform and apply on export
+        console.log('assigning original transform to video track being merged');
         videoLayerInstruction.setTransformAtTime(videoAsset.preferredTransform, currentTime);
-        outputTransform = videoAsset.preferredTransform;
+        let t = (outputTransform = videoAsset.preferredTransform);
 
-        videoCompositionInstruction.layerInstructions = NSArray.arrayWithArray([videoLayerInstruction]);
-        instructions.addObject(videoCompositionInstruction);
+        console.log('Current track outputTransform', t.a, t.b, t.c, t.d, t.tx, t.ty);
+
+        // videoCompositionInstruction.layerInstructions = NSArray.arrayWithArray([videoLayerInstruction]);
+        // instructions.addObject(videoCompositionInstruction);
+        // Keep reference to video asset with instruction for use later when processing frames
+        instructions.addObject(videoAsset);
+
         console.log('Current track length is ', CMTimeGetSeconds(videoAsset.timeRange.duration), CMTimeGetSeconds(trimmingTime));
         currentTime = CMTimeAdd(currentTime, timeRange.duration);
         console.log('Total length is now', CMTimeGetSeconds(currentTime));
@@ -1495,28 +1262,45 @@ export class CameraPlus extends CameraPlusBase {
 
       if (haveError) return reject('Error during track extraction');
 
+      let videoCompositionInstruction: AVMutableVideoCompositionInstruction = AVMutableVideoCompositionInstruction.videoCompositionInstruction(); //new AVMutableVideoCompositionInstruction({ coder: null });
+      videoCompositionInstruction.timeRange = CMTimeRangeMake(kCMTimeZero, currentTime);
+      // let mainInstruction = AVMutableVideoCompositionInstruction()
+      // mainInstruction.timeRange = CMTimeRangeMake(kCMTimeZero, insertTime)
+      // videoCompositionInstruction.layerInstructions = instructions
+
       let outputUrl = NSURL.fileURLWithPath(outputPath);
       let exportSession = new AVAssetExportSession({ asset: composition, presetName: AVAssetExportPresetPassthrough });
       exportSession.outputFileType = AVFileTypeMPEG4;
       exportSession.outputURL = outputUrl;
       exportSession.shouldOptimizeForNetworkUse = true;
-      let orientation = UIDevice.currentDevice.orientation;
-      let newTransform = this.getVideoTransform(outputTransform, orientation);
 
+      //check device orientation versus video orientation and apply transform to match
+      // let newTransform = this.getVideoTransform(outputTransform, orientation);
+      // console.log('Applying orientation update transform on merged data', newTransform);
       const passThroughInstruction = AVMutableVideoCompositionInstruction.videoCompositionInstruction();
       passThroughInstruction.timeRange = CMTimeRangeMake(kCMTimeZero, currentTime);
-
       const passThroughLayer = AVMutableVideoCompositionLayerInstruction.videoCompositionLayerInstructionWithAssetTrack(videoTrack);
-      // outputTransform = CGAffineTransformRotate(outputTransform, Math.PI);
-      // passThroughLayer.setTransformAtTime(outputTransform, kCMTimeZero);
-      passThroughLayer.setTransformAtTime(newTransform, kCMTimeZero);
+
+      //original transform
+      console.log('assigning original transform to video track exportSession');
+      passThroughLayer.setTransformAtTime(outputTransform, kCMTimeZero);
+      let t = outputTransform;
+
+      //modified transform
+      // passThroughLayer.setTransformAtTime(newTransform, kCMTimeZero);
+      //manual transform
+      // let a = CGAffineTransformMake(0, 1, -1, 0, 0, 0);
+      // passThroughLayer.setTransformAtTime(a, kCMTimeZero);
+      // let t = a;
+
+      console.log('Current track outputTransform', t.a, t.b, t.c, t.d, t.tx, t.ty);
       passThroughInstruction.layerInstructions = NSArray.arrayWithArray([passThroughLayer]);
 
       let mutableVideoComposition: AVMutableVideoComposition = AVMutableVideoComposition.videoComposition();
       mutableVideoComposition.instructions = NSArray.arrayWithArray([passThroughInstruction]);
       mutableVideoComposition.frameDuration = CMTimeMake(1, highestFrameRate);
 
-      let naturalSize: CGSize;
+      // let naturalSize: CGSize;
       // if (isPortrait) {
       //   naturalSize = CGSizeMake(size.height, size.width);
       //   mutableVideoComposition.renderSize = CGSizeMake(naturalSize.width, naturalSize.height);
@@ -1554,82 +1338,43 @@ export class CameraPlus extends CameraPlusBase {
               UISaveVideoAtPathToSavedPhotosAlbum(outputPath, this, null, null);
               CLog('saved to gallery!');
             } else CLog('Not authorized for gallery access, cannot save!!!');
+            //debug generated file
+            let options = NSDictionary.dictionaryWithObjectForKey(true, AVURLAssetPreferPreciseDurationAndTimingKey);
+            let asset = AVURLAsset.URLAssetWithURLOptions(NSURL.fileURLWithPath(outputPath), options);
+            let videoAsset = asset.tracksWithMediaType(AVMediaTypeVideo).objectAtIndex(0);
+            let audioAsset = asset.tracksWithMediaType(AVMediaTypeAudio).objectAtIndex(0);
+            size = videoAsset.naturalSize;
+            console.log('Output Video track has height', size.height, ' width ', size.width);
+            let currentFrameRate = videoAsset.nominalFrameRate;
+            // highestFrameRate = currentFrameRate > highestFrameRate ? currentFrameRate : highestFrameRate;
+            console.log('video FrameRate', currentFrameRate);
+            isPortraitVideo = isVideoPortrait(videoAsset);
+            console.log('Video in portrait orientation?', isPortraitVideo);
+
             resolve(File.fromPath(outputPath));
             break;
         }
       });
-      // NSArray.arrayWithArray([instructions]);
-
-      /*let mergeAudioUrl = NSURL.fileURLWithPath(outputPath);
-      let assetExport = new AVAssetExportSession({ asset: composition, presetName: AVAssetExportPresetPassthrough });
-      assetExport.outputFileType = AVFileTypeMPEG4;
-      assetExport.outputURL = mergeAudioUrl;
-      assetExport.exportAsynchronouslyWithCompletionHandler(() => {
-        switch (assetExport.status) {
-          case AVAssetExportSessionStatus.Failed:
-            console.log('failed (assetExport?.error)', assetExport.error);
-            reject(assetExport.error);
-            break;
-          case AVAssetExportSessionStatus.Cancelled:
-            console.log('cancelled (assetExport?.error)');
-            break;
-          case AVAssetExportSessionStatus.Unknown:
-            console.log('unknown(assetExport?.error)');
-            break;
-          case AVAssetExportSessionStatus.Waiting:
-            console.log('waiting(assetExport?.error)');
-            break;
-          case AVAssetExportSessionStatus.Exporting:
-            console.log('exporting(assetExport?.error)');
-            break;
-          case AVAssetExportSessionStatus.Completed:
-            console.log('MP4 Concatenation Complete');
-            resolve(File.fromPath(outputPath));
-            break;
-        }
-      });
-
-      */
     });
   }
   private getVideoTransform(transform, orientation): CGAffineTransform {
     switch (orientation) {
       case UIDeviceOrientation.Portrait:
+        console.log('Device:  Portrait');
         return CGAffineTransformRotate(transform, Math.PI / 2);
       case UIDeviceOrientation.PortraitUpsideDown:
+        console.log('Device:  PortraitUpsideDown');
         return CGAffineTransformRotate(transform, Math.PI);
       case UIDeviceOrientation.LandscapeLeft:
+        console.log('Device:  LandscapeLeft');
         return CGAffineTransformRotate(transform, 0);
       case UIDeviceOrientation.LandscapeRight:
+        console.log('Device:  LandscapeRight');
         return CGAffineTransformRotate(transform, Math.PI);
       default:
+        console.log('Device:  Portrait (default)');
         return CGAffineTransformRotate(transform, Math.PI / 2);
     }
-  }
-  private isVideoPortrait(videoTrack: AVAssetTrack) {
-    let isPortrait = false;
-    let t = videoTrack.preferredTransform;
-    //Portrait
-    if (t.a == 0 && t.b == 1.0 && t.c == -1.0 && t.d == 0) {
-      console.log('Portrait orientation');
-      isPortrait = true;
-    }
-    // PortraitUpsideDown
-    if (t.a == 0 && t.b == -1.0 && t.c == 1.0 && t.d == 0) {
-      console.log('PortraitUpsideDown orientation');
-      isPortrait = true;
-    }
-    // LandscapeRight
-    if (t.a == 1.0 && t.b == 0 && t.c == 0 && t.d == 1.0) {
-      console.log('LandscapeRight orientation');
-      isPortrait = false;
-    }
-    // LandscapeLeft
-    if (t.a == -1.0 && t.b == 0 && t.c == 0 && t.d == -1.0) {
-      console.log('LandscapeLeft orientation');
-      isPortrait = false;
-    }
-    return isPortrait;
   }
 }
 
@@ -1934,4 +1679,43 @@ const drawCircle = function (color: string) {
   bezier2Path.closePath();
   iconColor.setFill();
   bezier2Path.fill();
+};
+
+const isVideoPortrait = function (videoTrack: AVAssetTrack) {
+  let isPortrait = false;
+  let t = videoTrack.preferredTransform;
+
+  //Portrait
+  if (t.a == 0 && t.b == 1.0 && t.c == -1.0 && t.d == 0) {
+    console.log('Portrait orientation');
+    isPortrait = true;
+  }
+  // PortraitUpsideDown
+  if (t.a == 0 && t.b == -1.0 && t.c == 1.0 && t.d == 0) {
+    console.log('PortraitUpsideDown orientation');
+    isPortrait = true;
+  }
+  // LandscapeRight
+  if (t.a == 1.0 && t.b == 0 && t.c == 0 && t.d == 1.0) {
+    console.log('LandscapeRight orientation');
+    isPortrait = false;
+  }
+  // LandscapeLeft
+  if (t.a == -1.0 && t.b == 0 && t.c == 0 && t.d == -1.0) {
+    console.log('LandscapeLeft orientation');
+    isPortrait = false;
+  }
+  let size = videoTrack.naturalSize;
+  console.log('videoTrack has height', size.height, 'width', size.width);
+  if (size.height > size.width) console.log('Portrait Dimensions');
+  else console.log('Landscape Dimensions');
+  console.log('Current track transorm', t.a, t.b, t.c, t.d, t.tx, t.ty);
+  if (size.width == t.tx && size.height == t.ty) console.log('UIInterfaceOrientationLandscapeRight');
+  else if (t.tx == 0 && t.ty == 0) console.log('UIInterfaceOrientationLandscapeLeft');
+  else if (t.tx == 0 && t.ty == size.width) console.log('UIInterfaceOrientationPortraitUpsideDown');
+  else console.log('UIInterfaceOrientationPortrait');
+
+  // Math.atan2()
+  //
+  return isPortrait;
 };

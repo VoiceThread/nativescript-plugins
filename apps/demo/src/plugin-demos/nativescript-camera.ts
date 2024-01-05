@@ -77,7 +77,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       video.loop = true;
       video.play();
       //add to current array of movie segments
-      this.videoSegments.push(video.src);
+      this.videoSegments.push(videoFile.path);
       const mergeButton = Frame.topmost().getViewById('mergeButton') as Button;
       if (this.videoSegments.length > 1) {
         console.log('# segments to merge', this.videoSegments.length);
