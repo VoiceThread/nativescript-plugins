@@ -444,8 +444,12 @@ export class CameraPlus extends CameraPlusBase {
       console.log('using picture size', this.pictureSize);
       // let sizes = this.getAvailablePictureSizes('4x3');
       // console.dir('available sizes', sizes);
+
       this._camera.setSaveToGallery(!!options.saveToGallery);
+
       this._camera.setAutoSquareCrop(!!options.autoSquareCrop);
+      //TODO: does this option work on both platforms?
+
       this._lastCameraOptions.push(options);
       this._camera.takePhoto();
     }
@@ -538,8 +542,6 @@ export class CameraPlus extends CameraPlusBase {
       this._camera.setMaxVideoBitrate(options.androidMaxVideoBitRate || -1);
       this._camera.setMaxVideoFrameRate(options.androidMaxFrameRate || -1);
 
-      // const permResult = await this.requestVideoRecordingPermissions();
-      // CLog(permResult);
       this._camera.startRecording();
     }
   }

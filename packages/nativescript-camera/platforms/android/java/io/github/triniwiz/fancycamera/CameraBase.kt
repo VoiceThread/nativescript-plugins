@@ -19,12 +19,11 @@ import java.io.IOException
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.concurrent.Executors
 
-
-abstract class CameraBase @JvmOverloads constructor(
-    context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
-) : FrameLayout(context, attrs, defStyleAttr) {
+abstract class CameraBase
+@JvmOverloads
+constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) :
+        FrameLayout(context, attrs, defStyleAttr) {
     var enableAudio: Boolean = true
     abstract var retrieveLatestImage: Boolean
     internal var latestImage: Bitmap? = null
@@ -69,7 +68,7 @@ abstract class CameraBase @JvmOverloads constructor(
     abstract var enableTapToFocus: Boolean
     abstract var zoom: Float
     abstract var zoomRatio: Float
-    
+
     internal fun resetCurrentFrame() {
         if (isProcessingEveryNthFrame()) {
             currentFrame = 0
@@ -94,11 +93,12 @@ abstract class CameraBase @JvmOverloads constructor(
     }
 
     fun toggleFlash() {
-        flashMode = if (flashMode == CameraFlashMode.OFF) {
-            CameraFlashMode.ON
-        } else {
-            CameraFlashMode.OFF
-        }
+        flashMode =
+                if (flashMode == CameraFlashMode.OFF) {
+                    CameraFlashMode.ON
+                } else {
+                    CameraFlashMode.OFF
+                }
     }
 
     abstract val previewSurface: Any
@@ -108,11 +108,11 @@ abstract class CameraBase @JvmOverloads constructor(
     /** Device orientation in degrees 0-359 */
     var currentOrientation: Int = OrientationEventListener.ORIENTATION_UNKNOWN
 
-    abstract fun orientationUpdated();
+    abstract fun orientationUpdated()
 
     internal val VIDEO_RECORDER_PERMISSIONS_REQUEST = 868
     internal val VIDEO_RECORDER_PERMISSIONS =
-        arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA)
+            arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA)
 
     internal var mTimer: Timer? = null
     internal var mTimerTask: TimerTask? = null
@@ -129,23 +129,25 @@ abstract class CameraBase @JvmOverloads constructor(
 
     internal var listener: CameraEventListener? = null
 
-    private val orientationEventListener = object : OrientationEventListener(context) {
-        override fun onOrientationChanged(orientation: Int) {
-            if (orientation > -1) {
-                val newOrientation = when (orientation) {
-                    in 45 until 135 -> 270
-                    in 135 until 225 -> 180
-                    in 225 until 315 -> 90
-                    else -> 0
-                }
+    private val orientationEventListener =
+            object : OrientationEventListener(context) {
+                override fun onOrientationChanged(orientation: Int) {
+                    if (orientation > -1) {
+                        val newOrientation =
+                                when (orientation) {
+                                    in 45 until 135 -> 270
+                                    in 135 until 225 -> 180
+                                    in 225 until 315 -> 90
+                                    else -> 0
+                                }
 
-                if (newOrientation != currentOrientation) {
-                    currentOrientation = newOrientation
-                    orientationUpdated()
+                        if (newOrientation != currentOrientation) {
+                            currentOrientation = newOrientation
+                            orientationUpdated()
+                        }
+                    }
                 }
             }
-        }
-    }
 
     init {
         orientationEventListener.enable()
@@ -157,20 +159,17 @@ abstract class CameraBase @JvmOverloads constructor(
         orientationEventListener.disable()
     }
 
-
     private var timerLock: Any = Any()
 
-    @Volatile
-    internal var mDuration = 0L
+    @Volatile internal var mDuration = 0L
     internal fun startDurationTimer() {
         mTimer = Timer()
-        mTimerTask = object : TimerTask() {
-            override fun run() {
-                synchronized(timerLock) {
-                    mDuration += 1
+        mTimerTask =
+                object : TimerTask() {
+                    override fun run() {
+                        synchronized(timerLock) { mDuration += 1 }
+                    }
                 }
-            }
-        }
         mTimer?.schedule(mTimerTask, 0, 1000)
     }
 
@@ -179,7 +178,6 @@ abstract class CameraBase @JvmOverloads constructor(
         mTimer?.cancel()
         mDuration = 0
     }
-
 
     internal fun initListener(instance: MediaRecorder? = null) {
         if (isAudioLevelsEnabled) {
@@ -196,10 +194,7 @@ abstract class CameraBase @JvmOverloads constructor(
                 recorder.start()
                 isGettingAudioLevels = true
                 mEMA = 0.0
-            } catch (e: IOException) {
-            } catch (e: Exception) {
-            }
-
+            } catch (e: IOException) {} catch (e: Exception) {}
         }
     }
 
@@ -209,66 +204,72 @@ abstract class CameraBase @JvmOverloads constructor(
                 recorder.stop()
                 recorder.reset()
                 isGettingAudioLevels = false
-            } catch (e: Exception) {
-            }
-
+            } catch (e: Exception) {}
         }
     }
 
     internal fun getCamcorderProfile(quality: Quality): CamcorderProfile {
         var profile = CamcorderProfile.get(CamcorderProfile.QUALITY_LOW)
         when (quality) {
-            Quality.MAX_480P -> profile =
-                if (CamcorderProfile.hasProfile(CamcorderProfile.QUALITY_480P)) {
-                    CamcorderProfile.get(CamcorderProfile.QUALITY_480P)
-                } else {
-                    getCamcorderProfile(Quality.QVGA)
-                }
-            Quality.MAX_720P -> profile =
-                if (CamcorderProfile.hasProfile(CamcorderProfile.QUALITY_720P)) {
-                    CamcorderProfile.get(CamcorderProfile.QUALITY_720P)
-                } else {
-                    getCamcorderProfile(Quality.MAX_480P)
-                }
-            Quality.MAX_1080P -> profile =
-                if (CamcorderProfile.hasProfile(CamcorderProfile.QUALITY_1080P)) {
-                    CamcorderProfile.get(CamcorderProfile.QUALITY_1080P)
-                } else {
-                    getCamcorderProfile(Quality.MAX_720P)
-                }
-            Quality.MAX_2160P -> profile = try {
-                CamcorderProfile.get(CamcorderProfile.QUALITY_2160P)
-            } catch (e: Exception) {
-                getCamcorderProfile(Quality.HIGHEST)
-            }
-
+            Quality.MAX_480P ->
+                    profile =
+                            if (CamcorderProfile.hasProfile(CamcorderProfile.QUALITY_480P)) {
+                                CamcorderProfile.get(CamcorderProfile.QUALITY_480P)
+                            } else {
+                                getCamcorderProfile(Quality.QVGA)
+                            }
+            Quality.MAX_720P ->
+                    profile =
+                            if (CamcorderProfile.hasProfile(CamcorderProfile.QUALITY_720P)) {
+                                CamcorderProfile.get(CamcorderProfile.QUALITY_720P)
+                            } else {
+                                getCamcorderProfile(Quality.MAX_480P)
+                            }
+            Quality.MAX_1080P ->
+                    profile =
+                            if (CamcorderProfile.hasProfile(CamcorderProfile.QUALITY_1080P)) {
+                                CamcorderProfile.get(CamcorderProfile.QUALITY_1080P)
+                            } else {
+                                getCamcorderProfile(Quality.MAX_720P)
+                            }
+            Quality.MAX_2160P ->
+                    profile =
+                            try {
+                                CamcorderProfile.get(CamcorderProfile.QUALITY_2160P)
+                            } catch (e: Exception) {
+                                getCamcorderProfile(Quality.HIGHEST)
+                            }
             Quality.HIGHEST -> profile = CamcorderProfile.get(CamcorderProfile.QUALITY_HIGH)
             Quality.LOWEST -> profile = CamcorderProfile.get(CamcorderProfile.QUALITY_LOW)
-            Quality.QVGA -> profile =
-                if (CamcorderProfile.hasProfile(CamcorderProfile.QUALITY_QVGA)) {
-                    CamcorderProfile.get(CamcorderProfile.QUALITY_QVGA)
-                } else {
-                    getCamcorderProfile(Quality.LOWEST)
-                }
+            Quality.QVGA ->
+                    profile =
+                            if (CamcorderProfile.hasProfile(CamcorderProfile.QUALITY_QVGA)) {
+                                CamcorderProfile.get(CamcorderProfile.QUALITY_QVGA)
+                            } else {
+                                getCamcorderProfile(Quality.LOWEST)
+                            }
         }
         return profile
     }
 
-    internal val DATE_FORMAT = object : ThreadLocal<SimpleDateFormat>() {
-        public override fun initialValue(): SimpleDateFormat {
-            return SimpleDateFormat("yyyy:MM:dd", Locale.US)
-        }
-    }
-    internal val TIME_FORMAT = object : ThreadLocal<SimpleDateFormat>() {
-        public override fun initialValue(): SimpleDateFormat {
-            return SimpleDateFormat("HH:mm:ss", Locale.US)
-        }
-    }
-    internal val DATETIME_FORMAT = object : ThreadLocal<SimpleDateFormat>() {
-        public override fun initialValue(): SimpleDateFormat {
-            return SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US)
-        }
-    }
+    internal val DATE_FORMAT =
+            object : ThreadLocal<SimpleDateFormat>() {
+                public override fun initialValue(): SimpleDateFormat {
+                    return SimpleDateFormat("yyyy:MM:dd", Locale.US)
+                }
+            }
+    internal val TIME_FORMAT =
+            object : ThreadLocal<SimpleDateFormat>() {
+                public override fun initialValue(): SimpleDateFormat {
+                    return SimpleDateFormat("HH:mm:ss", Locale.US)
+                }
+            }
+    internal val DATETIME_FORMAT =
+            object : ThreadLocal<SimpleDateFormat>() {
+                public override fun initialValue(): SimpleDateFormat {
+                    return SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US)
+                }
+            }
 
     internal fun convertToExifDateTime(timestamp: Long): String {
         return DATETIME_FORMAT.get()!!.format(Date(timestamp))
@@ -282,41 +283,42 @@ abstract class CameraBase @JvmOverloads constructor(
     fun hasStoragePermission(): Boolean {
         return if (Build.VERSION.SDK_INT < 23) {
             true
-        } else ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE
-        ) == PackageManager.PERMISSION_GRANTED
+        } else
+                ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ) == PackageManager.PERMISSION_GRANTED
     }
 
     fun requestStoragePermission() {
         ActivityCompat.requestPermissions(
-            context as Activity,
-            arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
-            868
+                context as Activity,
+                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                868
         )
     }
 
     fun requestCameraPermission() {
         ActivityCompat.requestPermissions(
-            context as Activity,
-            arrayOf(Manifest.permission.CAMERA),
-            VIDEO_RECORDER_PERMISSIONS_REQUEST
+                context as Activity,
+                arrayOf(Manifest.permission.CAMERA),
+                VIDEO_RECORDER_PERMISSIONS_REQUEST
         )
     }
 
     fun requestAudioPermission() {
         ActivityCompat.requestPermissions(
-            context as Activity,
-            arrayOf(Manifest.permission.RECORD_AUDIO),
-            VIDEO_RECORDER_PERMISSIONS_REQUEST
+                context as Activity,
+                arrayOf(Manifest.permission.RECORD_AUDIO),
+                VIDEO_RECORDER_PERMISSIONS_REQUEST
         )
     }
 
     fun requestPermission() {
         ActivityCompat.requestPermissions(
-            context as Activity,
-            VIDEO_RECORDER_PERMISSIONS,
-            VIDEO_RECORDER_PERMISSIONS_REQUEST
+                context as Activity,
+                VIDEO_RECORDER_PERMISSIONS,
+                VIDEO_RECORDER_PERMISSIONS_REQUEST
         )
     }
 
@@ -327,19 +329,16 @@ abstract class CameraBase @JvmOverloads constructor(
     fun hasCameraPermission(): Boolean {
         return if (Build.VERSION.SDK_INT < 23) {
             true
-        } else ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.CAMERA
-        ) == PackageManager.PERMISSION_GRANTED
+        } else
+                ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                        PackageManager.PERMISSION_GRANTED
     }
 
     fun hasAudioPermission(): Boolean {
         return if (Build.VERSION.SDK_INT < 23) {
             true
-        } else ContextCompat.checkSelfPermission(
-            context,
-            Manifest.permission.RECORD_AUDIO
-        ) == PackageManager.PERMISSION_GRANTED
+        } else
+                ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+                        PackageManager.PERMISSION_GRANTED
     }
-
 }

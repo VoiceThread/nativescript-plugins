@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.res.Configuration
 import android.graphics.*
 import android.hardware.camera2.*
-import android.media.Image
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -28,9 +27,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.GestureDetectorCompat
 import androidx.exifinterface.media.ExifInterface
 import androidx.lifecycle.LifecycleOwner
-import com.google.android.gms.tasks.Task
-import com.google.android.gms.tasks.TaskCompletionSource
-import com.google.android.gms.tasks.Tasks
 import com.google.common.util.concurrent.ListenableFuture
 import java.io.File
 import java.io.FileInputStream
@@ -42,12 +38,12 @@ import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-
 @SuppressLint("UnsafeOptInUsageError")
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-class Camera2 @JvmOverloads constructor(
-    context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
-) : CameraBase(context, attrs, defStyleAttr) {
+class Camera2
+@JvmOverloads
+constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) :
+        CameraBase(context, attrs, defStyleAttr) {
     private var cameraProviderFuture: ListenableFuture<ProcessCameraProvider>
     private var cameraProvider: ProcessCameraProvider? = null
     private var imageCapture: ImageCapture? = null
@@ -91,10 +87,11 @@ class Camera2 @JvmOverloads constructor(
 
     private fun handleZoom() {
         // here we set the zoom once
-        // handles the case where: user changes the zoom before camera is ready, apply it when camera ready
+        // handles the case where: user changes the zoom before camera is ready, apply it when
+        // camera ready
         // user changes zoom after camera is ready, this will trigger on the zoom setter
         camera?.cameraControl?.let {
-            var zoomChanged = true;
+            var zoomChanged = true
             if (storedZoom > 0) {
                 it.setLinearZoom(storedZoom)
                 storedZoom = -1f
@@ -102,7 +99,7 @@ class Camera2 @JvmOverloads constructor(
                 it.setZoomRatio(storedZoomRatio)
                 storedZoomRatio = -1f
             } else {
-                zoomChanged = false;
+                zoomChanged = false
             }
             if (zoomChanged) {
                 onZoomChange()
@@ -110,49 +107,47 @@ class Camera2 @JvmOverloads constructor(
         }
     }
 
-
     override val previewSurface: Any
         get() {
             return previewView
         }
     val maxZoomRatio: Float
-        get() = camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 1f;
+        get() = camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 1f
     val minZoomRatio: Float
-        get() = camera?.cameraInfo?.zoomState?.value?.minZoomRatio ?: 1f;
-    var storedZoomRatio: Float = -1F;
+        get() = camera?.cameraInfo?.zoomState?.value?.minZoomRatio ?: 1f
+    var storedZoomRatio: Float = -1F
     override var zoomRatio: Float
         get() = camera?.cameraInfo?.zoomState?.value?.zoomRatio ?: 1f
         set(value) {
             storedZoomRatio = value
             storedZoom = -1f
             handleZoom()
-            Log.d("org.nativescript.plugindemo", "Camera2.kt: zoomRatio set: " + value )
-            
+            Log.d("org.nativescript.plugindemo", "Camera2.kt: zoomRatio set: " + value)
         }
 
     var storedZoom: Float = -1.0F
 
     override var zoom: Float
-        get() = camera?.cameraInfo?.zoomState?.value?.linearZoom
-            ?: (if (storedZoom < 0) 0.0f else storedZoom)
+        get() =
+                camera?.cameraInfo?.zoomState?.value?.linearZoom
+                        ?: (if (storedZoom < 0) 0.0f else storedZoom)
         set(value) {
-            storedZoom = when {
-                value > 1 -> {
-                    1f
-                }
-
-                value < 0 -> {
-                    0f
-                }
-
-                else -> {
-                    value
-                }
-            }
+            storedZoom =
+                    when {
+                        value > 1 -> {
+                            1f
+                        }
+                        value < 0 -> {
+                            0f
+                        }
+                        else -> {
+                            value
+                        }
+                    }
             storedZoomRatio = -1f
             handleZoom()
-            Log.d("org.nativescript.plugindemo", "Camera2.kt: zoom set: " + value )
-            Log.d("org.nativescript.plugindemo", "Camera2.kt: storedZoom set: " + storedZoom )
+            Log.d("org.nativescript.plugindemo", "Camera2.kt: zoom set: " + value)
+            Log.d("org.nativescript.plugindemo", "Camera2.kt: storedZoom set: " + storedZoom)
         }
     override var whiteBalance: WhiteBalance = WhiteBalance.Auto
         set(value) {
@@ -164,14 +159,14 @@ class Camera2 @JvmOverloads constructor(
     override var displayRatio = "4:3"
         set(value) {
             if (value == field) return
-            field = when (value) {
-                "16:9" -> {
-                    value
-                }
-
-                "4:3" -> value
-                else -> return
-            }
+            field =
+                    when (value) {
+                        "16:9" -> {
+                            value
+                        }
+                        "4:3" -> value
+                        else -> return
+                    }
             if (!isRecording) {
                 refreshCamera()
             }
@@ -199,7 +194,6 @@ class Camera2 @JvmOverloads constructor(
 
     private var previewView: PreviewView = PreviewView(context, attrs, defStyleAttr)
 
-
     private fun getFocusMeteringActions(): Int {
         var actions = FocusMeteringAction.FLAG_AF or FocusMeteringAction.FLAG_AE
         if (whiteBalance == WhiteBalance.Auto) {
@@ -215,112 +209,124 @@ class Camera2 @JvmOverloads constructor(
     }
 
     private fun setupGestureListeners() {
-       val listener = object : ScaleGestureDetector.SimpleOnScaleGestureListener(), GestureDetector.OnGestureListener {
-               override fun onScale(detector: ScaleGestureDetector): Boolean {
-                Log.d("org.nativescript.plugindemo","onScale detector.scaleFactor: "+detector.scaleFactor)
-                   camera?.cameraInfo?.zoomState?.value?.let { zoomState ->
-                       camera?.cameraControl?.setZoomRatio(
-                           detector.scaleFactor * zoomState.zoomRatio
-                       )
-                       onZoomChange()
-                   }
-                   return true
-               }
+        val listener =
+                object :
+                        ScaleGestureDetector.SimpleOnScaleGestureListener(),
+                        GestureDetector.OnGestureListener {
+                    override fun onScale(detector: ScaleGestureDetector): Boolean {
+                        Log.d(
+                                "org.nativescript.plugindemo",
+                                "onScale detector.scaleFactor: " + detector.scaleFactor
+                        )
+                        camera?.cameraInfo?.zoomState?.value?.let { zoomState ->
+                            camera?.cameraControl?.setZoomRatio(
+                                    detector.scaleFactor * zoomState.zoomRatio
+                            )
+                            onZoomChange()
+                        }
+                        return true
+                    }
 
-               override fun onDown(p0: MotionEvent): Boolean = false
+                    override fun onDown(p0: MotionEvent): Boolean = false
 
-               override fun onShowPress(p0: MotionEvent) = Unit
+                    override fun onShowPress(p0: MotionEvent) = Unit
 
-               override fun onSingleTapUp(event: MotionEvent): Boolean {
-                   val factory: MeteringPointFactory = previewView.meteringPointFactory
-                   val autoFocusPoint = factory.createPoint(event.x, event.y)
-                   try {
-                    Log.d("org.nativescript.plugindemo", "onSingleTapUp Tap at "+event.x+",  "+  event.y)
-                       camera?.cameraControl?.cancelFocusAndMetering()
-                       camera?.cameraControl?.startFocusAndMetering(
-                           FocusMeteringAction.Builder(
-                               autoFocusPoint,
-                               getFocusMeteringActions()
-                           ).apply {
-                               //focus only when the user tap the preview
-                               disableAutoCancel()
-                           }.build()
-                       )
-                       cancelAndDisposeFocusTimer()
-                       autoFocusTimer = Timer("autoFocusTimer")
-                       autoFocusTimer?.schedule(object : TimerTask() {
-                           override fun run() {
-                               handleAutoFocus()
-                           }
-                       }, 5000)
-                   } catch (e: CameraInfoUnavailableException) {
-                       Log.d("org.nativescript.plugindemo", "ERROR! cannot access camera", e)
-                   }
-                   return true
-               }
-               override fun onScroll(p0: MotionEvent?, p1: MotionEvent, p2: Float, p3: Float) = false;
-               override fun onFling(p0: MotionEvent?, p1: MotionEvent, p2: Float, p3: Float) = false;
-               override fun onLongPress(p0: MotionEvent) = Unit            
-
-           }
-       val scaleGestureDetector = ScaleGestureDetector(context, listener)
-       val gestureDetectorCompat = GestureDetectorCompat(context, listener)
-       previewView.setOnTouchListener { view, event ->
-           if (enablePinchZoom) scaleGestureDetector.onTouchEvent(event)
-           if (enableTapToFocus) gestureDetectorCompat.onTouchEvent(event)
-           view.performClick()
-           true
-       }
+                    override fun onSingleTapUp(event: MotionEvent): Boolean {
+                        val factory: MeteringPointFactory = previewView.meteringPointFactory
+                        val autoFocusPoint = factory.createPoint(event.x, event.y)
+                        try {
+                            Log.d(
+                                    "org.nativescript.plugindemo",
+                                    "onSingleTapUp Tap at " + event.x + ",  " + event.y
+                            )
+                            camera?.cameraControl?.cancelFocusAndMetering()
+                            camera?.cameraControl?.startFocusAndMetering(
+                                    FocusMeteringAction.Builder(
+                                                    autoFocusPoint,
+                                                    getFocusMeteringActions()
+                                            )
+                                            .apply {
+                                                // focus only when the user tap the preview
+                                                disableAutoCancel()
+                                            }
+                                            .build()
+                            )
+                            cancelAndDisposeFocusTimer()
+                            autoFocusTimer = Timer("autoFocusTimer")
+                            autoFocusTimer?.schedule(
+                                    object : TimerTask() {
+                                        override fun run() {
+                                            handleAutoFocus()
+                                        }
+                                    },
+                                    5000
+                            )
+                        } catch (e: CameraInfoUnavailableException) {
+                            Log.d("org.nativescript.plugindemo", "ERROR! cannot access camera", e)
+                        }
+                        return true
+                    }
+                    override fun onScroll(p0: MotionEvent?, p1: MotionEvent, p2: Float, p3: Float) =
+                            false
+                    override fun onFling(p0: MotionEvent?, p1: MotionEvent, p2: Float, p3: Float) =
+                            false
+                    override fun onLongPress(p0: MotionEvent) = Unit
+                }
+        val scaleGestureDetector = ScaleGestureDetector(context, listener)
+        val gestureDetectorCompat = GestureDetectorCompat(context, listener)
+        previewView.setOnTouchListener { view, event ->
+            if (enablePinchZoom) scaleGestureDetector.onTouchEvent(event)
+            if (enableTapToFocus) gestureDetectorCompat.onTouchEvent(event)
+            view.performClick()
+            true
+        }
     }
-
 
     init {
         setupGestureListeners()
-        previewView.afterMeasured {
-            handleAutoFocus()
-        }
+        previewView.afterMeasured { handleAutoFocus() }
         addView(previewView)
-        
+
         // TODO: Bind this to the view's onCreate method
         cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-        cameraProviderFuture.addListener({
-            try {
-                cameraProvider?.unbindAll()
-                cameraProvider = cameraProviderFuture.get()
-                refreshCamera() // or just initPreview() ?
-            } catch (e: Exception) {
-                listener?.onCameraError("Failed to get camera", e)
-                isStarted = false
-            }
-        }, ContextCompat.getMainExecutor(context))
+        cameraProviderFuture.addListener(
+                {
+                    try {
+                        cameraProvider?.unbindAll()
+                        cameraProvider = cameraProviderFuture.get()
+                        refreshCamera() // or just initPreview() ?
+                    } catch (e: Exception) {
+                        listener?.onCameraError("Failed to get camera", e)
+                        isStarted = false
+                    }
+                },
+                ContextCompat.getMainExecutor(context)
+        )
     }
 
     private fun handleAutoFocus() {
         if (camera?.cameraControl == null) {
             pendingAutoFocus = true
-            return;
+            return
         }
-        pendingAutoFocus = false;
+        pendingAutoFocus = false
         if (autoFocus) {
-            val factory: MeteringPointFactory = SurfaceOrientedMeteringPointFactory(
-                previewView.width.toFloat(), previewView.height.toFloat()
-            )
+            val factory: MeteringPointFactory =
+                    SurfaceOrientedMeteringPointFactory(
+                            previewView.width.toFloat(),
+                            previewView.height.toFloat()
+                    )
             val centerWidth = previewView.width.toFloat() / 2
             val centerHeight = previewView.height.toFloat() / 2
             val autoFocusPoint = factory.createPoint(centerWidth, centerHeight)
             try {
-                val action = FocusMeteringAction.Builder(
-                    autoFocusPoint,
-                    getFocusMeteringActions()
-                ).apply {
-                    setAutoCancelDuration(2, TimeUnit.SECONDS)
-                }.build();
+                val action =
+                        FocusMeteringAction.Builder(autoFocusPoint, getFocusMeteringActions())
+                                .apply { setAutoCancelDuration(2, TimeUnit.SECONDS) }
+                                .build()
                 val supported = camera?.cameraInfo?.isFocusMeteringSupported(action)
-                camera?.cameraControl?.startFocusAndMetering(
-                    action
-                )
-            } catch (_: CameraInfoUnavailableException) {
-            }
+                camera?.cameraControl?.startFocusAndMetering(action)
+            } catch (_: CameraInfoUnavailableException) {}
         }
     }
 
@@ -341,13 +347,12 @@ class Camera2 @JvmOverloads constructor(
             var count = 0
             try {
                 count = cameraManager?.cameraIdList?.size ?: 0
-            } catch (_: CameraAccessException) {
-            }
+            } catch (_: CameraAccessException) {}
             return count
         }
 
     private fun getFlashMode(): Int {
-        var test = camera?.cameraInfo?.hasFlashUnit();
+        var test = camera?.cameraInfo?.hasFlashUnit()
         return when (flashMode) {
             CameraFlashMode.AUTO -> ImageCapture.FLASH_MODE_AUTO
             CameraFlashMode.ON -> ImageCapture.FLASH_MODE_ON
@@ -359,50 +364,53 @@ class Camera2 @JvmOverloads constructor(
 
     private fun selectorFromPosition(): CameraSelector {
         return CameraSelector.Builder()
-            .apply {
-                if (position == CameraPosition.FRONT) {
-                    requireLensFacing(CameraSelector.LENS_FACING_FRONT)
-                } else {
-                    requireLensFacing(CameraSelector.LENS_FACING_BACK)
+                .apply {
+                    if (position == CameraPosition.FRONT) {
+                        requireLensFacing(CameraSelector.LENS_FACING_FRONT)
+                    } else {
+                        requireLensFacing(CameraSelector.LENS_FACING_BACK)
+                    }
                 }
-            }
-            .build()
+                .build()
     }
 
-    /** Rotation specified by client (external code)
-     * TODO: link this to the code, overriding or affecting targetRotation logic */
+    /**
+     * Rotation specified by client (external code) TODO: link this to the code, overriding or
+     * affecting targetRotation logic
+     */
     override var rotation: CameraOrientation = CameraOrientation.UNKNOWN
 
     @SuppressLint("RestrictedApi", "UnsafeExperimentalUsageError")
     override fun orientationUpdated() {
-        val rotation = when (currentOrientation) {
-            270 -> Surface.ROTATION_270
-            180 -> Surface.ROTATION_180
-            90 -> Surface.ROTATION_90
-            else -> Surface.ROTATION_0
-        }
+        val rotation =
+                when (currentOrientation) {
+                    270 -> Surface.ROTATION_270
+                    180 -> Surface.ROTATION_180
+                    90 -> Surface.ROTATION_90
+                    else -> Surface.ROTATION_0
+                }
         imageCapture?.targetRotation = rotation
-        videoCapture?.targetRotation = rotation        
-        Log.d("org.nativescript.plugindemo","orientationUpdated() rotaiton= " + rotation);
+        videoCapture?.targetRotation = rotation
+        Log.d("org.nativescript.plugindemo", "orientationUpdated() rotaiton= " + rotation)
     }
 
     private fun getDeviceRotation(): Int {
-        val retrot = when (this.rotation) {
-            CameraOrientation.PORTRAIT_UPSIDE_DOWN -> Surface.ROTATION_270
-            CameraOrientation.PORTRAIT -> Surface.ROTATION_90
-            CameraOrientation.LANDSCAPE_LEFT -> Surface.ROTATION_0
-            CameraOrientation.LANDSCAPE_RIGHT -> Surface.ROTATION_180
-            else -> -1
-        }
-        Log.d("org.nativescript.plugindemo","getDeviceRotation() rotation= " + retrot);
-        return retrot;
+        val retrot =
+                when (this.rotation) {
+                    CameraOrientation.PORTRAIT_UPSIDE_DOWN -> Surface.ROTATION_270
+                    CameraOrientation.PORTRAIT -> Surface.ROTATION_90
+                    CameraOrientation.LANDSCAPE_LEFT -> Surface.ROTATION_0
+                    CameraOrientation.LANDSCAPE_RIGHT -> Surface.ROTATION_180
+                    else -> -1
+                }
+        Log.d("org.nativescript.plugindemo", "getDeviceRotation() rotation= " + retrot)
+        return retrot
     }
 
     private fun safeUnbindAll() {
         try {
             cameraProvider?.unbindAll()
-        } catch (_: Exception) {
-        } finally {
+        } catch (_: Exception) {} finally {
             if (isStarted) {
                 listener?.onCameraClose()
             }
@@ -428,9 +436,9 @@ class Camera2 @JvmOverloads constructor(
                         if (wasBound) {
                             if (!it.isBound(videoCapture!!)) {
                                 it.bindToLifecycle(
-                                    context as LifecycleOwner,
-                                    selectorFromPosition(),
-                                    videoCapture!!
+                                        context as LifecycleOwner,
+                                        selectorFromPosition(),
+                                        videoCapture!!
                                 )
                             }
                         }
@@ -459,7 +467,6 @@ class Camera2 @JvmOverloads constructor(
         }
         set(value) {}
 
-
     private var cachedPictureRatioSizeMap: MutableMap<String, MutableList<Size>> = HashMap()
     private var cachedPreviewRatioSizeMap: MutableMap<String, MutableList<Size>> = HashMap()
 
@@ -473,87 +480,84 @@ class Camera2 @JvmOverloads constructor(
                 imageCapture = null
             }
         }
-        Log.d("org.nativescript.plugindemo","updateImageCapture() pictureSize:" + pictureSize)
-        val builder = ImageCapture.Builder().apply {
-
-            if (getDeviceRotation() > -1) {
-                setTargetRotation(getDeviceRotation())
-            }
-            if (pictureSize == "0x0") {
-                setTargetAspectRatio(
-                    when (displayRatio) {
-                        "16:9" -> AspectRatio.RATIO_16_9
-                        else -> AspectRatio.RATIO_4_3
+        Log.d("org.nativescript.plugindemo", "updateImageCapture() pictureSize:" + pictureSize)
+        val builder =
+                ImageCapture.Builder().apply {
+                    if (getDeviceRotation() > -1) {
+                        setTargetRotation(getDeviceRotation())
                     }
-                )
-            } else {
-                try {
-                    setTargetResolution(
-                        android.util.Size.parseSize(pictureSize)
-                    )
-                } catch (e: Exception) {
-                    setTargetAspectRatio(
-                        when (displayRatio) {
-                            "16:9" -> AspectRatio.RATIO_16_9
-                            else -> AspectRatio.RATIO_4_3
+                    if (pictureSize == "0x0") {
+                        setTargetAspectRatio(
+                                when (displayRatio) {
+                                    "16:9" -> AspectRatio.RATIO_16_9
+                                    else -> AspectRatio.RATIO_4_3
+                                }
+                        )
+                    } else {
+                        try {
+                            setTargetResolution(android.util.Size.parseSize(pictureSize))
+                        } catch (e: Exception) {
+                            setTargetAspectRatio(
+                                    when (displayRatio) {
+                                        "16:9" -> AspectRatio.RATIO_16_9
+                                        else -> AspectRatio.RATIO_4_3
+                                    }
+                            )
                         }
-                    )
+                    }
+                    setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                    setFlashMode(getFlashMode())
                 }
-            }
-            setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-            setFlashMode(getFlashMode())
-
-        }
 
         val extender = Camera2Interop.Extender(builder)
 
         when (whiteBalance) {
             WhiteBalance.Auto -> {
                 extender.setCaptureRequestOption(
-                    CaptureRequest.CONTROL_AWB_MODE, CameraMetadata.CONTROL_AWB_MODE_AUTO
+                        CaptureRequest.CONTROL_AWB_MODE,
+                        CameraMetadata.CONTROL_AWB_MODE_AUTO
                 )
             }
-
             WhiteBalance.Sunny -> {
                 extender.setCaptureRequestOption(
-                    CaptureRequest.CONTROL_AWB_MODE, CameraMetadata.CONTROL_AWB_MODE_DAYLIGHT
+                        CaptureRequest.CONTROL_AWB_MODE,
+                        CameraMetadata.CONTROL_AWB_MODE_DAYLIGHT
                 )
             }
-
             WhiteBalance.Cloudy -> {
                 extender.setCaptureRequestOption(
-                    CaptureRequest.CONTROL_AWB_MODE, CameraMetadata.CONTROL_AWB_MODE_CLOUDY_DAYLIGHT
+                        CaptureRequest.CONTROL_AWB_MODE,
+                        CameraMetadata.CONTROL_AWB_MODE_CLOUDY_DAYLIGHT
                 )
             }
-
             WhiteBalance.Shadow -> {
                 extender.setCaptureRequestOption(
-                    CaptureRequest.CONTROL_AWB_MODE, CameraMetadata.CONTROL_AWB_MODE_SHADE
+                        CaptureRequest.CONTROL_AWB_MODE,
+                        CameraMetadata.CONTROL_AWB_MODE_SHADE
                 )
             }
-
             WhiteBalance.Twilight -> {
                 extender.setCaptureRequestOption(
-                    CaptureRequest.CONTROL_AWB_MODE, CameraMetadata.CONTROL_AWB_MODE_TWILIGHT
+                        CaptureRequest.CONTROL_AWB_MODE,
+                        CameraMetadata.CONTROL_AWB_MODE_TWILIGHT
                 )
             }
-
             WhiteBalance.Fluorescent -> {
                 extender.setCaptureRequestOption(
-                    CaptureRequest.CONTROL_AWB_MODE, CameraMetadata.CONTROL_AWB_MODE_FLUORESCENT
+                        CaptureRequest.CONTROL_AWB_MODE,
+                        CameraMetadata.CONTROL_AWB_MODE_FLUORESCENT
                 )
             }
-
             WhiteBalance.Incandescent -> {
                 extender.setCaptureRequestOption(
-                    CaptureRequest.CONTROL_AWB_MODE, CameraMetadata.CONTROL_AWB_MODE_INCANDESCENT
+                        CaptureRequest.CONTROL_AWB_MODE,
+                        CameraMetadata.CONTROL_AWB_MODE_INCANDESCENT
                 )
             }
-
             WhiteBalance.WarmFluorescent -> {
                 extender.setCaptureRequestOption(
-                    CaptureRequest.CONTROL_AWB_MODE,
-                    CameraMetadata.CONTROL_AWB_MODE_WARM_FLUORESCENT
+                        CaptureRequest.CONTROL_AWB_MODE,
+                        CameraMetadata.CONTROL_AWB_MODE_WARM_FLUORESCENT
                 )
             }
         }
@@ -561,8 +565,8 @@ class Camera2 @JvmOverloads constructor(
         // handle ultra wide af mode
         if (camera?.cameraInfo?.zoomState?.value?.zoomRatio ?: 1.0f < 1.0f) {
             extender.setCaptureRequestOption(
-                CaptureRequest.CONTROL_AF_MODE,
-                CaptureRequest.CONTROL_AF_MODE_OFF
+                    CaptureRequest.CONTROL_AF_MODE,
+                    CaptureRequest.CONTROL_AF_MODE_OFF
             )
         }
 
@@ -572,10 +576,10 @@ class Camera2 @JvmOverloads constructor(
             cameraProvider?.let { cameraProvider ->
                 if (cameraProvider.isBound(imageCapture!!)) {
                     cameraProvider.bindToLifecycle(
-                        context as LifecycleOwner,
-                        selectorFromPosition(),
-                        imageCapture!!,
-                        preview!!
+                            context as LifecycleOwner,
+                            selectorFromPosition(),
+                            imageCapture!!,
+                            preview!!
                     )
                 }
             }
@@ -583,29 +587,26 @@ class Camera2 @JvmOverloads constructor(
     }
 
     private fun initPreview() {
-        val previewBuilder = Preview.Builder()
-            .apply {
-                setTargetAspectRatio(
-                    when (displayRatio) {
-                        "16:9" -> AspectRatio.RATIO_16_9
-                        else -> AspectRatio.RATIO_4_3
-                    }
-                )
-            }
-        preview = previewBuilder
-            .build()
-            .also {
-                it.setSurfaceProvider(this.previewView.surfaceProvider)
-            }
-
-
+        val previewBuilder =
+                Preview.Builder().apply {
+                    setTargetAspectRatio(
+                            when (displayRatio) {
+                                "16:9" -> AspectRatio.RATIO_16_9
+                                else -> AspectRatio.RATIO_4_3
+                            }
+                    )
+                }
+        preview =
+                previewBuilder.build().also {
+                    it.setSurfaceProvider(this.previewView.surfaceProvider)
+                }
 
         camera =
-            cameraProvider?.bindToLifecycle(
-                context as LifecycleOwner,
-                selectorFromPosition(),
-                preview
-            )
+                cameraProvider?.bindToLifecycle(
+                        context as LifecycleOwner,
+                        selectorFromPosition(),
+                        preview
+                )
         if (pendingAutoFocus) {
             handleAutoFocus()
         }
@@ -628,34 +629,40 @@ class Camera2 @JvmOverloads constructor(
     @SuppressLint("RestrictedApi")
     private fun initVideoCapture() {
         if (pause) {
-            Log.d("org.nativescript.plugindemo","initVideoCapture() pause set so returning early")
+            Log.d("org.nativescript.plugindemo", "initVideoCapture() pause set so returning early")
             return
         }
         if (hasCameraPermission() && hasAudioPermission()) {
-            Log.d("org.nativescript.plugindemo","initVideoCapture() setting quality to: " + quality)
-            val recorder = Recorder.Builder()
-                .setQualitySelector(
-                    QualitySelector.from(
-                        getRecorderQuality(quality),
-                        FallbackStrategy.lowerQualityOrHigherThan(androidx.camera.video.Quality.HD)
-                    )
-                ).setExecutor(videoCaptureExecutor)
-                .build()
+            Log.d(
+                    "org.nativescript.plugindemo",
+                    "initVideoCapture() setting quality to: " + quality
+            )
+            val recorder =
+                    Recorder.Builder()
+                            .setQualitySelector(
+                                    QualitySelector.from(
+                                            getRecorderQuality(quality),
+                                            FallbackStrategy.lowerQualityOrHigherThan(
+                                                    androidx.camera.video.Quality.HD
+                                            )
+                                    )
+                            )
+                            .setExecutor(videoCaptureExecutor)
+                            .build()
 
-
-            videoCapture = VideoCapture.withOutput(recorder).apply {
-                if (getDeviceRotation() > -1) {
-                    targetRotation = getDeviceRotation()
-                }
-            }
-            
+            videoCapture =
+                    VideoCapture.withOutput(recorder).apply {
+                        if (getDeviceRotation() > -1) {
+                            targetRotation = getDeviceRotation()
+                        }
+                    }
         }
     }
 
     @SuppressLint("RestrictedApi", "UnsafeOptInUsageError")
     private fun refreshCamera() {
         if (pause) {
-            Log.d("org.nativescript.plugindemo","refreshCamera() pause set so returning early")
+            Log.d("org.nativescript.plugindemo", "refreshCamera() pause set so returning early")
             return
         }
         cancelAndDisposeFocusTimer()
@@ -669,7 +676,6 @@ class Camera2 @JvmOverloads constructor(
         preview?.setSurfaceProvider(null)
         preview = null
 
-        
         initPreview()
 
         initVideoCapture()
@@ -677,13 +683,16 @@ class Camera2 @JvmOverloads constructor(
         handleZoom()
 
         camera?.cameraInfo?.let {
-            val streamMap = Camera2CameraInfo.from(it)
-                .getCameraCharacteristic(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+            val streamMap =
+                    Camera2CameraInfo.from(it)
+                            .getCameraCharacteristic(
+                                    CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP
+                            )
 
             if (streamMap != null) {
                 val sizes =
-                    streamMap.getOutputSizes(ImageFormat.JPEG) +
-                            streamMap.getOutputSizes(SurfaceTexture::class.java)
+                        streamMap.getOutputSizes(ImageFormat.JPEG) +
+                                streamMap.getOutputSizes(SurfaceTexture::class.java)
                 for (size in sizes) {
                     val aspect = size.width.toFloat() / size.height.toFloat()
                     var key: String? = null
@@ -698,11 +707,8 @@ class Camera2 @JvmOverloads constructor(
 
                     if (key != null) {
                         val list = cachedPictureRatioSizeMap[key]
-                        list?.let {
-                            list.add(value)
-                        } ?: run {
-                            cachedPictureRatioSizeMap[key] = mutableListOf(value)
-                        }
+                        list?.let { list.add(value) }
+                                ?: run { cachedPictureRatioSizeMap[key] = mutableListOf(value) }
                     }
                 }
             }
@@ -717,8 +723,14 @@ class Camera2 @JvmOverloads constructor(
         isStarted = true
         resetCurrentFrame()
         listener?.onCameraOpen()
-        Log.d("org.nativescript.plugindemo","max zoom ratio "+camera?.cameraInfo?.zoomState?.value?.maxZoomRatio)
-        Log.d("org.nativescript.plugindemo","min zoom ratio "+camera?.cameraInfo?.zoomState?.value?.minZoomRatio)
+        Log.d(
+                "org.nativescript.plugindemo",
+                "max zoom ratio " + camera?.cameraInfo?.zoomState?.value?.maxZoomRatio
+        )
+        Log.d(
+                "org.nativescript.plugindemo",
+                "min zoom ratio " + camera?.cameraInfo?.zoomState?.value?.minZoomRatio
+        )
     }
 
     override fun startPreview() {
@@ -743,10 +755,8 @@ class Camera2 @JvmOverloads constructor(
                         it.cameraControl.enableTorch(false)
                         imageCapture?.flashMode = ImageCapture.FLASH_MODE_OFF
                     }
-
-                    CameraFlashMode.ON, CameraFlashMode.RED_EYE -> imageCapture?.flashMode =
-                        ImageCapture.FLASH_MODE_ON
-
+                    CameraFlashMode.ON, CameraFlashMode.RED_EYE ->
+                            imageCapture?.flashMode = ImageCapture.FLASH_MODE_ON
                     CameraFlashMode.AUTO -> imageCapture?.flashMode = ImageCapture.FLASH_MODE_AUTO
                     CameraFlashMode.TORCH -> it.cameraControl.enableTorch(true)
                 }
@@ -755,12 +765,15 @@ class Camera2 @JvmOverloads constructor(
 
     private fun onZoomChange() {
         val currentZoomRatio = camera?.cameraInfo?.zoomState?.value?.zoomRatio ?: 1.0f
-        Log.d("org.nativescript.plugindemo","onZoomChange currentZoomRatio:" + currentZoomRatio)
-        if (lastZoomRatio == currentZoomRatio || lastZoomRatio < 1.0f && currentZoomRatio < 1.0f || lastZoomRatio >= 1.0f && currentZoomRatio >= 1.0f) {
+        Log.d("org.nativescript.plugindemo", "onZoomChange currentZoomRatio:" + currentZoomRatio)
+        if (lastZoomRatio == currentZoomRatio ||
+                        lastZoomRatio < 1.0f && currentZoomRatio < 1.0f ||
+                        lastZoomRatio >= 1.0f && currentZoomRatio >= 1.0f
+        ) {
             return
         }
         lastZoomRatio = currentZoomRatio
-        Log.d("org.nativescript.plugindemo","onZoomChange lastZoomRatio:" + lastZoomRatio)
+        Log.d("org.nativescript.plugindemo", "onZoomChange lastZoomRatio:" + lastZoomRatio)
         updateImageCapture()
         return
     }
@@ -769,33 +782,42 @@ class Camera2 @JvmOverloads constructor(
     override fun startRecording() {
         Log.d("org.nativescript.plugindemo", "override fun startRecording()")
         if (!hasAudioPermission() || !hasCameraPermission()) {
-            Log.d("org.nativescript.plugindemo", "ERROR! Need mic and camera to start recording! Returning")
+            Log.d(
+                    "org.nativescript.plugindemo",
+                    "ERROR! Need mic and camera to start recording! Returning"
+            )
             return
         }
         deInitListener()
         val df = SimpleDateFormat("yyyyMMddHHmmss", Locale.US)
         val today = Calendar.getInstance().time
         val fileName = "VID_" + df.format(today) + ".mp4"
-        file = if (saveToGallery && hasStoragePermission()) {
-            Log.d("org.nativescript.plugindemo", "saveToGallery set and have Storage Permissions")
-            val externalDir = context.getExternalFilesDir(Environment.DIRECTORY_DCIM)
-            if (externalDir == null) {
-                listener?.onCameraError(
-                    "Cannot save video to gallery",
-                    Exception("Failed to create uri")
-                )
-                return
-            } else {
-                if (!externalDir.exists()) {
-                    externalDir.mkdirs()
+        file =
+                if (saveToGallery && hasStoragePermission()) {
+                    Log.d(
+                            "org.nativescript.plugindemo",
+                            "saveToGallery set and have Storage Permissions"
+                    )
+                    val externalDir = context.getExternalFilesDir(Environment.DIRECTORY_DCIM)
+                    if (externalDir == null) {
+                        listener?.onCameraError(
+                                "Cannot save video to gallery",
+                                Exception("Failed to create uri")
+                        )
+                        return
+                    } else {
+                        if (!externalDir.exists()) {
+                            externalDir.mkdirs()
+                        }
+                        File(externalDir, fileName)
+                    }
+                } else {
+                    Log.d(
+                            "org.nativescript.plugindemo",
+                            "not saving to gallery, either saveToGallery not set or don't have Storage Permissions"
+                    )
+                    File(context.getExternalFilesDir(null), fileName)
                 }
-                File(externalDir, fileName)
-            }
-
-        } else {
-            Log.d("org.nativescript.plugindemo", "not saving to gallery, either saveToGallery not set or don't have Storage Permissions")
-            File(context.getExternalFilesDir(null), fileName)
-        }
 
         try {
             if (videoCapture == null) {
@@ -808,131 +830,154 @@ class Camera2 @JvmOverloads constructor(
 
                 if (!it.isBound(videoCapture!!)) {
                     it.bindToLifecycle(
-                        context as LifecycleOwner,
-                        selectorFromPosition(),
-                        videoCapture!!
+                            context as LifecycleOwner,
+                            selectorFromPosition(),
+                            videoCapture!!
                     )
                 }
             }
 
             val opts = FileOutputOptions.Builder(file!!).build()
 
-            val pending = videoCapture?.output?.prepareRecording(
-                context, opts
-            )?.asPersistentRecording()
+            val pending =
+                    videoCapture?.output?.prepareRecording(context, opts)?.asPersistentRecording()
 
             if (enableAudio) {
                 pending?.withAudioEnabled()
             }
 
-            recording = pending?.start(
-                ContextCompat.getMainExecutor(context)
-            ) { event ->
-                when (event) {
-                    is VideoRecordEvent.Start -> {
-                        isRecording = true
-                        if (flashMode == CameraFlashMode.ON) {
-                            camera?.cameraControl?.enableTorch(true)
-                        }
-                        startDurationTimer()
-                        listener?.onCameraVideoStart()
-                    }
-
-                    is VideoRecordEvent.Finalize -> {
-                        isRecording = false
-                        stopDurationTimer()
-
-                        if (event.hasError()) {
-                            file = null
-                            val e = if (event.cause != null) {
-                                Exception(event.cause)
-                            } else {
-                                Exception()
+            recording =
+                    pending?.start(ContextCompat.getMainExecutor(context)) { event ->
+                        when (event) {
+                            is VideoRecordEvent.Start -> {
+                                isRecording = true
+                                if (flashMode == CameraFlashMode.ON) {
+                                    camera?.cameraControl?.enableTorch(true)
+                                }
+                                startDurationTimer()
+                                listener?.onCameraVideoStart()
                             }
-                            listener?.onCameraError("${event.error}", e)
-                            // if (isForceStopping) {
-                                ContextCompat.getMainExecutor(context).execute {
-                                    safeUnbindAll()
-                                }
+                            is VideoRecordEvent.Finalize -> {
+                                isRecording = false
+                                stopDurationTimer()
 
-                                synchronized(mLock) {
-                                    // isForceStopping = false
-                                }
-                            // }
-                        } else {
-                            /*if (isForceStopping) {
-                                if (file != null) {
-                                    file!!.delete()
-                                }
-                                ContextCompat.getMainExecutor(context).execute {
-                                    safeUnbindAll()
-                                }
-                                synchronized(mLock) {
-                                    isForceStopping = false
-                                }
-                            } else {*/
-                                if (saveToGallery && hasStoragePermission()) {
-                                    Log.d("org.nativescript.plugindemo", "Done recording. saveToGallery set and have Storage Permissions")
-                                    val values = ContentValues().apply {
-                                        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                                        put(
-                                            MediaStore.Video.Media.DATE_ADDED,
-                                            System.currentTimeMillis()
-                                        )
-                                        // hardcoded video/avc
-                                        put(MediaStore.MediaColumns.MIME_TYPE, "video/avc")
-                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { //this one
-                                            put(
-                                                MediaStore.MediaColumns.RELATIVE_PATH,
-                                                Environment.DIRECTORY_DCIM
-                                            )
-                                            put(MediaStore.MediaColumns.IS_PENDING, 1)
-                                            put(
-                                                MediaStore.Video.Media.DATE_TAKEN,
-                                                System.currentTimeMillis()
-                                            )
-                                        }
-
-                                    }
-
-                                    val uri = context.contentResolver.insert(
-                                        MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                                        values
-                                    )
-                                    if (uri == null) {
-                                        listener?.onCameraError(
-                                            "Failed to add video to gallery",
-                                            Exception("Failed to create uri")
-                                        )
-                                    } else {
-                                        val fos = context.contentResolver.openOutputStream(uri)
-                                        val fis = FileInputStream(file!!)
-                                        fos.use {
-                                            if (it != null) {
-                                                fis.copyTo(it)
-                                                it.flush()
-                                                it.close()
-                                                fis.close()
+                                if (event.hasError()) {
+                                    file = null
+                                    val e =
+                                            if (event.cause != null) {
+                                                Exception(event.cause)
+                                            } else {
+                                                Exception()
                                             }
-                                        }
-                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { //this one
-                                            values.clear();
-                                            values.put(MediaStore.Video.Media.IS_PENDING, 0);
-                                            context.contentResolver.update(uri, values, null, null);
-                                        }
-                                        Log.d("org.nativescript.plugindemo", "Done saving video to gallery!")
-                                        listener?.onCameraVideo(file)
+                                    listener?.onCameraError("${event.error}", e)
+
+                                    ContextCompat.getMainExecutor(context).execute {
+                                        safeUnbindAll()
                                     }
+
+                                    // synchronized(mLock) {
+
+                                    // }
 
                                 } else {
+
+                                    if (saveToGallery) {
+                                        Log.d(
+                                                "org.nativescript.plugindemo",
+                                                "Done recording. saveToGallery set "
+                                        )
+                                        try {
+                                            val values =
+                                                    ContentValues().apply {
+                                                        put(
+                                                                MediaStore.MediaColumns
+                                                                        .DISPLAY_NAME,
+                                                                fileName
+                                                        )
+                                                        put(
+                                                                MediaStore.Video.Media.DATE_ADDED,
+                                                                System.currentTimeMillis()
+                                                        )
+                                                        // hardcoded video/avc
+                                                        put(
+                                                                MediaStore.MediaColumns.MIME_TYPE,
+                                                                "video/avc"
+                                                        )
+                                                        if (Build.VERSION.SDK_INT >=
+                                                                        Build.VERSION_CODES.Q
+                                                        ) { // this one
+                                                            put(
+                                                                    MediaStore.MediaColumns
+                                                                            .RELATIVE_PATH,
+                                                                    Environment.DIRECTORY_DCIM
+                                                            )
+                                                            put(
+                                                                    MediaStore.MediaColumns
+                                                                            .IS_PENDING,
+                                                                    1
+                                                            )
+                                                            put(
+                                                                    MediaStore.Video.Media
+                                                                            .DATE_TAKEN,
+                                                                    System.currentTimeMillis()
+                                                            )
+                                                        }
+                                                    }
+
+                                            val uri =
+                                                    context.contentResolver.insert(
+                                                            MediaStore.Video.Media
+                                                                    .EXTERNAL_CONTENT_URI,
+                                                            values
+                                                    )
+                                            if (uri == null) {
+                                                listener?.onCameraError(
+                                                        "Failed to add video to gallery",
+                                                        Exception("Failed to create uri")
+                                                )
+                                            } else {
+                                                val fos =
+                                                        context.contentResolver.openOutputStream(
+                                                                uri
+                                                        )
+                                                val fis = FileInputStream(file!!)
+                                                fos.use {
+                                                    if (it != null) {
+                                                        fis.copyTo(it)
+                                                        it.flush()
+                                                        it.close()
+                                                        fis.close()
+                                                    }
+                                                }
+                                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                                                ) { // this one
+                                                    values.clear()
+                                                    values.put(MediaStore.Video.Media.IS_PENDING, 0)
+                                                    context.contentResolver.update(
+                                                            uri,
+                                                            values,
+                                                            null,
+                                                            null
+                                                    )
+                                                }
+                                                Log.d(
+                                                        "org.nativescript.plugindemo",
+                                                        "Done saving video to gallery!"
+                                                )
+                                            }
+                                        } catch (e: Exception) {
+                                            Log.e(
+                                                    "org.nativescript.plugindemo",
+                                                    "Error while saving to Device Photos"
+                                            )
+                                        }
+                                    }
+
                                     listener?.onCameraVideo(file)
                                 }
-                            //}
+                            }
                         }
                     }
-                }
-            }
-
         } catch (e: Exception) {
             isRecording = false
             stopDurationTimer()
@@ -967,24 +1012,32 @@ class Camera2 @JvmOverloads constructor(
         val df = SimpleDateFormat("yyyyMMddHHmmss", Locale.US)
         val today = Calendar.getInstance().time
         val fileName = "PIC_" + df.format(today) + ".jpg"
-        file = if (saveToGallery && hasStoragePermission()) {
-            val externalDir = context.getExternalFilesDir(Environment.DIRECTORY_DCIM)
-            if (externalDir == null) {
-                listener?.onCameraError(
-                    "Cannot save photo to gallery storage",
-                    Exception("Failed to get external directory")
-                )
-                return
-            } else {
-                if (!externalDir.exists()) {
-                    externalDir.mkdirs()
+        file =
+                if (saveToGallery) { // && hasStoragePermission()
+                    Log.d(
+                            "org.nativescript.plugindemo",
+                            "takePhoto() saveToGallery set, saving to DCIM directory"
+                    )
+                    val externalDir = context.getExternalFilesDir(Environment.DIRECTORY_DCIM)
+                    if (externalDir == null) {
+                        listener?.onCameraError(
+                                "Cannot save photo to gallery storage",
+                                Exception("Failed to get external directory")
+                        )
+                        return
+                    } else {
+                        if (!externalDir.exists()) {
+                            externalDir.mkdirs()
+                        }
+                        File(externalDir, fileName)
+                    }
+                } else {
+                    Log.d(
+                            "org.nativescript.plugindemo",
+                            "takePhoto() saveToGallery not set, saving to ExternalFilesDir"
+                    )
+                    File(context.getExternalFilesDir(null), fileName)
                 }
-                File(externalDir, fileName)
-            }
-
-        } else {
-            File(context.getExternalFilesDir(null), fileName)
-        }
 
         cameraProvider?.let { provider ->
             videoCapture?.let { if (provider.isBound(it)) provider.unbind(it) }
@@ -995,62 +1048,81 @@ class Camera2 @JvmOverloads constructor(
             imageCapture?.let { capture ->
                 if (!provider.isBound(capture)) {
                     provider.bindToLifecycle(
-                        context as LifecycleOwner,
-                        selectorFromPosition(),
-                        capture,
-                        preview
+                            context as LifecycleOwner,
+                            selectorFromPosition(),
+                            capture,
+                            preview
                     )
                 }
-            } ?: run {
-                listener?.onCameraError("Cannot take photo", Exception("imageCapture not set"))
-                return
             }
-        } ?: run {
-            listener?.onCameraError("Cannot take photo", Exception("cameraProvider not set"))
-            return
+                    ?: run {
+                        listener?.onCameraError(
+                                "Cannot take photo",
+                                Exception("imageCapture not set")
+                        )
+                        return
+                    }
         }
+                ?: run {
+                    listener?.onCameraError(
+                            "Cannot take photo",
+                            Exception("cameraProvider not set")
+                    )
+                    return
+                }
 
         val useImageProxy = autoSquareCrop || !allowExifRotation
         if (useImageProxy) {
+            Log.d("org.nativescript.plugindemo", "takePhoto() useImageProxy set")
             imageCapture?.takePicture(
-                imageCaptureExecutor,
-                object : ImageCapture.OnImageCapturedCallback() {
-                    override fun onCaptureSuccess(image: ImageProxy) {
-                        processImageProxy(image, fileName)
-                    }
+                    imageCaptureExecutor,
+                    object : ImageCapture.OnImageCapturedCallback() {
+                        override fun onCaptureSuccess(image: ImageProxy) {
+                            processImageProxy(image, fileName)
+                        }
 
-                    override fun onError(exception: ImageCaptureException) {
-                        listener?.onCameraError("Failed to take photo image", exception)
+                        override fun onError(exception: ImageCaptureException) {
+                            listener?.onCameraError("Failed to take photo image", exception)
+                        }
                     }
-                })
+            )
         } else {
-            val meta = ImageCapture.Metadata().apply {
-                isReversedHorizontal = position == CameraPosition.FRONT
-            }
+            Log.d("org.nativescript.plugindemo", "takePhoto() useImageProxy not set")
+            val meta =
+                    ImageCapture.Metadata().apply {
+                        isReversedHorizontal = position == CameraPosition.FRONT
+                    }
             val options = ImageCapture.OutputFileOptions.Builder(file!!)
             options.setMetadata(meta)
             imageCapture?.takePicture(
-                options.build(),
-                imageCaptureExecutor,
-                object : ImageCapture.OnImageSavedCallback {
-                    override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                        processImageFile(fileName) // outputFileResults.savedUri.toString() is null
-                    }
+                    options.build(),
+                    imageCaptureExecutor,
+                    object : ImageCapture.OnImageSavedCallback {
+                        override fun onImageSaved(
+                                outputFileResults: ImageCapture.OutputFileResults
+                        ) {
+                            processImageFile(
+                                    fileName
+                            ) // outputFileResults.savedUri.toString() is null
+                        }
 
-                    override fun onError(exception: ImageCaptureException) {
-                        listener?.onCameraError("Failed to take photo image", exception)
+                        override fun onError(exception: ImageCaptureException) {
+                            listener?.onCameraError("Failed to take photo image", exception)
+                        }
                     }
-                })
+            )
         }
     }
 
     private fun processImageProxy(image: ImageProxy, fileName: String) {
+        Log.d("org.nativescript.plugindemo", "processImageProxy() ")
         var isError = false
         var outputStream: FileOutputStream? = null
         try {
-            val meta = ImageCapture.Metadata().apply {
-                isReversedHorizontal = position == CameraPosition.FRONT
-            }
+            val meta =
+                    ImageCapture.Metadata().apply {
+                        isReversedHorizontal = position == CameraPosition.FRONT
+                    }
 
             val buffer = image.planes.first().buffer
             val bytes = ByteArray(buffer.remaining())
@@ -1064,8 +1136,7 @@ class Camera2 @JvmOverloads constructor(
             matrix.postRotate(imageTargetRotation.toFloat())
 
             // Flipping over the image in case it is the front camera
-            if (position == CameraPosition.FRONT)
-                matrix.postScale(-1f, 1f)
+            if (position == CameraPosition.FRONT) matrix.postScale(-1f, 1f)
 
             var originalWidth = bm.width
             var originalHeight = bm.height
@@ -1073,36 +1144,37 @@ class Camera2 @JvmOverloads constructor(
             var offsetHeight = 0
             if (autoSquareCrop) {
                 if (originalWidth < originalHeight) {
-                    offsetHeight = (originalHeight - originalWidth) / 2;
-                    originalHeight = originalWidth;
+                    offsetHeight = (originalHeight - originalWidth) / 2
+                    originalHeight = originalWidth
                 } else {
-                    offsetWidth = (originalWidth - originalHeight) / 2;
-                    originalWidth = originalHeight;
+                    offsetWidth = (originalWidth - originalHeight) / 2
+                    originalWidth = originalHeight
                 }
             }
-            val rotated = Bitmap.createBitmap(
-                bm,
-                offsetWidth,
-                offsetHeight,
-                originalWidth,
-                originalHeight,
-                matrix,
-                false
-            )
+            val rotated =
+                    Bitmap.createBitmap(
+                            bm,
+                            offsetWidth,
+                            offsetHeight,
+                            originalWidth,
+                            originalHeight,
+                            matrix,
+                            false
+                    )
             outputStream = FileOutputStream(file!!, false)
             var override: Bitmap? = null
             if (overridePhotoHeight > 0 && overridePhotoWidth > 0) {
-                override = Bitmap.createScaledBitmap(
-                    rotated,
-                    overridePhotoWidth,
-                    overridePhotoHeight,
-                    false
-                )
+                override =
+                        Bitmap.createScaledBitmap(
+                                rotated,
+                                overridePhotoWidth,
+                                overridePhotoHeight,
+                                false
+                        )
                 override.compress(Bitmap.CompressFormat.JPEG, 92, outputStream)
             } else {
                 rotated.compress(Bitmap.CompressFormat.JPEG, 92, outputStream)
             }
-
 
             val exif = ExifInterface(file!!.absolutePath)
 
@@ -1116,8 +1188,7 @@ class Camera2 @JvmOverloads constructor(
                 val subsec = (now - convertFromExifDateTime(datetime).time).toString()
                 exif.setAttribute(ExifInterface.TAG_SUBSEC_TIME_ORIGINAL, subsec)
                 exif.setAttribute(ExifInterface.TAG_SUBSEC_TIME_DIGITIZED, subsec)
-            } catch (_: ParseException) {
-            }
+            } catch (_: ParseException) {}
 
             exif.rotate(image.imageInfo.rotationDegrees)
             if (meta.isReversedHorizontal) {
@@ -1141,83 +1212,132 @@ class Camera2 @JvmOverloads constructor(
             try {
                 outputStream?.close()
             } catch (e: IOException) {
-                //NOOP
+                // NOOP
             }
             try {
                 image.close()
-            } catch (_: Exception) {
+            } catch (_: Exception) {}
 
-            }
             if (!isError) {
-                if (saveToGallery && hasStoragePermission()) {
-                    val values = ContentValues().apply {
-                        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                        put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis())
-                        put(MediaStore.MediaColumns.MIME_TYPE, "image/*")
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { //this one
-                            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DCIM)
-                            put(MediaStore.MediaColumns.IS_PENDING, 1)
-                            put(MediaStore.Images.Media.DATE_TAKEN, System.currentTimeMillis())
-                        }
-                    }
-
-                    val uri = context.contentResolver.insert(
-                        MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                        values
+                if (saveToGallery) { // && hasStoragePermission()) {
+                    Log.d(
+                            "org.nativescript.plugindemo",
+                            "processImageProxy() Done taking photo. saveToGallery set "
                     )
-                    if (uri == null) {
-                        listener?.onCameraError(
-                            "Failed to add photo to gallery",
-                            Exception("Failed to create uri")
-                        )
-                    } else {
-                        val fos = context.contentResolver.openOutputStream(uri)
-                        val fis = FileInputStream(file!!)
-                        fos.use {
-                            if (it != null) {
-                                fis.copyTo(it)
-                                it.flush()
-                                it.close()
-                                fis.close()
-                            }
-                        }
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { //this one
-                            values.clear();
-                            values.put(MediaStore.Images.Media.IS_PENDING, 0);
-                            context.contentResolver.update(uri, values, null, null);
-                        }
-                        listener?.onCameraPhoto(file)
-                    }
 
+                    try {
+                        if ((Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) &&
+                                        !hasStoragePermission()
+                        ) {
+                            Log.d(
+                                    "org.nativescript.plugindemo",
+                                    "processImageProxy() No Storage Permissions, REQUESTING! "
+                            )
+                            requestStoragePermission()
+                        }
+                        if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) ||
+                                        (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) &&
+                                                hasStoragePermission()
+                        ) {
+                            Log.d(
+                                    "org.nativescript.plugindemo",
+                                    "processImageProxy() Have Storage Permissions, saving! "
+                            )
+                            val values =
+                                    ContentValues().apply {
+                                        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                                        put(
+                                                MediaStore.Images.Media.DATE_ADDED,
+                                                System.currentTimeMillis()
+                                        )
+                                        put(MediaStore.MediaColumns.MIME_TYPE, "image/*")
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+                                        ) { // this one
+                                            put(
+                                                    MediaStore.MediaColumns.RELATIVE_PATH,
+                                                    Environment.DIRECTORY_DCIM
+                                            )
+                                            put(MediaStore.MediaColumns.IS_PENDING, 1)
+                                            put(
+                                                    MediaStore.Images.Media.DATE_TAKEN,
+                                                    System.currentTimeMillis()
+                                            )
+                                        }
+                                    }
+
+                            val uri =
+                                    context.contentResolver.insert(
+                                            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                                            values
+                                    )
+                            if (uri == null) {
+                                listener?.onCameraError(
+                                        "Failed to add photo to gallery",
+                                        Exception("Failed to create uri")
+                                )
+                            } else {
+                                val fos = context.contentResolver.openOutputStream(uri)
+                                val fis = FileInputStream(file!!)
+                                fos.use {
+                                    if (it != null) {
+                                        fis.copyTo(it)
+                                        it.flush()
+                                        it.close()
+                                        fis.close()
+                                    }
+                                }
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { // this one
+                                    values.clear()
+                                    values.put(MediaStore.Images.Media.IS_PENDING, 0)
+                                    context.contentResolver.update(uri, values, null, null)
+                                }
+                            }
+                        } else {
+                            Log.e(
+                                    "org.nativescript.plugindemo",
+                                    "processImageProxy() saveToGallery set, but no permissions granted! "
+                            )
+                        }
+                    } catch (e: Exception) {
+                        Log.e("org.nativescript.plugindemo", "Error while saving to Device Photos")
+                    }
+                    listener?.onCameraPhoto(file)
                 } else {
                     listener?.onCameraPhoto(file)
                 }
-
             }
         }
     }
 
     private fun processImageFile(fileName: String) {
         // Saving image to user gallery
-        if (saveToGallery && hasStoragePermission()) {
-            val values = ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
-                put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis())
+        if (saveToGallery /*&& hasStoragePermission()*/) {
+            Log.d(
+                    "org.nativescript.plugindemo",
+                    "processImageFile() Done taking photo. saveToGallery set "
+            )
+            val values =
+                    ContentValues().apply {
+                        put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                        put(MediaStore.Images.Media.DATE_ADDED, System.currentTimeMillis())
 
-                put(MediaStore.MediaColumns.MIME_TYPE, "image/*")
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { //this one
-                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DCIM)
-                    put(MediaStore.MediaColumns.IS_PENDING, 1)
-                    put(MediaStore.Images.Media.DATE_TAKEN, System.currentTimeMillis())
-                }
-            }
+                        put(MediaStore.MediaColumns.MIME_TYPE, "image/*")
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { // this one
+                            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DCIM)
+                            put(MediaStore.MediaColumns.IS_PENDING, 1)
+                            put(MediaStore.Images.Media.DATE_TAKEN, System.currentTimeMillis())
+                        }
+                    }
 
             val uri =
-                context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+                    context.contentResolver.insert(
+                            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                            values
+                    )
             if (uri == null) {
                 listener?.onCameraError(
-                    "Failed to add photo to gallery",
-                    Exception("Failed to create uri")
+                        "Failed to add photo to gallery",
+                        Exception("Failed to create uri")
                 )
             } else {
                 val fos = context.contentResolver.openOutputStream(uri)
@@ -1230,14 +1350,17 @@ class Camera2 @JvmOverloads constructor(
                         fis.close()
                     }
                 }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { //this one
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) { // this one
                     values.clear()
                     values.put(MediaStore.Images.Media.IS_PENDING, 0)
                     context.contentResolver.update(uri, values, null, null)
                 }
                 listener?.onCameraPhoto(file)
             }
-
+            Log.d(
+                    "org.nativescript.plugindemo",
+                    "processImageFile() saveToGallery not set, saving to ExternalFilesDir"
+            )
         } else {
             listener?.onCameraPhoto(file)
         }
@@ -1253,26 +1376,28 @@ class Camera2 @JvmOverloads constructor(
 
     override fun toggleCamera() {
         if (!isRecording) {
-            position = when (position) {
-                CameraPosition.BACK -> CameraPosition.FRONT
-                CameraPosition.FRONT -> CameraPosition.BACK
-            }
+            position =
+                    when (position) {
+                        CameraPosition.BACK -> CameraPosition.FRONT
+                        CameraPosition.FRONT -> CameraPosition.BACK
+                    }
             safeUnbindAll()
             refreshCamera()
         } else {
-            //special handling if we're recording currently
+            // special handling if we're recording currently
             try {
-                //remove video from session
+                // remove video from session
                 cameraProvider?.unbindAll()
-                //switch camera
+                // switch camera
                 cancelAndDisposeFocusTimer()
 
-                position = when (position) {
-                    CameraPosition.BACK -> CameraPosition.FRONT
-                    CameraPosition.FRONT -> CameraPosition.BACK
-                }
-    
-                //rebind video to session
+                position =
+                        when (position) {
+                            CameraPosition.BACK -> CameraPosition.FRONT
+                            CameraPosition.FRONT -> CameraPosition.BACK
+                        }
+
+                // rebind video to session
                 cameraProvider?.let {
                     if (it.isBound(imageCapture!!)) {
                         it.unbind(imageCapture!!)
@@ -1280,18 +1405,13 @@ class Camera2 @JvmOverloads constructor(
 
                     if (!it.isBound(videoCapture!!)) {
                         it.bindToLifecycle(
-                            context as LifecycleOwner,
-                            selectorFromPosition(),
-                            videoCapture!!
+                                context as LifecycleOwner,
+                                selectorFromPosition(),
+                                videoCapture!!
                         )
                     }
 
-                    it.bindToLifecycle(
-                        context as LifecycleOwner,
-                        selectorFromPosition(),
-                        preview
-                    )
-
+                    it.bindToLifecycle(context as LifecycleOwner, selectorFromPosition(), preview)
                 }
             } catch (_: Exception) {
                 Log.d("org.nativescript.plugindemo", "Camera2.kt: toggleCamera() caught an error!")
@@ -1309,54 +1429,40 @@ class Camera2 @JvmOverloads constructor(
 
     override fun stop() {
         Log.d("org.nativescript.plugindemo", "override fun stop()")
-        // if (!isForceStopping) {
-            if (isRecording) {
-                Log.d(
+        
+        if (isRecording) {
+            Log.d(
                     "org.nativescript.plugindemo",
                     "override fun stop() currently recording,  calling stopRecording()"
-                )
-                // isForceStopping = true
-                stopRecording()
-            } else {
-                Log.d(
+            )
+            
+            stopRecording()
+        } else {
+            Log.d(
                     "org.nativescript.plugindemo",
                     "override fun stop() Not recording,  calling safeUnbindAll()"
-                )
-                safeUnbindAll()
-            }
-        // }
+            )
+            safeUnbindAll()
+        }
+        
     }
 
-
     override fun release() {
-        Log.d(
-            "org.nativescript.plugindemo",
-            "calling release()"
-        )
+        Log.d("org.nativescript.plugindemo", "calling release()")
         cancelAndDisposeFocusTimer()
         
-        // if (!isForceStopping) {
-            if (isRecording) {
-                // isForceStopping = true
-                stopRecording()
-            }
-
-            safeUnbindAll()
-
-            preview?.setSurfaceProvider(null)
-            preview = null
-            imageCapture = null
-            videoCapture = null
-            // imageAnalysis = null
-            camera = null
-        /*  }else {
-            Log.d(
-            "org.nativescript.plugindemo",
-            "isForceStopping is true, no extra actions called"
-            )
+        if (isRecording) {            
+            stopRecording()
         }
-        */
+
+        safeUnbindAll()
+
+        preview?.setSurfaceProvider(null)
+        preview = null
+        imageCapture = null
+        videoCapture = null        
+        camera = null
+       
         deInitListener()
-        
     }
 }

@@ -7,7 +7,6 @@
 
 package io.github.triniwiz.fancycamera
 
-
 enum class EventType {
     Photo,
     Video

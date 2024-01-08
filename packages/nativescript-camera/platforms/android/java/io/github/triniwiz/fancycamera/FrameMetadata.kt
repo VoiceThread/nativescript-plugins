@@ -16,11 +16,10 @@ package io.github.triniwiz.fancycamera
  * limitations under the License.
  */
 
-
-/** Describing a frame info.  */
+/** Describing a frame info. */
 class FrameMetadata private constructor(val width: Int, val height: Int, val rotation: Int) {
 
-    /** Builder of [FrameMetadata].  */
+    /** Builder of [FrameMetadata]. */
     class Builder {
         private var width = 0
         private var height = 0

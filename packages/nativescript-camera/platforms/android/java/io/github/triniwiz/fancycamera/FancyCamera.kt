@@ -14,17 +14,16 @@ import android.graphics.Bitmap
 import android.media.MediaRecorder
 import android.os.Build
 import android.util.AttributeSet
+import android.util.Log
 import android.util.SparseIntArray
 import android.view.Surface
 import android.widget.FrameLayout
-
-import android.util.Log
 
 @SuppressLint("RestrictedApi")
 class FancyCamera : FrameLayout {
     private val VIDEO_RECORDER_PERMISSIONS_REQUEST = 868
     private val VIDEO_RECORDER_PERMISSIONS =
-        arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA)
+            arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.CAMERA)
     private var mFlashEnabled = false
     private val mLock = Any()
     private var listener: CameraEventListener? = null
@@ -71,13 +70,12 @@ class FancyCamera : FrameLayout {
             return cameraView.latestImage
         }
 
-
     var pause: Boolean
         get() {
             return cameraView.pause
         }
         set(value) {
-            Log.d("org.nativescript.plugindemo","FamcyCAmera.kt set pause")
+            Log.d("org.nativescript.plugindemo", "FamcyCAmera.kt set pause")
             cameraView.pause = value
         }
 
@@ -95,7 +93,7 @@ class FancyCamera : FrameLayout {
         }
         set(value) {
             cameraView.whiteBalance = value
-        }    
+        }
 
     var ratio: String
         get() {
@@ -187,12 +185,9 @@ class FancyCamera : FrameLayout {
 
     var maxAudioBitRate: Int = -1
 
-
     var maxVideoBitrate: Int = -1
 
-
     var maxVideoFrameRate: Int = -1
-
 
     var disableHEVC: Boolean = false
 
@@ -224,12 +219,11 @@ class FancyCamera : FrameLayout {
 
     private fun init(context: Context, attrs: AttributeSet?) {
         if (Build.VERSION.SDK_INT < 21) {
-            throw Exception("This camera plugin is only supported on API 21+")            
-        }        
-        cameraView =  Camera2(context, attrs)
+            throw Exception("This camera plugin is only supported on API 21+")
+        }
+        cameraView = Camera2(context, attrs)
         addView(cameraView)
     }
-
 
     var overridePhotoWidth: Int
         set(value) {
@@ -273,15 +267,14 @@ class FancyCamera : FrameLayout {
 
     fun stopRecording() {
         Log.d("org.nativescript.plugindemo", "FancyCamera.kt: stopRecording()")
-//        print("FancyCamera.kt: stopRecording()")
+        //        print("FancyCamera.kt: stopRecording()")
         cameraView.stopRecording()
     }
 
     fun startRecording() {
-//        print("FancyCamera.kt: startRecording()")
+        //        print("FancyCamera.kt: startRecording()")
         Log.d("org.nativescript.plugindemo", "FancyCamera.kt: startRecording()")
         cameraView.startRecording()
-
     }
 
     // private var isForceStopping: Boolean = false
@@ -362,8 +355,7 @@ class FancyCamera : FrameLayout {
     }
 
     companion object {
-        @JvmStatic
-        var forceV1 = false
+        @JvmStatic var forceV1 = false
 
         private val TAG = "FancyCamera"
         private val SENSOR_ORIENTATION_DEFAULT_DEGREES = 90
@@ -384,7 +376,5 @@ class FancyCamera : FrameLayout {
             INVERSE_ORIENTATIONS.append(Surface.ROTATION_180, 90)
             INVERSE_ORIENTATIONS.append(Surface.ROTATION_270, 0)
         }
-
     }
 }
-

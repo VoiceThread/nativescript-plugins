@@ -11,10 +11,8 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Message
-
 import java.io.File
 import java.lang.Exception
-
 
 abstract class CameraEventListenerUI : CameraEventListener {
     private var handler: Handler? = null
@@ -25,40 +23,45 @@ abstract class CameraEventListenerUI : CameraEventListener {
         }
         synchronized(CameraEventListenerUI::class.java) {
             if (handler == null) {
-                handler = object : Handler(Looper.getMainLooper()) {
-                    override fun handleMessage(msg: Message) {
-                        val eventData = msg.data
-                        if (eventData == null && (msg.what != WHAT_CAMERA_CLOSE_EVENT || msg.what != WHAT_CAMERA_OPEN_EVENT || msg.what != WHAT_CAMERA_VIDEO_START_EVENT)) {
-                            return
-                        }
-                        val message = eventData.getString(MESSAGE)
-                        var file: File? = null
-                        when (msg.what) {
-                            WHAT_CAMERA_PHOTO_EVENT -> {
-                                if (eventData.getString(FILE) != null) {
-                                    file = File(eventData.getString(FILE)!!)
+                handler =
+                        object : Handler(Looper.getMainLooper()) {
+                            override fun handleMessage(msg: Message) {
+                                val eventData = msg.data
+                                if (eventData == null &&
+                                                (msg.what != WHAT_CAMERA_CLOSE_EVENT ||
+                                                        msg.what != WHAT_CAMERA_OPEN_EVENT ||
+                                                        msg.what != WHAT_CAMERA_VIDEO_START_EVENT)
+                                ) {
+                                    return
                                 }
-                                onCameraPhotoUI(file)
-                            }
-                            WHAT_CAMERA_VIDEO_EVENT -> {
-                                if (eventData.getString(FILE) != null) {
-                                    file = File(eventData.getString(FILE)!!)
+                                val message = eventData.getString(MESSAGE)
+                                var file: File? = null
+                                when (msg.what) {
+                                    WHAT_CAMERA_PHOTO_EVENT -> {
+                                        if (eventData.getString(FILE) != null) {
+                                            file = File(eventData.getString(FILE)!!)
+                                        }
+                                        onCameraPhotoUI(file)
+                                    }
+                                    WHAT_CAMERA_VIDEO_EVENT -> {
+                                        if (eventData.getString(FILE) != null) {
+                                            file = File(eventData.getString(FILE)!!)
+                                        }
+                                        onCameraVideoUI(file)
+                                    }
+                                    // WHAT_CAMERA_ANALYSIS_EVENT -> {
+                                    //     onCameraAnalysisUI(msg.obj as ImageAnalysis)
+                                    // }
+                                    WHAT_CAMERA_CLOSE_EVENT -> onCameraCloseUI()
+                                    WHAT_CAMERA_OPEN_EVENT -> onCameraOpenUI()
+                                    WHAT_READY_EVENT -> onReadyUI()
+                                    WHAT_CAMERA_VIDEO_START_EVENT -> onCameraVideoStartUI()
+                                    WHAT_CAMERA_ERROR_EVENT -> {
+                                        onCameraErrorUI(message!!, msg.obj as Exception)
+                                    }
                                 }
-                                onCameraVideoUI(file)
-                            }
-                            // WHAT_CAMERA_ANALYSIS_EVENT -> {
-                            //     onCameraAnalysisUI(msg.obj as ImageAnalysis)
-                            // }
-                            WHAT_CAMERA_CLOSE_EVENT -> onCameraCloseUI()
-                            WHAT_CAMERA_OPEN_EVENT -> onCameraOpenUI()
-                            WHAT_READY_EVENT -> onReadyUI()
-                            WHAT_CAMERA_VIDEO_START_EVENT -> onCameraVideoStartUI()
-                            WHAT_CAMERA_ERROR_EVENT -> {
-                                onCameraErrorUI(message!!, msg.obj as Exception)
                             }
                         }
-                    }
-                }
             }
         }
     }
@@ -177,7 +180,6 @@ abstract class CameraEventListenerUI : CameraEventListener {
     // abstract fun onCameraAnalysisUI(analysis: ImageAnalysis)
 
     abstract fun onCameraErrorUI(message: String, ex: Exception)
-
 
     companion object {
         private val WHAT_CAMERA_CLOSE_EVENT = 0x01

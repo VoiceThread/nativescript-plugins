@@ -9,5 +9,4 @@ package io.github.triniwiz.fancycamera
 
 import java.io.File
 
-
 class Event constructor(val type: EventType, val file: File?, val message: String?)
