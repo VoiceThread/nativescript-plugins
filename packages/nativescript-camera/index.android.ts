@@ -47,7 +47,7 @@ export class CameraPlus extends CameraPlusBase {
   @GetSetProperty()
   public toggleCameraIcon: string = 'ic_switch_camera_white';
   @GetSetProperty()
-  public confirmPhotos: boolean = true;
+  public confirmPhotos: boolean = false;
   @GetSetProperty()
   public saveToGallery: boolean = false;
   @GetSetProperty()
@@ -290,6 +290,7 @@ export class CameraPlus extends CameraPlusBase {
         }
       },
       async onCameraPhotoUI(event?: java.io.File) {
+        console.log('onCameraPhotoUI() got a file');
         const owner = this.owner ? this.owner.get() : null;
         const file = event;
         const options = owner._lastCameraOptions.shift();
@@ -304,12 +305,13 @@ export class CameraPlus extends CameraPlusBase {
 
         const density = Utils.layout.getDisplayDensity();
         if (options) {
+          console.log('have options set', options);
           confirmPic = options.confirm ? true : false;
           confirmPicRetakeText = options.confirmRetakeText ? options.confirmRetakeText : owner.confirmRetakeText;
           confirmPicSaveText = options.confirmSaveText ? options.confirmSaveText : owner.confirmSaveText;
           saveToGallery = options.saveToGallery ? true : false;
-          reqWidth = options.width ? options.width * density : 0;
-          reqHeight = options.height ? options.height * density : reqWidth;
+          reqWidth = options.reqWidth ? options.reqWidth * density : 0;
+          reqHeight = options.reqHeight ? options.reqHeight * density : reqWidth;
           shouldKeepAspectRatio = types.isNullOrUndefined(options.keepAspectRatio) ? true : options.keepAspectRatio;
           shouldAutoSquareCrop = !!options.autoSquareCrop;
         } else {
@@ -317,6 +319,9 @@ export class CameraPlus extends CameraPlusBase {
           CLog('Using property getters for defaults, no options.');
           confirmPic = owner.confirmPhotos;
           saveToGallery = owner.saveToGallery;
+          confirmPicRetakeText = owner.confirmRetakeText;
+          confirmPicSaveText = owner.confirmSaveText;
+          shouldAutoSquareCrop = owner.autoSquareCrop;
         }
         if (confirmPic === true) {
           owner.sendEvent(CameraPlus.confirmScreenShownEvent);
@@ -425,7 +430,7 @@ export class CameraPlus extends CameraPlusBase {
       CLog('takePicture() options:', JSON.stringify(options));
       // const owner = this._owner ? this._owner.get() : null;
 
-      if (!!options.useCameraOptions && typeof options.width === 'number' && typeof options.height === 'number') {
+      if (!!options.useCameraOptions && typeof options.reqWidth === 'number' && typeof options.reqHeight === 'number') {
         //Note: this doesn't do anything
         // (this._camera as any).setOverridePhotoWidth(options.width);
         // (this._camera as any).setOverridePhotoHeight(options.height);
@@ -693,6 +698,7 @@ export class CameraPlus extends CameraPlusBase {
     );
     const flashParams = new android.widget.RelativeLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
     if (this.insetButtons === true) {
+      console.log('insetButtons set to true, adjusting flash button layout');
       // need to get the width of the screen
       const layoutWidth = this._nativeView.getWidth();
       CLog(`layoutWidth = ${layoutWidth}`);
@@ -730,6 +736,7 @@ export class CameraPlus extends CameraPlusBase {
 
     const toggleCamParams = new android.widget.RelativeLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
     if (this.insetButtons === true) {
+      console.log('insetButtons set to true, adjusting camtoggle button layout');
       const layoutWidth = this._nativeView.getWidth();
       CLog(`layoutWidth = ${layoutWidth}`);
       const xMargin = layoutWidth * this.insetButtonsPercent;
@@ -750,7 +757,6 @@ export class CameraPlus extends CameraPlusBase {
 
     if (this.enableVideo) {
       //video mode show a circle icon
-
       this._takePicBtn = new android.widget.ImageButton(Application.android.context) as android.widget.ImageButton;
       // this._takePicBtn.setPadding(24, 24, 24, 24);
       this._takePicBtn.setMaxHeight(48);
@@ -764,7 +770,7 @@ export class CameraPlus extends CameraPlusBase {
       shape.setAlpha(0);
       this._takePicBtn.setBackgroundDrawable(shape);
     } else {
-      //if we're in camera mode, show the takePhoto icon
+      //if we're in camera photo mode, show the takePhoto icon
       this._takePicBtn = CamHelpers.createImageButton();
       const takePicDrawable = CamHelpers.getImageDrawable(this.takePicIcon);
       this._takePicBtn.setImageResource(takePicDrawable); // set the icon
@@ -863,6 +869,7 @@ export class CameraPlus extends CameraPlusBase {
 
     const takePicParams = new android.widget.RelativeLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
     if (this.insetButtons === true) {
+      console.log('insetButtons set to true, adjusting camera button layout');
       const layoutHeight = this._nativeView.getHeight();
       CLog(`layoutHeight = ${layoutHeight}`);
       const yMargin = layoutHeight * this.insetButtonsPercent;

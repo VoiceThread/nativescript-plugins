@@ -123,23 +123,10 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
   }
 
   /**
-   * Video Support (off by default)
-   */
-  // @GetSetProperty()
-  // public enableVideo: boolean = false;
-
-  /**
-   * Disable Photo Support (off by default)
-   * If you want to record video, and use tap to start and stop recording, set this to true
-   */
-  // @GetSetProperty()
-  // public disablePhoto: boolean = false;
-
-  /**
-   * If true the default take picture event will present a confirmation dialog. Default is true.
+   * If true the default take picture event will present a confirmation dialog. Default is false.
    */
   @GetSetProperty()
-  public confirmPhotos: boolean = true;
+  public confirmPhotos: boolean = false;
 
   /**
    * When confirming capture this text will be presented to the user to retake the photo. Default is 'Retake'
@@ -156,11 +143,12 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
   /**
    * If true the default videorecordingready event will present a confirmation dialog. Default is false.
    */
-  @GetSetProperty()
-  public confirmVideo: boolean = false;
+  //TODO: not supported yet
+  // @GetSetProperty()
+  // public confirmVideo: boolean = false;
 
   /**
-   * If true locks rotation while recording video
+   * If true locks rotation while recording video. Default is true
    */
   @GetSetProperty()
   public shouldLockRotation: boolean = true;
@@ -170,6 +158,24 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
    */
   @GetSetProperty()
   public saveToGallery: boolean = true;
+
+  /**
+   * If true the saved image asset will retain it's original aspect ratio if height/width options set. Default is true.
+   */
+  @GetSetProperty()
+  public keepAspectRatio: boolean = true;
+
+  /**
+   * Height to use for the saved image asset before saving. keepAspectRatio flag may affect this.
+   */
+  @GetSetProperty()
+  public reqHeight: number;
+
+  /**
+   * Width to use for the saved image asset before saving. keepAspectRatio flag may affect this.
+   */
+  @GetSetProperty()
+  public reqWidth: number;
 
   /**
    * If true the default flash toggle icon/button will show on the Camera Plus layout. Default is true.
@@ -283,62 +289,6 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
     return 'rear';
   }
 
-  // /**
-  //  * * ANDROID ONLY * - will prompt the user for runtime permission to use the device Camera.
-  //  */
-  // requestCameraPermissions(explanationText?: string): Promise<boolean> {
-  //   return new Promise((resolve, reject) => resolve(false));
-  // }
-
-  // /**
-  //  * * ANDROID ONLY * - Returns true if the application has permission to use the device camera.
-  //  */
-  // hasCameraPermission(): boolean {
-  //   return false;
-  // }
-
-  // /**
-  //  * * ANDROID ONLY * - will prompt the user for runtime permission to read and write to storage.
-  //  */
-  // requestStoragePermissions(explanationText?: string): Promise<boolean> {
-  //   return new Promise((resolve, reject) => resolve(false));
-  // }
-
-  // /**
-  //  * * ANDROID ONLY * - Returns true if the application has permission to READ/WRITE STORAGE.
-  //  */
-  // hasStoragePermissions(): boolean {
-  //   return false;
-  // }
-
-  // /**
-  //  * * ANDROID ONLY * - will prompt the user for runtime permission to record audio for video recording.
-  //  */
-  // requestAudioPermissions(explanationText?: string): Promise<boolean> {
-  //   return new Promise((resolve, reject) => resolve(false));
-  // }
-
-  // /**
-  //  * * ANDROID ONLY * - Returns true if the application has permission to record audio, which is necessary for video recording.
-  //  */
-  // hasAudioPermission(): boolean {
-  //   return false;
-  // }
-
-  // /**
-  //  * * ANDROID ONLY * - will prompt the user for runtime permission to record audio and write storage to save video recordings.
-  //  */
-  // requestVideoRecordingPermissions(explanationText?: string): Promise<boolean> {
-  //   return new Promise((resolve, reject) => resolve(true));
-  // }
-
-  // /**
-  //  * * ANDROID ONLY * - Returns true if the application has permission to record audio and write storage for saving videos.
-  //  */
-  // hasVideoRecordingPermissions(): boolean {
-  //   return false;
-  // }
-
   /**
    * * ANDROID ONLY * - Gets the number of cameras on a device.
    */
@@ -370,8 +320,8 @@ export interface ICameraOptions {
   confirm?: boolean;
   saveToGallery?: boolean;
   keepAspectRatio?: boolean;
-  height?: number;
-  width?: number;
+  reqHeight?: number;
+  reqWidth?: number;
   autoSquareCrop?: boolean;
   confirmRetakeText?: string;
   confirmSaveText?: string;
@@ -379,8 +329,8 @@ export interface ICameraOptions {
 }
 
 export interface IChooseOptions {
-  width?: number;
-  height?: number;
+  reqWidth?: number;
+  reqHeight?: number;
   keepAspectRatio?: boolean;
   showImages?: boolean;
   showVideos?: boolean;

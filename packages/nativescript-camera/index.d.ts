@@ -113,20 +113,14 @@ export declare class CameraPlus extends ContentView {
   confirmPhotos: boolean;
 
   /**
-   * Video Support (off by default)
+   * When confirming capture this text will be presented to the user to retake the photo. Default is 'Retake'
    */
-  // enableVideo: boolean;
+  confirmRetakeText?: string;
 
   /**
-   * Disable Photo Support (off by default)
-   * If you want to record video, and use tap to start and stop recording, set this to true
+   * When confirming capture this text will be presented to the user to save the photo. Default is 'Save'
    */
-  // disablePhoto: boolean;
-
-  // /**
-  //  * The gallery/library selection mode. 'single' allows one image to be selected. 'multiple' allows multiple images. Default is 'multiple'
-  //  */
-  // galleryPickerMode: 'single' | 'multiple';
+  confirmSaveText?: string;
 
   /**
    * If true the default flash toggle icon/button will show on the Camera Plus layout. Default is true.
@@ -146,7 +140,8 @@ export declare class CameraPlus extends ContentView {
   /**
    * If true when a video is done recording, a confirmation dialog will show. Default is true.
    */
-  confirmVideo: boolean;
+  //TODO: not supported yet
+  // confirmVideo: boolean;
 
   /**
    * If true locks rotation while recording video
@@ -157,6 +152,26 @@ export declare class CameraPlus extends ContentView {
    * If true, the video/image will save to the device Gallery/Library. Default is true.
    */
   saveToGallery: boolean;
+
+  /**
+   * If true, attempts to crop the image so it has equal width/height dimensions
+   */
+  autoSquareCrop: boolean;
+
+  /**
+   * If true the saved image asset will retain it's original aspect ratio if height/width options set. Default is true.
+   */
+  keepAspectRatio: boolean;
+
+  /**
+   * Height to use for the saved image asset before saving. keepAspectRatio flag may affect this.
+   */
+  reqHeight: number;
+
+  /**
+   * Width to use for the saved image asset before saving. keepAspectRatio flag may affect this.
+   */
+  reqWidth: number;
 
   /**
    * *ANDROID ONLY* - allows setting a custom app_resource drawable icon for the Toggle Flash button icon when flash is on (enabled).
@@ -242,8 +257,8 @@ export interface ICameraOptions {
   confirm?: boolean;
   saveToGallery?: boolean;
   keepAspectRatio?: boolean;
-  height?: number;
-  width?: number;
+  reqHeight?: number;
+  reqWidth?: number;
   autoSquareCrop?: boolean;
   confirmRetakeText?: string;
   confirmSaveText?: string;

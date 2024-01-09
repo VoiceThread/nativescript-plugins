@@ -1072,6 +1072,15 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                 }
 
         val useImageProxy = autoSquareCrop || !allowExifRotation
+        Log.d(
+                "org.nativescript.plugindemo",
+                "takePhoto() autoSquareCrop: " +
+                        autoSquareCrop +
+                        " allowExifRotation: " +
+                        allowExifRotation +
+                        " useImageProxy: " +
+                        useImageProxy
+        )
         if (useImageProxy) {
             Log.d("org.nativescript.plugindemo", "takePhoto() useImageProxy set")
             imageCapture?.takePicture(
@@ -1429,13 +1438,13 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 
     override fun stop() {
         Log.d("org.nativescript.plugindemo", "override fun stop()")
-        
+
         if (isRecording) {
             Log.d(
                     "org.nativescript.plugindemo",
                     "override fun stop() currently recording,  calling stopRecording()"
             )
-            
+
             stopRecording()
         } else {
             Log.d(
@@ -1444,14 +1453,13 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
             )
             safeUnbindAll()
         }
-        
     }
 
     override fun release() {
         Log.d("org.nativescript.plugindemo", "calling release()")
         cancelAndDisposeFocusTimer()
-        
-        if (isRecording) {            
+
+        if (isRecording) {
             stopRecording()
         }
 
@@ -1460,9 +1468,9 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
         preview?.setSurfaceProvider(null)
         preview = null
         imageCapture = null
-        videoCapture = null        
+        videoCapture = null
         camera = null
-       
+
         deInitListener()
     }
 }

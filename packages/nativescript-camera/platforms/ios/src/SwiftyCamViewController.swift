@@ -507,7 +507,7 @@ import UIKit
         self.assetWriter = assetWriter
         NSLog("Assigned assetWriter")
       } catch {
-        print("[ASCamera]: error setting up avassetwrtter: \(error)")
+        NSLog("[ASCamera]: error setting up avassetwrtter: \(error)")
         return
       }
 
@@ -532,7 +532,7 @@ import UIKit
       if assetWriter.canAdd(assetWriterVideoInput) {
         assetWriter.add(assetWriterVideoInput)
       } else {
-        print("[ASCamera]: Could not add VideoWriterInput to VideoWriter")
+        NSLog("[ASCamera]: Could not add VideoWriterInput to VideoWriter")
       }
 
       self.assetWriterVideoInput = assetWriterVideoInput
@@ -549,7 +549,7 @@ import UIKit
         if assetWriter.canAdd(assetWriterAudioInput) {
           assetWriter.add(assetWriterAudioInput)
         } else {
-          print("[ASCamera]: Could not add AudioWriterInput to VideoWriter")
+          NSLog("[ASCamera]: Could not add AudioWriterInput to VideoWriter")
         }
         self.assetWriterAudioInput = assetWriterAudioInput
       }
@@ -616,13 +616,19 @@ import UIKit
     assert(
       Thread.isMainThread,
       "[ASCamera]: This function -stopRecording must be called on the main thread.")
-
+    NSLog("stopVideoRecording() self.executeAsync")
     self.executeAsync { [weak self] in
-      guard let self = self else { return }
+      guard let self = self else {
+        NSLog("stopVideoRecording() Error! Unable to get reference to self")
+        return
+      }
       assert(
         self.shouldStartWritingSession,
         "[ASCamera]: Called stopRecording() while video is not being recorded")
-      guard let assetWriter = self.assetWriter else { return }
+      guard let assetWriter = self.assetWriter else {
+        NSLog("stopVideoRecording() Error! Unable to get reference to assetWriter")
+        return
+      }
       self.shouldStartWritingSession = false
       self.didStartWritingSession = false
       self.frameCount = 0
@@ -630,10 +636,10 @@ import UIKit
 
       self.assetWriterVideoInput?.markAsFinished()
       self.assetWriterAudioInput?.markAsFinished()
-
+      NSLog("stopVideoRecording() calling assetWrite.finishWriting")
       assetWriter.finishWriting {
         DispatchQueue.main.async {
-          print("Done with assets, calling events")
+          NSLog("Done with assets, calling events")
           if let error = assetWriter.error {
             self.didFailToProcessVideo(error)
           } else {
@@ -740,7 +746,7 @@ import UIKit
         self.videoDevice?.videoZoomFactor = zoomScale
         self.videoDevice?.unlockForConfiguration()
       } catch {
-        print("[ASCamera]: Error locking configuration")
+        NSLog("[ASCamera]: Error locking configuration")
       }
 
       self.isSwitchingCameras = false
@@ -1563,7 +1569,7 @@ extension SwiftyCamViewController {
       } else {
         // NSLog("[ASCamera]: Could not add video device input to the session")
         NSLog("[SwiftyCam]: Could not add video device input to the session")
-        print(session.canSetSessionPreset(videoInputPresetFromVideoQuality(quality: videoQuality)))
+        // NSLog(session.canSetSessionPreset(videoInputPresetFromVideoQuality(quality: videoQuality)))
         setupResult = .configurationFailed
         session.commitConfiguration()
         return
@@ -1710,7 +1716,7 @@ extension SwiftyCamViewController: AVCaptureVideoDataOutputSampleBufferDelegate,
       if since < 0.05 {
         let success = assetWriterAudioInput.append(sampleBuffer)
         if !success, let error = assetWriter.error {
-          print(error)
+          NSLog(error.localizedDescription)
           fatalError(error.localizedDescription)
         }
       }
@@ -1738,7 +1744,7 @@ extension SwiftyCamViewController: AVCaptureVideoDataOutputSampleBufferDelegate,
       let frameDistance = currentFramePosition - previousFramePosition
       if frameDistance > maxFrameDistance {
         let expectedFramePosition = previousFramePosition + 1.0
-        //                print(
+        //                NSLog(
         //                    "[asCamera]: Frame at incorrect position moving from \(currentFramePosition) to \(expectedFramePosition)")
 
         let newFramePosition =
@@ -1754,7 +1760,7 @@ extension SwiftyCamViewController: AVCaptureVideoDataOutputSampleBufferDelegate,
       let success = assetWriterInputPixelBufferAdaptor.append(
         pixelBuffer, withPresentationTime: presentationTimeStamp)
       if !success, let error = assetWriter.error {
-        print(error)
+        NSLog(error.localizedDescription)
         fatalError(error.localizedDescription)
       }
       self.lastVideoSampleDate = Date()
@@ -1773,7 +1779,7 @@ extension SwiftyCamViewController: AVCaptureVideoDataOutputSampleBufferDelegate,
       self.recordingDuration = currentTime - startTime
 
       if (Int(previousTime - startTime) == Int(currentTime - startTime)) == false {
-        //print("[asCamera]: Frame Count for previous second: \(self.frameCount)")
+        //NSLog("[asCamera]: Frame Count for previous second: \(self.frameCount)")
         self.frameCount = 0
       }
     }
@@ -1800,7 +1806,7 @@ extension SwiftyCamViewController: AVCaptureVideoDataOutputSampleBufferDelegate,
     {
       let success = assetWriterAudioInput.append(sampleBuffer)
       if !success, let error = assetWriter.error {
-        print(error)
+        NSLog(error.localizedDescription)
         fatalError(error.localizedDescription)
       }
     }
@@ -1829,7 +1835,7 @@ extension SwiftyCamViewController: AVCaptureVideoDataOutputSampleBufferDelegate,
       let frameDistance = currentFramePosition - previousFramePosition
       if frameDistance > maxFrameDistance {
         let expectedFramePosition = previousFramePosition + 1.0
-        //                print(
+        //                NSLog(
         //                    "[ASCamera]: Frame at incorrect position moving from \(currentFramePosition) to \(expectedFramePosition)")
         let newFramePosition =
           (expectedFramePosition * Double(currentPresentationTimestamp.timescale))
@@ -1844,7 +1850,7 @@ extension SwiftyCamViewController: AVCaptureVideoDataOutputSampleBufferDelegate,
       let success = assetWriterInputPixelBufferAdaptor.append(
         pixelBuffer, withPresentationTime: presentationTimeStamp)
       if !success, let error = assetWriter.error {
-        print(error)
+        NSLog(error.localizedDescription)
         fatalError(error.localizedDescription)
       }
 
@@ -1863,7 +1869,7 @@ extension SwiftyCamViewController: AVCaptureVideoDataOutputSampleBufferDelegate,
       self.recordingDuration = currentTime - startTime
 
       if (Int(previousTime - startTime) == Int(currentTime - startTime)) == false {
-        //print("[ASCamera]: Frame Count for previous second: \(self.frameCount)")
+        //NSLog("[ASCamera]: Frame Count for previous second: \(self.frameCount)")
         self.frameCount = 0
       }
     }

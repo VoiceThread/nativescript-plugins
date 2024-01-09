@@ -241,6 +241,17 @@ export class MySwifty extends SwiftyCamViewController {
     }
 
     console.log('done with viewDidLoad');
+    //copy over options from xml if set on camera instance
+    this._snapPicOptions = {
+      confirm: this._owner.get().confirmPhotos, // from property setter
+      confirmRetakeText: this._owner.get().confirmRetakeText,
+      confirmSaveText: this._owner.get().confirmSaveText,
+      saveToGallery: this._owner.get().saveToGallery,
+      autoSquareCrop: this._owner.get().autoSquareCrop,
+      keepAspectRatio: this._owner.get().keepAspectRatio,
+      reqHeight: this._owner.get().reqHeight,
+      reqWidth: this._owner.get().reqWidth,
+    };
   }
 
   doLayout() {
@@ -306,6 +317,10 @@ export class MySwifty extends SwiftyCamViewController {
         confirmRetakeText: this._owner.get().confirmRetakeText,
         confirmSaveText: this._owner.get().confirmSaveText,
         saveToGallery: this._owner.get().saveToGallery,
+        autoSquareCrop: this._owner.get().autoSquareCrop,
+        keepAspectRatio: this._owner.get().keepAspectRatio,
+        reqHeight: this._owner.get().reqHeight,
+        reqWidth: this._owner.get().reqWidth,
       };
     }
     console.log('using options', this._snapPicOptions);
@@ -316,64 +331,64 @@ export class MySwifty extends SwiftyCamViewController {
     console.log('recordVideo()');
     options = options || {
       saveToGallery: false,
-      disableHEVC: true,
+      disableHEVC: false,
     };
     // options = options || {};
-    if (this._enableVideo) {
-      if (this.isRecording) {
-        CLog('CameraPlus stop video recording.');
-        this.stopVideoRecording();
-        //unlock rotation
-        this.enableRotation();
+    // if (this._enableVideo) {
+    if (this.isRecording) {
+      CLog('CameraPlus stop video recording.');
+      this.stopVideoRecording();
+      //unlock rotation
+      this.enableRotation();
+    } else {
+      CLog('CameraPlus record video options:', options);
+      if (options) {
+        this._videoOptions = options;
       } else {
-        CLog('CameraPlus record video options:', options);
-        if (options) {
-          this._videoOptions = options;
-        } else {
-          this._videoOptions = {
-            confirm: this._owner.get().confirmVideo, // from property setter
-            saveToGallery: this._owner.get().saveToGallery,
-          };
-        }
-        if (!options.disableHEVC && parseFloat(Device.sdkVersion) >= 11) {
-          this.videoCodecType = AVVideoCodecTypeHEVC;
-        }
-        switch (options ? options.quality : CameraVideoQuality.MAX_480P) {
-          case CameraVideoQuality.MAX_2160P:
-            this.videoQuality = VideoQuality.Resolution3840x2160;
-            break;
-          case CameraVideoQuality.MAX_1080P:
-            this.videoQuality = VideoQuality.Resolution1920x1080;
-            break;
-          case CameraVideoQuality.MAX_720P:
-            this.videoQuality = VideoQuality.Resolution1280x720;
-            break;
-          case CameraVideoQuality.HIGHEST:
-            this.videoQuality = VideoQuality.High;
-            break;
-          case CameraVideoQuality.LOWEST:
-            this.videoQuality = VideoQuality.Low;
-            break;
-          case CameraVideoQuality.QVGA:
-            this.videoQuality = VideoQuality.Resolution352x288;
-            break;
-          default:
-            this.videoQuality = VideoQuality.Resolution640x480;
-            break;
-        }
-        console.log('requesting permission to photos library');
-        const status = PHPhotoLibrary.authorizationStatus();
-        if (status === PHAuthorizationStatus.NotDetermined) {
-          PHPhotoLibrary.requestAuthorization(status => {
-            this.startVideoRecording();
-          });
-        } else {
-          this.startVideoRecording();
-        }
-        this.disableRotation();
-        console.log('requested camera delegate startVideoRecording()');
+        this._videoOptions = {
+          // confirm: this._owner.get().confirmVideo, // not supported yet by plugin
+          saveToGallery: this._owner.get().saveToGallery,
+        };
       }
+      if (!options.disableHEVC && parseFloat(Device.sdkVersion) >= 11) {
+        this.videoCodecType = AVVideoCodecTypeHEVC;
+      }
+      switch (options ? options.quality : CameraVideoQuality.MAX_480P) {
+        case CameraVideoQuality.MAX_2160P:
+          this.videoQuality = VideoQuality.Resolution3840x2160;
+          break;
+        case CameraVideoQuality.MAX_1080P:
+          this.videoQuality = VideoQuality.Resolution1920x1080;
+          break;
+        case CameraVideoQuality.MAX_720P:
+          this.videoQuality = VideoQuality.Resolution1280x720;
+          break;
+        case CameraVideoQuality.HIGHEST:
+          this.videoQuality = VideoQuality.High;
+          break;
+        case CameraVideoQuality.LOWEST:
+          this.videoQuality = VideoQuality.Low;
+          break;
+        case CameraVideoQuality.QVGA:
+          this.videoQuality = VideoQuality.Resolution352x288;
+          break;
+        default:
+          this.videoQuality = VideoQuality.Resolution640x480;
+          break;
+      }
+      console.log('requesting permission to photos library');
+      const status = PHPhotoLibrary.authorizationStatus();
+      if (status === PHAuthorizationStatus.NotDetermined) {
+        PHPhotoLibrary.requestAuthorization(status => {
+          this.startVideoRecording();
+        });
+      } else {
+        this.startVideoRecording();
+      }
+      this.disableRotation();
+      console.log('requested camera delegate startVideoRecording()');
     }
+    // }
   }
 
   public didStartRecording(camera: CameraSelection) {
@@ -442,7 +457,7 @@ export class MySwifty extends SwiftyCamViewController {
 
   public tookPhoto(photo: UIImage) {
     this._photoToSave = photo;
-    CLog('tookPhoto!');
+    CLog('tookPhoto!', this._snapPicOptions);
     if (!this._snapPicOptions)
       this._snapPicOptions = {
         confirm: true,
@@ -520,6 +535,7 @@ export class MySwifty extends SwiftyCamViewController {
     if (this._photoToSave) {
       const asset = new ImageAsset(this._photoToSave);
       const useCameraOptions = this._snapPicOptions ? this._snapPicOptions.useCameraOptions : false;
+      console.log('useCameraOptions?', useCameraOptions);
       const handleSuccess = () => {
         this._owner.get().sendEvent(CameraPlus.photoCapturedEvent, asset);
         this.resetPreview();
@@ -530,14 +546,17 @@ export class MySwifty extends SwiftyCamViewController {
         }
       }
       if (this._snapPicOptions) {
+        console.log('this._snapPicOptions checking for aspectratio,height and width to pass to imageAsset before saving');
         if (typeof this._snapPicOptions.keepAspectRatio === 'boolean') asset.options.keepAspectRatio = this._snapPicOptions.keepAspectRatio;
-        if (typeof this._snapPicOptions.height === 'number') asset.options.height = this._snapPicOptions.height;
-        if (typeof this._snapPicOptions.width === 'number') asset.options.width = this._snapPicOptions.width;
+        if (typeof this._snapPicOptions.reqHeight === 'number') asset.options.height = this._snapPicOptions.reqHeight;
+        if (typeof this._snapPicOptions.reqWidth === 'number') asset.options.width = this._snapPicOptions.reqWidth;
       }
       if (!useCameraOptions) {
+        console.log('not using camera options before saving photo');
         handleSuccess();
       } else {
         if ((this._snapPicOptions && this._snapPicOptions.saveToGallery) || this._owner.get().saveToGallery) {
+          console.log('useCameraOptions false, and this._snapPicOptions.saveToGallery set, saving to Gallery ');
           asset.getImageAsync((image, error) => {
             if (image) {
               UIImageWriteToSavedPhotosAlbum(image, null, null, null);
@@ -1074,10 +1093,8 @@ export class CameraPlus extends CameraPlusBase {
    */
   public stop(): void {
     console.log('CameraPlus stop');
-    if (this.isVideoEnabled()) {
-      this._swifty.stopVideoRecording();
-      this._swifty.enableRotation();
-    }
+    this._swifty.stopVideoRecording();
+    this._swifty.enableRotation();
   }
 
   /**

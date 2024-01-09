@@ -247,9 +247,18 @@ export class DemoModel extends DemoSharedNativescriptCamera {
             }
 
             //take the photo
-            this.cam.takePicture({
+            let customOptions = {
               saveToGallery: this.cam.saveToGallery,
-            });
+              autoSquareCrop: this.cam.autoSquareCrop,
+              confirm: this.cam.confirmPhotos,
+              confirmRetakeText: this.cam.confirmRetakeText,
+              confirmSaveText: this.cam.confirmSaveText,
+              keepAspectRatio: this.cam.keepAspectRatio,
+              reqHeight: this.cam.reqHeight,
+              reqWidth: this.cam.reqWidth,
+            };
+            console.log('options', customOptions);
+            this.cam.takePicture(customOptions);
           } else alert('No permission for camera, cannot take a photo!');
         });
       } else alert('No permission for camera! Grant this permission in app settings first');
