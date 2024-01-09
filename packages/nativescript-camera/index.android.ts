@@ -5,7 +5,7 @@
 
 import { Application, ImageAsset, Device, View, File, Utils, AndroidApplication } from '@nativescript/core';
 import * as types from '@nativescript/core/utils/types';
-import { CameraPlusBase, CameraVideoQuality, CLog, GetSetProperty, ICameraOptions, ICameraPlusEvents, IChooseOptions, IVideoOptions, WhiteBalance } from './common';
+import { CameraPlusBase, CameraVideoQuality, CLog, GetSetProperty, ICameraOptions, ICameraPlusEvents, IVideoOptions, WhiteBalance } from './common';
 import * as CamHelpers from './helpers';
 export * from './common';
 export { CameraVideoQuality, WhiteBalance } from './common';
@@ -301,6 +301,7 @@ export class CameraPlus extends CameraPlusBase {
         let reqWidth;
         let reqHeight;
         let shouldKeepAspectRatio;
+        let quality;
         let shouldAutoSquareCrop = owner.autoSquareCrop;
 
         const density = Utils.layout.getDisplayDensity();
@@ -314,6 +315,7 @@ export class CameraPlus extends CameraPlusBase {
           reqHeight = options.reqHeight ? options.reqHeight * density : reqWidth;
           shouldKeepAspectRatio = types.isNullOrUndefined(options.keepAspectRatio) ? true : options.keepAspectRatio;
           shouldAutoSquareCrop = !!options.autoSquareCrop;
+          quality = options.quality ? options.quality : 95;
         } else {
           // use xml property getters or their defaults
           CLog('Using property getters for defaults, no options.');
@@ -322,7 +324,9 @@ export class CameraPlus extends CameraPlusBase {
           confirmPicRetakeText = owner.confirmRetakeText;
           confirmPicSaveText = owner.confirmSaveText;
           shouldAutoSquareCrop = owner.autoSquareCrop;
+          quality = owner.quality;
         }
+
         if (confirmPic === true) {
           owner.sendEvent(CameraPlus.confirmScreenShownEvent);
           const result = await CamHelpers.createImageConfirmationDialog(file.getAbsolutePath(), confirmPicRetakeText, confirmPicSaveText).catch(ex => {

@@ -70,7 +70,7 @@ export declare class CameraPlus extends ContentView {
   /**
    * If true console logs will be output to help debug the Camera Plus events.
    */
-  debug: boolean;
+  public static debug: boolean;
 
   /**
    * @default 4:3
@@ -162,6 +162,12 @@ export declare class CameraPlus extends ContentView {
    * If true the saved image asset will retain it's original aspect ratio if height/width options set. Default is true.
    */
   keepAspectRatio: boolean;
+
+  /**
+   * Quality is a number between 1-100 that is used when saving the image as a JPEG before the File reference is returned by plugin
+   * NOTE: this only applies to photos, videos not supported yet
+   */
+  quality: number;
 
   /**
    * Height to use for the saved image asset before saving. keepAspectRatio flag may affect this.
@@ -284,14 +290,6 @@ export interface IVideoOptions {
   androidMaxVideoBitRate?: number;
   androidMaxFrameRate?: number;
   androidMaxAudioBitRate?: number;
-}
-
-export interface IChooseOptions {
-  width?: number;
-  height?: number;
-  keepAspectRatio?: boolean;
-  showImages?: boolean;
-  showVideos?: boolean;
 }
 
 export interface ICameraPlusEvents {

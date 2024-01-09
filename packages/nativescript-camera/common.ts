@@ -7,7 +7,7 @@ import { ContentView, File } from '@nativescript/core';
 import { CameraPlus as CameraPlusDefinition } from '.';
 
 export class CameraUtil {
-  public static debug: boolean = true;
+  public static debug: boolean = false;
 }
 
 export const CLog = (...args) => {
@@ -19,9 +19,9 @@ export const CLog = (...args) => {
 export type CameraTypes = 'front' | 'rear';
 
 export abstract class CameraPlusBase extends ContentView implements CameraPlusDefinition {
-  public set debug(value: boolean) {
-    CameraUtil.debug = value;
-  }
+  @GetSetPropertyDebug()
+  public debug: boolean = false;
+
   public events: any /*ICameraPlusEvents*/;
 
   /**
@@ -161,18 +161,28 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
 
   /**
    * If true the saved image asset will retain it's original aspect ratio if height/width options set. Default is true.
+   * NOTE: this only applies to photos, videos not supported yet
    */
   @GetSetProperty()
   public keepAspectRatio: boolean = true;
 
   /**
+   * Quality is a number between 1-100 that is used when saving the image as a JPEG before the File reference is returned by plugin
+   * NOTE: this only applies to photos, videos not supported yet
+   */
+  @GetSetProperty()
+  public quality: number = 95;
+
+  /**
    * Height to use for the saved image asset before saving. keepAspectRatio flag may affect this.
+   * NOTE: this only applies to photos, videos not supported yet
    */
   @GetSetProperty()
   public reqHeight: number;
 
   /**
    * Width to use for the saved image asset before saving. keepAspectRatio flag may affect this.
+   * NOTE: this only applies to photos, videos not supported yet
    */
   @GetSetProperty()
   public reqWidth: number;
@@ -320,20 +330,13 @@ export interface ICameraOptions {
   confirm?: boolean;
   saveToGallery?: boolean;
   keepAspectRatio?: boolean;
+  quality?: number;
   reqHeight?: number;
   reqWidth?: number;
   autoSquareCrop?: boolean;
   confirmRetakeText?: string;
   confirmSaveText?: string;
   useCameraOptions?: boolean;
-}
-
-export interface IChooseOptions {
-  reqWidth?: number;
-  reqHeight?: number;
-  keepAspectRatio?: boolean;
-  showImages?: boolean;
-  showVideos?: boolean;
 }
 
 export interface ICameraPlusEvents {
@@ -394,6 +397,31 @@ export function GetSetProperty() {
           value = true;
         } else if (value === 'false') {
           value = false;
+        }
+        this['_' + propertyKey] = value;
+      },
+      enumerable: true,
+      configurable: true,
+    });
+  };
+}
+
+export function GetSetPropertyDebug() {
+  return (target, propertyKey: string) => {
+    Object.defineProperty(target, propertyKey, {
+      get: function () {
+        return this['_' + propertyKey];
+      },
+      set: function (value) {
+        if (this['_' + propertyKey] === value) {
+          return;
+        }
+        if (value === 'true') {
+          value = true;
+          CameraUtil.debug = true;
+        } else if (value === 'false') {
+          value = false;
+          CameraUtil.debug = false;
         }
         this['_' + propertyKey] = value;
       },

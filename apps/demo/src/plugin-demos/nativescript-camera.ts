@@ -77,15 +77,21 @@ export class DemoModel extends DemoSharedNativescriptCamera {
 
     this.cam.on(CameraPlus.photoCapturedEvent, (args: any) => {
       console.log(`photoCapturedEvent listener on main-view-model.ts  ${args}`);
+      //args.data should be the path of the jpeg file produced by camera library
+      // if (typeof args.data !== 'string') {
+      //   console.error('returned data is not a file path!');
+      //   return;
+      // }
       // console.log((<any>args).data);
       ImageSource.fromAsset((<any>args).data).then(res => {
         const testImg = Frame.topmost().getViewById('testImagePickResult') as Image;
         testImg.src = res;
-        console.log('height:', res.height, 'width:', res.width);
+        console.log('Returned photo Asset height:', res.height, 'width:', res.width);
       });
     });
 
     this.cam.on(CameraPlus.videoRecordingReadyEvent, (args: any) => {
+      //args.data should be the path of the file created with the video recording
       console.log(`videoRecordingReadyEvent listener fired`, args.data);
       let videoFile = File.fromPath(args.data);
       console.log('File has length', videoFile.size);
@@ -254,6 +260,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
               confirmRetakeText: this.cam.confirmRetakeText,
               confirmSaveText: this.cam.confirmSaveText,
               keepAspectRatio: this.cam.keepAspectRatio,
+              quality: this.cam.quality,
               reqHeight: this.cam.reqHeight,
               reqWidth: this.cam.reqWidth,
             };

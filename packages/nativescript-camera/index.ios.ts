@@ -4,7 +4,7 @@
  **********************************************************************************/
 
 import { Color, ImageAsset, View, File, Device, Screen, isIOS, Frame, Application } from '@nativescript/core';
-import { CameraPlusBase, CameraTypes, CameraVideoQuality, CLog, GetSetProperty, ICameraOptions, IChooseOptions, IVideoOptions } from './common';
+import { CameraPlusBase, CameraTypes, CameraVideoQuality, CLog, GetSetProperty, ICameraOptions, IVideoOptions } from './common';
 import { iOSNativeHelper } from '@nativescript/core/utils';
 
 export * from './common';
@@ -512,7 +512,6 @@ export class MySwifty extends SwiftyCamViewController {
       this._imageConfirmBg.addSubview(saveBtn);
       this.view.addSubview(this._imageConfirmBg);
       this._owner.get().sendEvent(CameraPlus.confirmScreenShownEvent);
-      // this._owner.get().sendEvent(CameraPlus.photoCapturedEvent);
     } else {
       console.log('no confirmation, just saving');
       // no confirmation - just save
