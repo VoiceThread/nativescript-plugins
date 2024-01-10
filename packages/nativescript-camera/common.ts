@@ -22,8 +22,6 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
   @GetSetPropertyDebug()
   public debug: boolean = false;
 
-  public events: any /*ICameraPlusEvents*/;
-
   /**
    * Video Support (off by default)
    * defined statically due to necessity to set this very early before constructor

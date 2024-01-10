@@ -66,9 +66,6 @@ export class CameraPlus extends CameraPlusBase {
   public isRecording: boolean;
   @GetSetProperty()
   public disablePhoto: boolean;
-  // private _enableVideo: boolean;
-  // private _disablePhoto: boolean;
-  public events: ICameraPlusEvents;
   private _nativeView;
   private _owner: WeakRef<any>;
   private _mediaRecorder: android.media.MediaRecorder;

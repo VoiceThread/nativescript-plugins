@@ -41,6 +41,30 @@ export class DemoModel extends DemoSharedNativescriptCamera {
 
     this.cam = page.getViewById('camPlus') as unknown as CameraPlus;
 
+    //Notes on properties that affect camera instance
+    //TODO: update these as properties are fixed or removed
+    //[ Both Platforms ]
+    //this.cam.enableVideo = true;//defaults to false. Enable to true for video mode
+    //this.cam.disablePhoto = true;//defaults to false. Set to true and enableVideo to true, and camera button gestures ignored
+    //  UNSUPPORTED
+    // console.log('getAvailablePictureSizes', this.cam.getAvailablePictureSizes('1:1'));//not currently supported/working
+
+    //[ Android only ]
+    if (isAndroid) {
+      // this.cam.autoFocus = false; // defaults to true so camera will auto focus before capturing image
+      // console.log('balance', this.cam.whiteBalance);
+      // console.log('balance', this.cam.whiteBalance);
+      //  UNSUPPORTED
+      // this.cam.whiteBalance = 'twilight';//not curreently supported to change whiteBalance, can read current whiteBalance
+      // this.cam.zoom = 0.4; //not currently supported to set the zoom, but can read zoom level float from 0.0-1.0
+      // this.cam.ratio = '1:1'; //not currently supported, camera defaults to size based on viewport dimensions
+    }
+
+    //[ iOS only ]
+    if (isIOS) {
+      // this.cam.doubleTapCameraSwitch = false; //default is true so double taps on view will switch camera
+    }
+
     this.cameraHeight = Screen.mainScreen.heightDIPs * 0.7;
 
     if (this._counter > 0) {

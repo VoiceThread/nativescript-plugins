@@ -5,8 +5,6 @@
 
 import { Observable, ContentView, File } from '@nativescript/core';
 export declare class CameraPlus extends ContentView {
-  events: ICameraPlusEvents;
-
   /**
    * Video Support (off by default)
    * defined statically due to necessity to set this very early before constructor
@@ -24,6 +22,7 @@ export declare class CameraPlus extends ContentView {
 
   /**
    * Default camera: must be set early before constructor to default the camera correctly on launch (default to 'rear')
+   * //TODO: add support for this flag to both platforms and expose to plugin
    */
   public static defaultCamera: 'front' | 'rear';
 
@@ -68,7 +67,7 @@ export declare class CameraPlus extends ContentView {
   public static confirmScreenDismissedEvent: 'confirmScreenDismissedEvent';
 
   /**
-   * If true console logs will be output to help debug the Camera Plus events.
+   * If true console logs will be output to help debug plugin activity.
    */
   public static debug: boolean;
 
@@ -101,6 +100,7 @@ export declare class CameraPlus extends ContentView {
   pictureSize: string;
 
   /**
+   * TODO: needs to be fixed or removed
    * @param ratio string
    * @returns returns an array of supported picture sizes supported by the current camera
    */
@@ -108,6 +108,7 @@ export declare class CameraPlus extends ContentView {
 
   /**
    * *ANDROID ONLY*
+   * TODO: needs to be fixed or removed
    * @returns retuns an array of strings representing the preview sizes supported by the current device.
    */
   getGetSupportedRatios(): string[];
@@ -149,7 +150,7 @@ export declare class CameraPlus extends ContentView {
   // confirmVideo: boolean;
 
   /**
-   * If true locks rotation while recording video
+   * If true locks device orientation while recording video
    */
   shouldLockRotation: boolean;
 
@@ -200,6 +201,11 @@ export declare class CameraPlus extends ContentView {
   autoFocus: boolean;
 
   /**
+   * *iOS ONLY* - Enable/disable double tap gesture to switch camera. (enabled)
+   */
+  doubleTapCameraSwitch: boolean;
+
+  /**
    * Toggles the device camera (front/back).
    */
   toggleCamera(): void;
@@ -236,7 +242,7 @@ export declare class CameraPlus extends ContentView {
   isCameraAvailable(): boolean;
 
   /**
-   * Returns current camaer <front | rear>
+   * Returns current camera <front | rear>
    */
   getCurrentCamera(): 'rear' | 'front';
 
