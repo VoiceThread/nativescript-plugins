@@ -83,9 +83,6 @@ import UIKit
   //default to h264 for greater compatibility
   @objc public var videoCodecType: AVVideoCodecType = AVVideoCodecType.h264
 
-  /// Disable audio
-  @objc public var disableAudio = false
-
   /// Sets whether flash is enabled for photo and video capture
   @objc public var flashEnabled = false
 

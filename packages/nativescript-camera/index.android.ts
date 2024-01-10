@@ -3,7 +3,7 @@
   2023, VoiceThread - Angel Dominguez
  **********************************************************************************/
 
-import { Application, ImageAsset, Device, View, File, Utils, AndroidApplication } from '@nativescript/core';
+import { Application, ImageAsset, Device, View, File, Utils, AndroidApplication, ImageSource, path, knownFolders } from '@nativescript/core';
 import * as types from '@nativescript/core/utils/types';
 import { CameraPlusBase, CameraVideoQuality, CLog, GetSetProperty, ICameraOptions, ICameraPlusEvents, IVideoOptions, WhiteBalance } from './common';
 import * as CamHelpers from './helpers';
@@ -298,9 +298,7 @@ export class CameraPlus extends CameraPlusBase {
         let confirmPicRetakeText;
         let confirmPicSaveText;
         let saveToGallery;
-        let reqWidth;
-        let reqHeight;
-        let shouldKeepAspectRatio;
+        let maxDimension;
         let quality;
         let shouldAutoSquareCrop = owner.autoSquareCrop;
 
@@ -311,11 +309,9 @@ export class CameraPlus extends CameraPlusBase {
           confirmPicRetakeText = options.confirmRetakeText ? options.confirmRetakeText : owner.confirmRetakeText;
           confirmPicSaveText = options.confirmSaveText ? options.confirmSaveText : owner.confirmSaveText;
           saveToGallery = options.saveToGallery ? true : false;
-          reqWidth = options.reqWidth ? options.reqWidth * density : 0;
-          reqHeight = options.reqHeight ? options.reqHeight * density : reqWidth;
-          shouldKeepAspectRatio = types.isNullOrUndefined(options.keepAspectRatio) ? true : options.keepAspectRatio;
+          maxDimension = options.maxDimension ? +options.maxDimension : null;
           shouldAutoSquareCrop = !!options.autoSquareCrop;
-          quality = options.quality ? options.quality : 95;
+          quality = options.quality ? +options.quality : 95;
         } else {
           // use xml property getters or their defaults
           CLog('Using property getters for defaults, no options.');
@@ -324,7 +320,9 @@ export class CameraPlus extends CameraPlusBase {
           confirmPicRetakeText = owner.confirmRetakeText;
           confirmPicSaveText = owner.confirmSaveText;
           shouldAutoSquareCrop = owner.autoSquareCrop;
-          quality = owner.quality;
+          saveToGallery = owner.saveToGallery ? true : false;
+          maxDimension = owner.maxDimension ? +owner.maxDimension : null;
+          quality = owner.quality ? +owner.quality : 95;
         }
 
         if (confirmPic === true) {
@@ -332,23 +330,40 @@ export class CameraPlus extends CameraPlusBase {
           const result = await CamHelpers.createImageConfirmationDialog(file.getAbsolutePath(), confirmPicRetakeText, confirmPicSaveText).catch(ex => {
             CLog('Error createImageConfirmationDialog', ex);
           });
-
           owner.sendEvent(CameraPlus.confirmScreenDismissedEvent);
-
           CLog(`confirmation result = ${result}`);
           if (result !== true) {
+            console.log('image denied, deleting and returning');
             file.delete();
             return;
           }
+        }
 
-          const asset = CamHelpers.assetFromPath(file.getAbsolutePath(), reqWidth, reqHeight, shouldKeepAspectRatio);
-
-          owner.sendEvent(CameraPlus.photoCapturedEvent, asset);
-          return;
-        } else {
-          const asset = CamHelpers.assetFromPath(file.getAbsolutePath(), reqWidth, reqHeight, shouldKeepAspectRatio);
-          owner.sendEvent(CameraPlus.photoCapturedEvent, asset);
-          return;
+        //save a copy to the app's documents folder and return path
+        let outFilepath, tempFileName;
+        try {
+          let source = await ImageSource.fromFile(file.getAbsolutePath());
+          for (let i = 1; i < 999999999; i++) {
+            tempFileName = 'photo-' + i + '.jpg';
+            outFilepath = path.join(knownFolders.documents().path, tempFileName);
+            if (!File.exists(outFilepath)) break;
+          }
+          //resize for maxDimension if option set
+          if (maxDimension && maxDimension > 0) source = source.resize(maxDimension);
+          // let outasset;
+          const saved = source.saveToFile(outFilepath, 'jpg', quality);
+          if (saved) {
+            // outasset = new ImageAsset(outFilepath);
+            owner.sendEvent(CameraPlus.photoCapturedEvent, outFilepath);
+          } else {
+            console.error('unable to save photo to file!');
+            CLog('ERROR saving image to file at path', outFilepath);
+            owner.sendEvent(CameraPlus.errorEvent, 'ERROR saving image to file at path: ' + outFilepath);
+          }
+        } catch (err) {
+          console.error(err);
+          CLog('ERROR saving image to file at path', outFilepath, err);
+          owner.sendEvent(CameraPlus.errorEvent, err);
         }
       },
       onCameraOpenUI(): void {
@@ -360,7 +375,8 @@ export class CameraPlus extends CameraPlusBase {
             owner._ensureCorrectFlashIcon();
             owner._togglingCamera = true;
           } else {
-            owner.sendEvent('loaded', owner.camera);
+            // owner.sendEvent('loaded', owner.camera);
+            owner.sendEvent(CameraPlus.cameraReadyEvent, owner.camera);
           }
         }
       },
@@ -434,30 +450,29 @@ export class CameraPlus extends CameraPlusBase {
       CLog('takePicture() options:', JSON.stringify(options));
       // const owner = this._owner ? this._owner.get() : null;
 
-      if (!!options.useCameraOptions && typeof options.reqWidth === 'number' && typeof options.reqHeight === 'number') {
-        //Note: this doesn't do anything
-        // (this._camera as any).setOverridePhotoWidth(options.width);
-        // (this._camera as any).setOverridePhotoHeight(options.height);
-        //set the explicit height/width
-        //this._camera.setPictureSize(options.width + 'x' + options.height); //3:4 ratio
-        // owner.pictureSize = options.width + 'x' + options.height;
-        // this.pictureSize = options.width + 'x' + options.height;
-        // console.log('options for width and height set, setting picture size to ', options.width + 'x' + options.height);
-      } else {
-        //set default photo size
-        // this._camera.setPictureSize('768x1024'); //3:4 ratio
-        // owner.pictureSize = '768x1024';
-        // console.log('options for width and height set, setting picture size to ', '768x1024');
-      }
+      // if (!!options.useCameraOptions && typeof options.reqWidth === 'number' && typeof options.reqHeight === 'number') {
+      //Note: this doesn't do anything
+      // (this._camera as any).setOverridePhotoWidth(options.width);
+      // (this._camera as any).setOverridePhotoHeight(options.height);
+      //set the explicit height/width
+      //this._camera.setPictureSize(options.width + 'x' + options.height); //3:4 ratio
+      // owner.pictureSize = options.width + 'x' + options.height;
+      // this.pictureSize = options.width + 'x' + options.height;
+      // console.log('options for width and height set, setting picture size to ', options.width + 'x' + options.height);
+      // } else {
+      //set default photo size
+      // this._camera.setPictureSize('768x1024'); //3:4 ratio
+      // owner.pictureSize = '768x1024';
+      // console.log('options for width and height set, setting picture size to ', '768x1024');
+      // }
       // console.log('using picture size', this._camera.getPictureSize());
-      console.log('using picture size', this.pictureSize);
+      // console.log('using picture size', this.pictureSize);
       // let sizes = this.getAvailablePictureSizes('4x3');
       // console.dir('available sizes', sizes);
 
       this._camera.setSaveToGallery(!!options.saveToGallery);
 
       this._camera.setAutoSquareCrop(!!options.autoSquareCrop);
-      //TODO: does this option work on both platforms?
 
       this._lastCameraOptions.push(options);
       this._camera.takePhoto();

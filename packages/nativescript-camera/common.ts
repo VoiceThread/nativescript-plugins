@@ -71,6 +71,10 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
   public static videoRecordingReadyEvent = 'videoRecordingReadyEvent';
 
   /**
+   * String value for hooking into the cameraReadyEvent. This event fires when the native camera is done initializing.
+   */
+  public static cameraReadyEvent = 'cameraReadyEvent';
+  /**
    * String value when hooking into the confirmScreenShownEvent. This event fires when the picture confirm dialog is shown.
    */
   public static confirmScreenShownEvent = 'confirmScreenShownEvent';
@@ -160,13 +164,6 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
   public saveToGallery: boolean = true;
 
   /**
-   * If true the saved image asset will retain it's original aspect ratio if height/width options set. Default is true.
-   * NOTE: this only applies to photos, videos not supported yet
-   */
-  @GetSetProperty()
-  public keepAspectRatio: boolean = true;
-
-  /**
    * Quality is a number between 1-100 that is used when saving the image as a JPEG before the File reference is returned by plugin
    * NOTE: this only applies to photos, videos not supported yet
    */
@@ -174,18 +171,11 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
   public quality: number = 95;
 
   /**
-   * Height to use for the saved image asset before saving. keepAspectRatio flag may affect this.
+   * Maximum dimension among width/height to use for the saved photo image.
    * NOTE: this only applies to photos, videos not supported yet
    */
   @GetSetProperty()
-  public reqHeight: number;
-
-  /**
-   * Width to use for the saved image asset before saving. keepAspectRatio flag may affect this.
-   * NOTE: this only applies to photos, videos not supported yet
-   */
-  @GetSetProperty()
-  public reqWidth: number;
+  public maxDimension: number;
 
   /**
    * If true the default flash toggle icon/button will show on the Camera Plus layout. Default is true.
@@ -329,14 +319,12 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
 export interface ICameraOptions {
   confirm?: boolean;
   saveToGallery?: boolean;
-  keepAspectRatio?: boolean;
   quality?: number;
-  reqHeight?: number;
-  reqWidth?: number;
+  maxDimension?: number;
   autoSquareCrop?: boolean;
   confirmRetakeText?: string;
   confirmSaveText?: string;
-  useCameraOptions?: boolean;
+  // useCameraOptions?: boolean;
 }
 
 export interface ICameraPlusEvents {
@@ -346,6 +334,7 @@ export interface ICameraPlusEvents {
   videoRecordingStartedEvent: any;
   videoRecordingFinishedEvent: any;
   videoRecordingReadyEvent: any;
+  cameraReadyEvent: any;
   confirmScreenShownEvent: any;
   confirmScreenDismissedEvent: any;
 }

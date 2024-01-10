@@ -3,7 +3,7 @@
   2023, VoiceThread - Angel Dominguez
  **********************************************************************************/
 
-import { Color, ImageAsset, View, File, Device, Screen, isIOS, Frame, Application } from '@nativescript/core';
+import { Color, ImageAsset, View, File, Device, Screen, isIOS, Frame, Application, ImageSource, path, knownFolders } from '@nativescript/core';
 import { CameraPlusBase, CameraTypes, CameraVideoQuality, CLog, GetSetProperty, ICameraOptions, IVideoOptions } from './common';
 import { iOSNativeHelper } from '@nativescript/core/utils';
 
@@ -125,7 +125,7 @@ export class MySwifty extends SwiftyCamViewController {
   private _flashBtn: UIButton;
   private _switchBtn: UIButton;
   // private _cameraBtn: UIButton;
-  private _cameraBtn: SwiftyCamButton;
+  public _cameraBtn: SwiftyCamButton;
   private _maxDuration: number = 3600;
   // private _blurView: UIView;
   public _swiftyDelegate: SwiftyDelegate;
@@ -248,10 +248,9 @@ export class MySwifty extends SwiftyCamViewController {
       confirmSaveText: this._owner.get().confirmSaveText,
       saveToGallery: this._owner.get().saveToGallery,
       autoSquareCrop: this._owner.get().autoSquareCrop,
-      keepAspectRatio: this._owner.get().keepAspectRatio,
-      reqHeight: this._owner.get().reqHeight,
-      reqWidth: this._owner.get().reqWidth,
+      maxDimension: this._owner.get().maxDimension,
     };
+    this._owner.get().sendEvent(CameraPlus.cameraReadyEvent, owner);
   }
 
   doLayout() {
@@ -265,7 +264,6 @@ export class MySwifty extends SwiftyCamViewController {
   viewDidLayoutSubviews() {
     CLog('MySwifty viewDidLayoutSubviews');
     super.viewDidLayoutSubviews();
-    // this.drawButton();
   }
 
   viewDidAppear(animated: boolean) {
@@ -288,8 +286,6 @@ export class MySwifty extends SwiftyCamViewController {
     }
   }
 
-  // public drawButton() {}
-
   public resize(width?: any, height?: any) {
     if (typeof width !== 'number') {
       width = Screen.mainScreen.widthDIPs;
@@ -302,7 +298,6 @@ export class MySwifty extends SwiftyCamViewController {
     CLog('view.bounds:', this.view.bounds.size.width + 'x' + this.view.bounds.size.height);
     if (!this._resized) {
       this._resized = true;
-      // this.addButtons();
       this.viewDidAppear(true);
     }
   }
@@ -318,9 +313,7 @@ export class MySwifty extends SwiftyCamViewController {
         confirmSaveText: this._owner.get().confirmSaveText,
         saveToGallery: this._owner.get().saveToGallery,
         autoSquareCrop: this._owner.get().autoSquareCrop,
-        keepAspectRatio: this._owner.get().keepAspectRatio,
-        reqHeight: this._owner.get().reqHeight,
-        reqWidth: this._owner.get().reqWidth,
+        maxDimension: this._owner.get().maxDimension,
       };
     }
     console.log('using options', this._snapPicOptions);
@@ -333,11 +326,11 @@ export class MySwifty extends SwiftyCamViewController {
       saveToGallery: false,
       disableHEVC: false,
     };
-    // options = options || {};
-    // if (this._enableVideo) {
+
     if (this.isRecording) {
       CLog('CameraPlus stop video recording.');
       this.stopVideoRecording();
+      this._cameraBtn.changeToCircle();
       //unlock rotation
       this.enableRotation();
     } else {
@@ -380,9 +373,11 @@ export class MySwifty extends SwiftyCamViewController {
       const status = PHPhotoLibrary.authorizationStatus();
       if (status === PHAuthorizationStatus.NotDetermined) {
         PHPhotoLibrary.requestAuthorization(status => {
+          this._cameraBtn.changeToSquare();
           this.startVideoRecording();
         });
       } else {
+        this._cameraBtn.changeToSquare();
         this.startVideoRecording();
       }
       this.disableRotation();
@@ -529,43 +524,52 @@ export class MySwifty extends SwiftyCamViewController {
     }
   }
 
-  public savePhoto() {
-    console.log('savePhoto()');
+  public async savePhoto() {
+    console.log('savePhoto()', this._snapPicOptions);
     if (this._photoToSave) {
-      const asset = new ImageAsset(this._photoToSave);
-      const useCameraOptions = this._snapPicOptions ? this._snapPicOptions.useCameraOptions : false;
-      console.log('useCameraOptions?', useCameraOptions);
-      const handleSuccess = () => {
-        this._owner.get().sendEvent(CameraPlus.photoCapturedEvent, asset);
-        this.resetPreview();
-      };
-      if (!useCameraOptions) {
-        if ((this._snapPicOptions && this._snapPicOptions.saveToGallery) || this._owner.get().saveToGallery) {
-          UIImageWriteToSavedPhotosAlbum(this._photoToSave, null, null, null);
+      let asset: ImageAsset = new ImageAsset(this._photoToSave); //UIImage
+      let outFilepath: string, tempFileName: string, source: ImageSource;
+      try {
+        source = await ImageSource.fromAsset(asset);
+        for (let i = 1; i < 999999999; i++) {
+          tempFileName = 'photo-' + i + '.jpg';
+          outFilepath = path.join(knownFolders.documents().path, tempFileName);
+          if (!File.exists(outFilepath)) break;
         }
-      }
-      if (this._snapPicOptions) {
-        console.log('this._snapPicOptions checking for aspectratio,height and width to pass to imageAsset before saving');
-        if (typeof this._snapPicOptions.keepAspectRatio === 'boolean') asset.options.keepAspectRatio = this._snapPicOptions.keepAspectRatio;
-        if (typeof this._snapPicOptions.reqHeight === 'number') asset.options.height = this._snapPicOptions.reqHeight;
-        if (typeof this._snapPicOptions.reqWidth === 'number') asset.options.width = this._snapPicOptions.reqWidth;
-      }
-      if (!useCameraOptions) {
-        console.log('not using camera options before saving photo');
-        handleSuccess();
-      } else {
-        if ((this._snapPicOptions && this._snapPicOptions.saveToGallery) || this._owner.get().saveToGallery) {
-          console.log('useCameraOptions false, and this._snapPicOptions.saveToGallery set, saving to Gallery ');
-          asset.getImageAsync((image, error) => {
-            if (image) {
-              UIImageWriteToSavedPhotosAlbum(image, null, null, null);
-              handleSuccess();
-            } else {
-              CLog(`Failed to save image: ${error}`);
-            }
-          });
+        let maxDimension = +this._snapPicOptions.maxDimension;
+        let quality = +this._snapPicOptions.quality;
+        if (maxDimension && maxDimension > 0) {
+          source = source.resize(maxDimension);
         }
+
+        const saved = source.saveToFile(outFilepath, 'jpg', quality);
+        if (saved) {
+          asset = new ImageAsset(outFilepath);
+          asset.options.height = source.height;
+          asset.options.width = source.width;
+        } else {
+          console.error('unable to save photo to file!');
+          CLog('ERROR saving image to file at path', outFilepath);
+          this._owner.get().sendEvent(CameraPlus.errorEvent, 'ERROR saving image to file at path: ' + outFilepath);
+          return;
+        }
+      } catch (err) {
+        console.error(err);
+        CLog('ERROR saving image to file at path', outFilepath, err);
+        this._owner.get().sendEvent(CameraPlus.errorEvent, err);
+        return;
       }
+      if (this._snapPicOptions.saveToGallery) {
+        //TODO this is saved at default device scale, so base dimensions will have this multiplier
+        //    if we want exact dimensions, need to rescale using native code first
+        UIImageWriteToSavedPhotosAlbum(asset.nativeImage, null, null, null);
+      }
+      // this._owner.get().sendEvent(CameraPlus.photoCapturedEvent, asset);
+      this._owner.get().sendEvent(CameraPlus.photoCapturedEvent, outFilepath);
+      this.resetPreview();
+    } else {
+      console.error('savePhoto() failed, no image to save!');
+      this._owner.get().sendEvent(CameraPlus.errorEvent, 'ERROR savePhoto() failed, no image to save!');
     }
   }
 
@@ -579,137 +583,22 @@ export class MySwifty extends SwiftyCamViewController {
     return UIImagePickerController.isSourceTypeAvailable(UIImagePickerControllerSourceType.Camera);
   }
 
-  // public addButtons() {
-  //   CLog('adding buttons...');
-  //   const width = this.view.bounds.size.width;
-  //   const height = this.view.bounds.size.height;
-  //   CLog('iOS bounds width: ', width, ' height:', height);
-  //   CLog('NS Screen heightDIPs heightPixels widthDIPs widthPixels,: ', Screen.mainScreen.heightDIPs, Screen.mainScreen.heightPixels, Screen.mainScreen.widthDIPs, Screen.mainScreen.widthPixels);
-  //   // CLog('View location ', this._swiftyDelegate.previewLayer.frame.origin);
-  //   // console.log(this._owner.get()?.ios?.previewLayer);
-  //   // CLog('previewLayer ', this._swiftyDelegate.previewLayer);
-  //   // CLog('previewLayer ', this._swiftyDelegate.previewLayer.bounds.size.width, this._swiftyDelegate.previewLayer.bounds.size.height);
-  //   // CLog('previewLayer ', this._swiftyDelegate.previewLayer.bounds.size.width, this._swiftyDelegate.previewLayer.bounds.size.height);
-
-  //   if (this._owner.get().showToggleIcon) {
-  //     if (this._switchBtn) this._switchBtn.removeFromSuperview();
-  //     CLog('adding toggle/switch camera button... using frame: ', width - 100, 20, 100, 50);
-  //     const switchCameraBtn = createButton(this, CGRectMake(width - 100, 20, 100, 50), null, 'switchCamera', null, createIcon('toggle', CGSizeMake(65, 50)));
-  //     switchCameraBtn.transform = CGAffineTransformMakeScale(0.7, 0.7);
-  //     this._switchBtn = switchCameraBtn;
-  //     this.view.addSubview(switchCameraBtn);
-  //   }
-
-  //   this._flashBtnHandler();
-  //   /*
-  //   this._cameraBtn = ASCameraButton.alloc().init();
-  //   this._cameraBtn.translatesAutoresizingMaskIntoConstraints = false;
-  //   CLog('this._cameraBtn:', this._cameraBtn);
-  //   let widthRule = this._cameraBtn.widthAnchor.constraintEqualToConstant(20);
-  //   widthRule.active = true;
-  //   console.log('Added widthAnchor');
-  //   let heightRule = this._cameraBtn.heightAnchor.constraintEqualToConstant(20);
-  //   heightRule.active = true;
-  //   console.log('Added heightAnchor');
-
-  //   // this._cameraBtn.centerXAnchor.constraint(equalTo: view.centerXAnchor, constant: 0).isActive = true
-  //   // this._cameraBtn.addConstraint(this._cameraBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor));
-  //   // console.log('Added centerXAnchor');
-  //   // let centerRule = this._cameraBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor);
-  //   // centerRule.active = true;
-  //   // this._cameraBtn.addConstraint(this._cameraBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.safeAreaLayoutGuide.bottomAnchor, -40));
-  //   // console.log('Added bottomAnchor');
-
-  //   // this._cameraBtn.addConstraint(this._cameraBtn.heightAnchor.constraintEqualToAnchor(this._cameraBtn.widthAnchor.));
-  //   //this._cameraBtn.bottomAnchor.constraint(
-  //   //      equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -40).isActive = true
-  //   // this._cameraBtn.widthAnchor.constraint(equalToConstant: 40).isActive = true
-  //   // this._cameraBtn.heightAnchor.constraint(equalTo: this._cameraBtn.widthAnchor).isActive = true
-
-  //   let blurEffect = UIBlurEffect.effectWithStyle(UIBlurEffectStyle.Dark);
-  //   // this._blurView = UIVisualEffectView(effect: blurEffect)
-  //   this._blurView = new UIVisualEffectView({ effect: blurEffect });
-  //   this._blurView.frame = this.view.bounds;
-  //   this._blurView.alpha = 0;
-  //   this.view.addSubview(this._blurView);
-  //   this.view.addSubview(this._cameraBtn);
-  //   this.view.bringSubviewToFront(this._cameraBtn);
-  //   console.log('drawing button');
-  //   // this._cameraBtn.drawButton();
-  //   // this._cameraBtn.changeToSquare();
-  //   // this._cameraBtn.layoutIfNeeded();
-  //   */
-
-  //   // if (this._owner.get().showCaptureIcon) {
-  //   // CLog('adding showCaptureIcon...');
-  //   // if (this._cameraBtn) this._cameraBtn.removeFromSuperview();
-  //   // // const heightOffset = this._owner.get().isIPhoneX ? 400 : 310;
-  //   // // const picOutline = createButton(this, CGRectMake(width / 2 - 20, height - heightOffset, 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('picOutline'));
-  //   // // picOutline.transform = CGAffineTransformMakeScale(1.5, 1.5);
-  //   // // const picOutline = createButton(this,null, null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('picOutline'));
-  //   // // picOutline.translatesAutoresizingMaskIntoConstraints = false;
-
-  //   // // this.view.addSubview(picOutline);
-  //   // // console.log('created outline ', picOutline);
-  //   // // // console.log('frame: ', width / 2 - 20, height - heightOffset, 50, 50);
-
-  //   // // const takePicBtn = createButton(this, CGRectMake(width / 2 - 21.5, height - (heightOffset + 0.7), 50, 50), null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('takePic'));
-  //   // this._cameraBtn = createButton(this, null, null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('takePic'));
-
-  //   // // takePicBtn.transform = CGAffineTransformMakeScale(1.5, 1.5);
-  //   // let widthRule = this._cameraBtn.widthAnchor.constraintEqualToConstant(20);
-  //   // widthRule.active = true;
-  //   // let heightRule = this._cameraBtn.heightAnchor.constraintEqualToConstant(20);
-  //   // heightRule.active = true;
-  //   // let centerRule = this._cameraBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor);
-  //   // centerRule.active = true;
-  //   // // let bottomRule = this._cameraBtn.bottomAnchor.constraintEqualToAnchor(this.view.bottomAnchor);
-  //   // let bottomRule = this._cameraBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.safeAreaLayoutGuide.bottomAnchor, -40);
-  //   // bottomRule.active = true;
-  //   // this.view.addSubview(this._cameraBtn);
-  //   // console.log('added main button to view ', this._cameraBtn);
-  //   // console.log('frame: ', width / 2 - 21.5, height - (heightOffset + 0.7), 50, 50);
-
-  //   // }
-  //   CLog('addButtons done');
-  // }
-
   private _flashBtnHandler() {
     console.log('adding _flashBtn ...');
     if (this._flashBtn) this._flashBtn.removeFromSuperview();
-    // if (this.flashEnabled) {
-    //   this._flashBtn = createButton(this, CGRectMake(20, 20, 50, 50), null, 'toggleFlash', null, createIcon('flash'));
-    // } else {
-    //   this._flashBtn = createButton(this, CGRectMake(20, 20, 50, 50), null, 'toggleFlash', null, createIcon('flashOff'));
-    // }
-    // if (this.flashEnabled) {
     this._flashBtn = createButton(this, null, null, 'toggleFlash', null, this.flashEnabled ? createIcon('flash') : createIcon('flashOff'));
-    // } else {
-    // this._flashBtn = createButton(this, null, null, 'toggleFlash', null, createIcon('flashOff'));
-    // }
     this._flashBtn.translatesAutoresizingMaskIntoConstraints = false;
     let widthRule = this._flashBtn.widthAnchor.constraintEqualToConstant(40);
     widthRule.active = true;
     let heightRule = this._flashBtn.heightAnchor.constraintEqualToConstant(40);
     heightRule.active = true;
 
-    // this._flashBtn.transform = CGAffineTransformMakeScale(0.75, 0.75);
     this.view.addSubview(this._flashBtn);
 
     let topRule = this._flashBtn.topAnchor.constraintEqualToAnchorConstant(this.view.topAnchor, 20);
     topRule.active = true;
     let leftRule = this._flashBtn.leadingAnchor.constraintEqualToAnchorConstant(this.view.leadingAnchor, 20);
     leftRule.active = true;
-    // if (this._owner.get().showFlashIcon) {
-    //   if (this._flashBtn) this._flashBtn.removeFromSuperview();
-    //   if (this.flashEnabled) {
-    //     this._flashBtn = createButton(this, CGRectMake(20, 20, 50, 50), null, 'toggleFlash', null, createIcon('flash'));
-    //   } else {
-    //     this._flashBtn = createButton(this, CGRectMake(20, 20, 50, 50), null, 'toggleFlash', null, createIcon('flashOff'));
-    //   }
-    //   this._flashBtn.transform = CGAffineTransformMakeScale(0.75, 0.75);
-    //   this.view.addSubview(this._flashBtn);
-    // }
   }
 
   /**
@@ -721,12 +610,12 @@ export class MySwifty extends SwiftyCamViewController {
     if (this._enableVideo && this._disablePhoto) {
       if (this.isRecording) {
         console.log('Recording in progress, stopping recording');
-        this.stopVideoRecording();
         this._cameraBtn.changeToCircle();
+        this.stopVideoRecording();
       } else {
         console.log('Video enabled, starting recording');
-        this.startVideoRecording();
         this._cameraBtn.changeToSquare();
+        this.startVideoRecording();
       }
     } else if (!this._disablePhoto) {
       console.log('Photo enabled, taking pic');
@@ -742,6 +631,7 @@ export class MySwifty extends SwiftyCamViewController {
     CLog('SwiftyCamButtonDelegate called buttonDidBeginLongPress()');
     if (this._enableVideo) {
       this.disableRotation();
+      this._cameraBtn.changeToSquare();
       this.startVideoRecording();
     } else console.warn('video not enabled, ignoring long press start');
     //TODO: add rapid photo taking support every 200ms or so while button pressed
@@ -752,6 +642,7 @@ export class MySwifty extends SwiftyCamViewController {
     CLog('SwiftyCamButtonDelegate called buttonDidEndLongPress()');
     if (this._enableVideo) {
       this.enableRotation();
+      this._cameraBtn.changeToCircle();
       this.stopVideoRecording();
     } else console.warn('video not enabled, ignoring long press end');
   }
@@ -890,6 +781,7 @@ export class MySwifty extends SwiftyCamViewController {
 }
 
 export class CameraPlus extends CameraPlusBase {
+  //currently we want this orientation flag disabled
   public static useDeviceOrientation: boolean = false;
   private _swifty: MySwifty;
   private _isIPhoneX: boolean;
@@ -903,20 +795,14 @@ export class CameraPlus extends CameraPlusBase {
   constructor() {
     super();
     this._onLayoutChangeListener = this._onLayoutChangeFn.bind(this);
-    CLog('CameraPlus constructor');
+    // console.log('CameraPlus constructor');
     this._swifty = MySwifty.initWithOwner(new WeakRef(this), CameraPlus.defaultCamera);
 
-    //TODO: check if this is useful
-    // this._swifty.shouldPrompToAppSettings = false;
-
-    // enable device orientation
-    //TODO: check if this is currently working
     this._swifty.shouldUseDeviceOrientation = CameraPlus.useDeviceOrientation;
 
-    //TODO: see if this is useful
-    this._detectDevice();
+    this._detectDevice(); //TODO: is this still useful?
 
-    // console.log('done with constructor', this._swifty);
+    //console.log('done with constructor', this._swifty);
   }
 
   private isVideoEnabled() {
@@ -929,14 +815,10 @@ export class CameraPlus extends CameraPlusBase {
 
   createNativeView() {
     CLog('CameraPlus createNativeView');
-    // this._swifty.videoGravity = SwiftyCamVideoGravity.ResizeAspectFill;
     this._swifty.enableVideo = this.isVideoEnabled();
     CLog('video enabled:', this.isVideoEnabled());
     this._swifty.disablePhoto = this.isPhotoDisabled();
     CLog('photo disabled:', this.isPhotoDisabled());
-    // disable audio if no video support
-    //TODO: does this do anything currently?
-    this._swifty.disableAudio = !this.isVideoEnabled();
     CLog('default camera:', CameraPlus.defaultCamera);
     CLog('native view:');
     CLog(this._swifty.view);
@@ -1083,6 +965,7 @@ export class CameraPlus extends CameraPlusBase {
   public record(options?: IVideoOptions): Promise<any> {
     console.log('CameraPlus record', options);
     this._swifty.recordVideo(options);
+    this._swifty._cameraBtn.changeToSquare();
     this._swifty.disableRotation();
     return Promise.resolve();
   }
@@ -1093,6 +976,7 @@ export class CameraPlus extends CameraPlusBase {
   public stop(): void {
     console.log('CameraPlus stop');
     this._swifty.stopVideoRecording();
+    this._swifty._cameraBtn.changeToCircle();
     this._swifty.enableRotation();
   }
 
@@ -1117,6 +1001,7 @@ export class CameraPlus extends CameraPlusBase {
 
   private _detectDevice() {
     if (typeof this._isIPhoneX === 'undefined') {
+      console.log('checking for iphone x');
       const _SYS_NAMELEN: number = 256;
 
       /* tslint:disable-next-line: no-any */

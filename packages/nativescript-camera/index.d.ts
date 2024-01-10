@@ -73,6 +73,11 @@ export declare class CameraPlus extends ContentView {
   public static debug: boolean;
 
   /**
+   * String value for hooking into the cameraReadyEvent. This event fires when the native camera is done initializing.
+   */
+  public static cameraReadyEvent: string;
+
+  /**
    * @default 4:3
    * *ANDROID ONLY*  A string to represent the camera preview aspect ratio e.g 4:3, 1:1 ,16:9 to check if the device supports the ratio use {@link getGetSupportedRatios}
    */
@@ -159,25 +164,15 @@ export declare class CameraPlus extends ContentView {
   autoSquareCrop: boolean;
 
   /**
-   * If true the saved image asset will retain it's original aspect ratio if height/width options set. Default is true.
-   */
-  keepAspectRatio: boolean;
-
-  /**
    * Quality is a number between 1-100 that is used when saving the image as a JPEG before the File reference is returned by plugin
    * NOTE: this only applies to photos, videos not supported yet
    */
   quality: number;
 
   /**
-   * Height to use for the saved image asset before saving. keepAspectRatio flag may affect this.
+   * Max dimensions among height/width to use for the saved photo image.
    */
-  reqHeight: number;
-
-  /**
-   * Width to use for the saved image asset before saving. keepAspectRatio flag may affect this.
-   */
-  reqWidth: number;
+  maxDimension: number;
 
   /**
    * *ANDROID ONLY* - allows setting a custom app_resource drawable icon for the Toggle Flash button icon when flash is on (enabled).
@@ -262,13 +257,11 @@ export declare class CameraPlus extends ContentView {
 export interface ICameraOptions {
   confirm?: boolean;
   saveToGallery?: boolean;
-  keepAspectRatio?: boolean;
-  reqHeight?: number;
-  reqWidth?: number;
+  maxDimension?: number;
   autoSquareCrop?: boolean;
   confirmRetakeText?: string;
   confirmSaveText?: string;
-  useCameraOptions?: boolean;
+  // useCameraOptions?: boolean;
 }
 
 export declare enum CameraVideoQuality {
@@ -300,6 +293,7 @@ export interface ICameraPlusEvents {
   videoRecordingStartedEvent: any;
   videoRecordingFinishedEvent: any;
   videoRecordingReadyEvent: any;
+  cameraReadyEvent: any;
 }
 
 export enum WhiteBalance {

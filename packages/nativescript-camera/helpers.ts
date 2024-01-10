@@ -55,23 +55,6 @@ export function createDateTimeStamp() {
 }
 
 /**
- * Creates an ImageAsset from a file path
- * @param path
- * @param width
- * @param height
- * @param keepAspectRatio
- */
-export function assetFromPath(path, width, height, keepAspectRatio): ImageAsset {
-  const asset = new ImageAsset(path);
-  asset.options = {
-    width,
-    height,
-    keepAspectRatio,
-  };
-  return asset;
-}
-
-/**
  * Helper method to get the optimal sizing for the preview from the camera.
  * Android cameras support different sizes for previewing.
  * @param sizes

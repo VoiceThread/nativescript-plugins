@@ -1,24 +1,4 @@
-import {
-  Observable,
-  EventData,
-  Page,
-  ImageAsset,
-  alert,
-  ImageSource,
-  Frame,
-  Screen,
-  Image,
-  File,
-  ScrollView,
-  isAndroid,
-  Button,
-  path,
-  knownFolders,
-  Device,
-  Application,
-  Utils,
-  AndroidActivityRequestPermissionsEventData,
-} from '@nativescript/core';
+import { EventData, Page, alert, Frame, Screen, Image, File, isIOS, isAndroid, Button, path, knownFolders, Device } from '@nativescript/core';
 import { DemoSharedNativescriptCamera } from '@demo/shared';
 import { CameraPlus } from '@voicethread/nativescript-camera';
 import { ObservableProperty } from './observable-property';
@@ -78,16 +58,14 @@ export class DemoModel extends DemoSharedNativescriptCamera {
     this.cam.on(CameraPlus.photoCapturedEvent, (args: any) => {
       console.log(`photoCapturedEvent listener on main-view-model.ts  ${args}`);
       //args.data should be the path of the jpeg file produced by camera library
-      // if (typeof args.data !== 'string') {
-      //   console.error('returned data is not a file path!');
-      //   return;
-      // }
-      // console.log((<any>args).data);
-      ImageSource.fromAsset((<any>args).data).then(res => {
-        const testImg = Frame.topmost().getViewById('testImagePickResult') as Image;
-        testImg.src = res;
-        console.log('Returned photo Asset height:', res.height, 'width:', res.width);
-      });
+      if (typeof args.data !== 'string') {
+        console.error('returned data is not a file path!');
+        return;
+      }
+      let photoFile = File.fromPath(args.data);
+      console.log('File ', args.data, 'has length', photoFile.size);
+      const testImg = Frame.topmost().getViewById('photoCaptureResult') as Image;
+      testImg.src = args.data;
     });
 
     this.cam.on(CameraPlus.videoRecordingReadyEvent, (args: any) => {
@@ -117,12 +95,14 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       console.log(`videoRecordingFinishedEvent listener fired`);
     });
 
+    this.cam.on(CameraPlus.cameraReadyEvent, (args: any) => {
+      console.log(`cameraReadyEvent listener fired`);
+      if (this.cam.saveToGallery) {
+        console.log('saveToGallery set true, checking permissions');
+        this.requestGalleryPermission();
+      }
+    });
     this._counter = 1;
-
-    if (this.cam.saveToGallery) {
-      console.log('saveToGallery set true, checking permissions');
-      this.requestGalleryPermission();
-    }
   }
 
   public refreshUI() {
@@ -146,7 +126,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
   public async recordDemoVideo() {
     try {
       let canRecord = true;
-      //check audio and video permissions
+      //recheck audio and video permissions
       const result = await checkMultiple({ photo: {}, audio: {}, video: {} });
       if (result['camera'] != 'authorized') {
         console.log('No camera permission, requesting...');
@@ -210,7 +190,6 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       video.src = null;
       video.src = outputPath;
       video.loop = true;
-      // video.play();
     } else {
       console.error('EMPTY merged video file!');
     }
@@ -243,7 +222,6 @@ export class DemoModel extends DemoSharedNativescriptCamera {
 
   public async takePicFromCam() {
     console.log('takePicFromCam()');
-    // this.cam.requestCameraPermissions().then(() => {
     await checkPermission('camera').then(async permres => {
       if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
         await request('camera').then(async result => {
@@ -251,7 +229,6 @@ export class DemoModel extends DemoSharedNativescriptCamera {
             if (!this.cam) {
               this.cam = new CameraPlus();
             }
-
             //take the photo
             let customOptions = {
               saveToGallery: this.cam.saveToGallery,
@@ -259,10 +236,8 @@ export class DemoModel extends DemoSharedNativescriptCamera {
               confirm: this.cam.confirmPhotos,
               confirmRetakeText: this.cam.confirmRetakeText,
               confirmSaveText: this.cam.confirmSaveText,
-              keepAspectRatio: this.cam.keepAspectRatio,
+              maxDimension: this.cam.maxDimension,
               quality: this.cam.quality,
-              reqHeight: this.cam.reqHeight,
-              reqWidth: this.cam.reqWidth,
             };
             console.log('options', customOptions);
             this.cam.takePicture(customOptions);
@@ -270,51 +245,59 @@ export class DemoModel extends DemoSharedNativescriptCamera {
         });
       } else alert('No permission for camera! Grant this permission in app settings first');
     });
-    // });
   }
 
   public async requestGalleryPermission() {
-    //Android devices on API <29 need legacy write_external_storage permission to save to gallery
-    if (isAndroid && +Device.sdkVersion < 29) {
-      console.log('Android device version: ', Device.sdkVersion);
-      //requires old external storage write permission
-      await checkPermission('storage').then(async permres => {
-        console.log('storage check:', permres);
-        if (permres[0] == 'undetermined' || permres[0] != 'authorized') {
-          await request('storage').then(async result => {
-            console.log('storage request', result);
-            // console.log(result['android.permission.READ_EXTERNAL_STORAGE']);
-            // console.log(result['android.permission.WRITE_EXTERNAL_STORAGE']);
-            if (result['android.permission.READ_EXTERNAL_STORAGE'] == 'authorized' && result['android.permission.WRITE_EXTERNAL_STORAGE'] == 'authorized') {
-              console.log('have read/write access to storage for API version ', Device.sdkVersion);
+    console.log('requestGalleryPermission()');
+    try {
+      //iOS always needs permission
+      if (isIOS) {
+        console.log('iOS checking photo library permissions');
+        await checkPermission('photo').then(async (permres: Result) => {
+          console.log('current photos gallery perm:', permres);
+          await request('photo').then(async result => {
+            console.log('request perm result:', result);
+            if (result[0] == 'authorized' && result[1]) {
+              console.log('authorized Photos Gallery permission');
             } else {
-              console.error('No read/write permission for storage, will not save a copy to device photos gallery');
+              console.warn("No permission for files, can't save to photos gallery!");
+              //warn user they need to update app privacy settings before this will work
+              // alert('Update the app privacy settings to allow permission to the Photos Gallery');
             }
           });
-          //TODO: check if always denied and warn user they need to update in app privacy settings
-        } else {
-          //otherwise we are authorized
-          console.log('have access to storage for API version ', Device.sdkVersion);
-        }
-      });
-    }
-    //newer Android APIs don't need permissions for MediaStore to save images
-
-    //iOS always needs permission
-    if (isIOS) {
-      await checkPermission('photo').then(async (permres: Result) => {
-        console.log('current photos gallery perm:', permres);
-        await request('photo').then(async result => {
-          console.log('request perm result:', result);
-          if (isIOS && result[0] == 'authorized' && result[1]) {
-            console.log('authorized Photos Gallery permission');
+        });
+      }
+      console.log('done checking iOS');
+      //Android devices on API <29 need legacy write_external_storage permission to save to gallery
+      if (isAndroid && +Device.sdkVersion < 29) {
+        console.log('Android device version: ', Device.sdkVersion);
+        //requires old external storage write permission
+        await checkPermission('storage').then(async permres => {
+          console.log('storage check:', permres);
+          if (permres[0] == 'undetermined' || permres[0] != 'authorized') {
+            await request('storage').then(async result => {
+              console.log('storage request', result);
+              // console.log(result['android.permission.READ_EXTERNAL_STORAGE']);
+              // console.log(result['android.permission.WRITE_EXTERNAL_STORAGE']);
+              if (result['android.permission.READ_EXTERNAL_STORAGE'] == 'authorized' && result['android.permission.WRITE_EXTERNAL_STORAGE'] == 'authorized') {
+                console.log('have read/write access to storage for API version ', Device.sdkVersion);
+              } else {
+                console.error('No read/write permission for storage, will not save a copy to device photos gallery');
+              }
+            });
+            //TODO: check if always denied and warn user they need to update in app privacy settings
           } else {
-            console.warn("No permission for files, can't save to photos gallery!");
-            //warn user they need to update app privacy settings before this will work
-            // alert('Update the app privacy settings to allow permission to the Photos Gallery');
+            //otherwise we are authorized
+            console.log('have access to storage for API version ', Device.sdkVersion);
           }
         });
-      });
+      }
+    } catch (err) {
+      console.error(err);
     }
+    //newer Android APIs don't need permissions for MediaStore to save images
+    console.log('done checking Android');
+
+    console.log('requestGalleryPermission complete, returning');
   }
 }
