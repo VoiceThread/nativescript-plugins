@@ -12,19 +12,19 @@ export declare class CameraPlus extends ContentView {
    * and can reset it before different using in different views if they want to go back/forth
    * between photo/camera and video/camera
    */
-  public static enableVideo: boolean;
+  public enableVideo: boolean;
 
   /**
    * Disable Photo Support (off by default)
    * If you want to record video, and use tap to start and stop recording, set this to true
    */
-  public static disablePhoto: boolean;
+  public disablePhoto: boolean;
 
   /**
    * Default camera: must be set early before constructor to default the camera correctly on launch (default to 'rear')
    * //TODO: add support for this flag to both platforms and expose to plugin
    */
-  public static defaultCamera: 'front' | 'rear';
+  public defaultCamera: 'front' | 'rear';
 
   /**
    * String value for hooking into the errorEvent. This event fires when an error is emitted from Camera Plus.
@@ -69,7 +69,7 @@ export declare class CameraPlus extends ContentView {
   /**
    * If true console logs will be output to help debug plugin activity.
    */
-  public static debug: boolean;
+  public debug: boolean;
 
   /**
    * String value for hooking into the cameraReadyEvent. This event fires when the native camera is done initializing.
@@ -113,6 +113,8 @@ export declare class CameraPlus extends ContentView {
    */
   getGetSupportedRatios(): string[];
 
+  CLog(...args): void;
+  CError(...args): void;
   /**
    * If true the default take picture event will present a confirmation dialog. Default is true.
    */

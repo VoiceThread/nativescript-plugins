@@ -4,7 +4,6 @@
  **********************************************************************************/
 
 import { ImageAsset, Application } from '@nativescript/core';
-import { CLog } from './common';
 
 /**
  * Helper method to get the drawable of an app_resource icon for the ImageButtons 'image'
@@ -63,18 +62,18 @@ export function createDateTimeStamp() {
  */
 export function getOptimalPreviewSize(sizes: java.util.List<android.hardware.Camera.Size>, width: number, height: number): android.hardware.Camera.Size {
   const targetRatio = height / width;
-  CLog(`targetRatio = ${targetRatio}`);
+  // console.log(`targetRatio = ${targetRatio}`);
 
   if (sizes === null) return null;
 
   let optimalSize = null as android.hardware.Camera.Size;
 
   const targetHeight = height;
-  CLog(`targetHeight = ${targetHeight}`);
+  // console.log(`targetHeight = ${targetHeight}`);
 
   for (let i = 0; i < sizes.size(); i++) {
     const element = sizes.get(i) as android.hardware.Camera.Size;
-    CLog(`size.width = ${element.width}, size.height = ${element.height}`);
+    // console.log(`size.width = ${element.width}, size.height = ${element.height}`);
     if (element.width <= width && element.height <= height) {
       if (optimalSize == null) {
         optimalSize = element;
@@ -88,7 +87,7 @@ export function getOptimalPreviewSize(sizes: java.util.List<android.hardware.Cam
       }
     }
   }
-  CLog(`optimalSize = ${optimalSize}, optimalSize.width = ${optimalSize.width}, optimalSize.height = ${optimalSize.height}`);
+  // console.log(`optimalSize = ${optimalSize}, optimalSize.width = ${optimalSize.width}, optimalSize.height = ${optimalSize.height}`);
   return optimalSize;
 }
 
@@ -108,9 +107,9 @@ export function getOptimalPictureSize(sizes: java.util.List<android.hardware.Cam
   let minDiff = Number.MAX_SAFE_INTEGER;
 
   const targetHeight = height;
-  CLog(`targetHeight = ${targetHeight}`);
+  // console.log(`targetHeight = ${targetHeight}`);
   const targetWidth = height;
-  CLog(`targetWidth = ${targetWidth}`);
+  // console.log(`targetWidth = ${targetWidth}`);
 
   for (let i = 0; i < sizes.size(); i++) {
     const size = sizes.get(i) as android.hardware.Camera.Size;
@@ -127,8 +126,8 @@ export function getOptimalPictureSize(sizes: java.util.List<android.hardware.Cam
 
     if (size.width > desiredMinimumWidth && size.width < desiredMaximumWidth && size.height < size.width) {
       optimalSize = size;
-      CLog('setting size width', size.width + '');
-      CLog('setting size height', size.height + '');
+      // console.log('setting size width', size.width + '');
+      // console.log('setting size height', size.height + '');
       sizeSet = true;
       break;
     }
@@ -139,7 +138,7 @@ export function getOptimalPictureSize(sizes: java.util.List<android.hardware.Cam
     minDiff = Number.MAX_SAFE_INTEGER;
     for (let i = 0; i < sizes.size(); i++) {
       const element = sizes.get(i) as android.hardware.Camera.Size;
-      CLog(`size.width = ${element.width}, size.height = ${element.height}`);
+      // console.log(`size.width = ${element.width}, size.height = ${element.height}`);
       if (Math.abs(element.height - targetHeight) < minDiff) {
         optimalSize = element;
         minDiff = Math.abs(element.height - targetHeight);
@@ -148,7 +147,7 @@ export function getOptimalPictureSize(sizes: java.util.List<android.hardware.Cam
     sizeSet = true;
   }
 
-  CLog(`optimalPictureSize = ${optimalSize}, optimalPictureSize.width = ${optimalSize.width}, optimalPictureSize.height = ${optimalSize.height}`);
+  // console.log(`optimalPictureSize = ${optimalSize}, optimalPictureSize.width = ${optimalSize.width}, optimalPictureSize.height = ${optimalSize.height}`);
   return optimalSize;
 }
 
@@ -186,7 +185,7 @@ export function getOrientationFromBytes(data): number {
   try {
     inputStream.close();
   } catch (ex) {
-    CLog('byteArrayInputStream.close error', ex);
+    console.error('byteArrayInputStream.close error', ex);
   }
   if (this.cameraId === 1) {
     if (orientation === 1) {
@@ -198,7 +197,7 @@ export function getOrientationFromBytes(data): number {
     }
   }
 
-  CLog('Orientation: ', orientation);
+  // console.log('Orientation: ', orientation);
   return orientation;
 }
 

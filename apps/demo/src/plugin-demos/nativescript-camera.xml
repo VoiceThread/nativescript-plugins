@@ -22,6 +22,7 @@
         <Cam:CameraPlus height="{{ cameraHeight }}"
           id="camPlus"
           enableVideo="true"
+          defaultCamera="front"
           disablePhoto="false"
           saveToGallery="true"
           showCaptureIcon="true"

@@ -6,26 +6,10 @@
 import { ContentView, File } from '@nativescript/core';
 import { CameraPlus as CameraPlusDefinition } from '.';
 
-export class CameraUtil {
-  public static debug: boolean = false;
-}
-
-export const CLog = (...args) => {
-  if (CameraUtil.debug) {
-    console.log('NSCamera ---', args);
-  }
-};
-
-export const CError = (...args) => {
-  if (CameraUtil.debug) {
-    console.error('NSCamera ---', args);
-  }
-};
-
 export type CameraTypes = 'front' | 'rear';
 
 export abstract class CameraPlusBase extends ContentView implements CameraPlusDefinition {
-  @GetSetPropertyDebug()
+  @GetSetProperty()
   public debug: boolean = false;
 
   /**
@@ -35,14 +19,17 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
    * and can reset it before different using in different views if they want to go back/forth
    * between photo/camera and video/camera
    */
-  public static enableVideo: boolean = false;
+  @GetSetProperty()
+  public enableVideo: boolean = false;
 
-  public static disablePhoto: boolean = false;
+  @GetSetProperty()
+  public disablePhoto: boolean = false;
 
   /**
    * Default camera: must be set early before constructor to default the camera correctly on launch (default to rear)
    */
-  public static defaultCamera: CameraTypes = 'rear';
+  @GetSetProperty()
+  public defaultCamera: CameraTypes = 'rear';
 
   /*
    * String value for hooking into the errorEvent. This event fires when an error is emitted from CameraPlus.
@@ -318,6 +305,21 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
       message: msg,
     });
   }
+
+  /*
+   * Logging functions controlled by debug property
+   */
+  CLog(...args) {
+    if (this.debug) {
+      console.log('NSCamera ---', args);
+    }
+  }
+
+  CError(...args) {
+    if (this.debug) {
+      console.error('NSCamera ---', args);
+    }
+  }
 }
 
 export interface ICameraOptions {
@@ -389,31 +391,6 @@ export function GetSetProperty() {
           value = true;
         } else if (value === 'false') {
           value = false;
-        }
-        this['_' + propertyKey] = value;
-      },
-      enumerable: true,
-      configurable: true,
-    });
-  };
-}
-
-export function GetSetPropertyDebug() {
-  return (target, propertyKey: string) => {
-    Object.defineProperty(target, propertyKey, {
-      get: function () {
-        return this['_' + propertyKey];
-      },
-      set: function (value) {
-        if (this['_' + propertyKey] === value) {
-          return;
-        }
-        if (value === 'true') {
-          value = true;
-          CameraUtil.debug = true;
-        } else if (value === 'false') {
-          value = false;
-          CameraUtil.debug = false;
         }
         this['_' + propertyKey] = value;
       },
