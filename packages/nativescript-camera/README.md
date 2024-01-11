@@ -65,7 +65,10 @@ this.cam = new CameraPlus();
 this.cam.id = "camPlus"
 this.cam.enableVideo = true;
 this.cam.confirmPhotos = true;
+this.cam.defaultCamera = 'front';
     ......
+//Check camera and microphone permissions first.
+//Then, add this.cam to a page View as a child and voila!
 ```
 or
 ```xml
@@ -73,6 +76,7 @@ or
   ......
       <Cam:CameraPlus height="{{ cameraHeight }}"
           id="camPlus"
+          defaultCamera="front"
           enableVideo="true"
           disablePhoto="false"
           saveToGallery="true"
@@ -196,18 +200,9 @@ If you want to use the `saveToGallery` flag then you will also need to add the f
 | **showToggleIcon**    | boolean | *true*       | If true the default camera toggle (front/back) icon button will show on the Camera Plus layout.                            |
 | **showCaptureIcon**   | boolean | *true*       | If true the default capture (take picture) icon/button will show on the Camera Plus layout.                                |
 | **showGalleryIcon**   | boolean | *true*       | If true the choose from gallery/library icon/button will show on the Camera Plus layout.                                   |
-| **enableVideo**       | boolean | *false*       | If true the Camera instance can record video and videos are shown in the gallery.                                      |
+| **enableVideo**       | boolean | *false*       | If true the Camera instance can record video and will affect camera UX and main camera button icon used.                                      |
 | **disablePhoto**       | boolean | *false*       | If true the Camera instance UI will only allow video mode operation. if enableVideo is false and disablePhoto is true, the main camera button will not trigger any actions.                                       |
-
-
-## Static Properties
-
-_Note: These properties need set before the initialization of the camera. Users should set these in a component constructor before their view creates the component if the wish to change the default values. In case of enableVideo, this will be true if either the static property or the component property is true._
-
-| Name              | Type        | Description                                                                                                                                      |
-| ----------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **enableVideo**   | boolean     | Video Support (off by default), will affect camera UI and main camera button image used
-| **defaultCamera** | CameraTypes | Defaults the camera correctly on launch. Default `'rear'`. `'front'` or `'rear'`. NOTE: not currently working                                                                 |
+| **defaultCamera** | `'front'` or `'rear'` | *'rear'*         | Which camera to use on launch.  `'front'` or `'rear'`.                                                  |
 
 ## Android Only Properties
 
