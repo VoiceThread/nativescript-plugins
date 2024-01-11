@@ -16,6 +16,12 @@ export const CLog = (...args) => {
   }
 };
 
+export const CError = (...args) => {
+  if (CameraUtil.debug) {
+    console.error('NSCamera ---', args);
+  }
+};
+
 export type CameraTypes = 'front' | 'rear';
 
 export abstract class CameraPlusBase extends ContentView implements CameraPlusDefinition {

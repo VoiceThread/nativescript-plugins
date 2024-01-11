@@ -5,7 +5,7 @@
 
 import { Application, ImageAsset, Device, View, File, Utils, AndroidApplication, ImageSource, path, knownFolders } from '@nativescript/core';
 import * as types from '@nativescript/core/utils/types';
-import { CameraPlusBase, CameraVideoQuality, CLog, GetSetProperty, ICameraOptions, ICameraPlusEvents, IVideoOptions, WhiteBalance } from './common';
+import { CameraPlusBase, CameraVideoQuality, CError, CLog, GetSetProperty, ICameraOptions, ICameraPlusEvents, IVideoOptions, WhiteBalance } from './common';
 import * as CamHelpers from './helpers';
 export * from './common';
 export { CameraVideoQuality, WhiteBalance } from './common';
@@ -137,35 +137,27 @@ export class CameraPlus extends CameraPlusBase {
     if (this._camera) {
       switch (value) {
         case WhiteBalance.Cloudy:
-          // this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.Cloudy);
           this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.valueOf('Cloudy'));
           break;
         case WhiteBalance.Fluorescent:
-          // this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.Fluorescent);
           this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.valueOf('Fluorescent'));
           break;
         case WhiteBalance.Incandescent:
-          // this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.Incandescent);
           this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.valueOf('Incandescent'));
           break;
         case WhiteBalance.Shadow:
-          // this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.Shadow);
           this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.valueOf('Shadow'));
           break;
         case WhiteBalance.Sunny:
-          // this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.Sunny);
           this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.valueOf('Sunny'));
           break;
         case WhiteBalance.Twilight:
-          // this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.Twilight);
           this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.valueOf('Twilight'));
           break;
         case WhiteBalance.WarmFluorescent:
-          // this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.WarmFluorescent);
           this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.valueOf('WarmFluorescent'));
           break;
         default:
-          // this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.Auto);
           this._camera.setWhiteBalance(io.github.triniwiz.fancycamera.WhiteBalance.valueOf('Auto'));
           break;
       }
@@ -204,7 +196,7 @@ export class CameraPlus extends CameraPlusBase {
         sizes.push(`${size.getWidth()}x${size.getHeight()}`);
       }
     }
-    console.dir('picture sizes available, ', sizes);
+    // CLog('picture sizes available, ', sizes);
     return sizes;
   }
 
@@ -242,7 +234,6 @@ export class CameraPlus extends CameraPlusBase {
     this._nativeView = new android.widget.RelativeLayout(this._context);
     this._camera = new io.github.triniwiz.fancycamera.FancyCamera(this._context);
     (this._camera as any).setLayoutParams(new android.view.ViewGroup.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT));
-
     this._nativeView.addView(this._camera as any);
     return this._nativeView;
   }
@@ -273,7 +264,7 @@ export class CameraPlus extends CameraPlusBase {
       onReady(): void {},
       onCameraCloseUI(): void {},
       onCameraError(message: string, ex: java.lang.Exception): void {
-        console.error('onCameraError', message);
+        CError('onCameraError', message);
         const owner = this.owner ? this.owner.get() : null;
         if (owner) {
           owner._lastCameraOptions.shift();
@@ -283,11 +274,11 @@ export class CameraPlus extends CameraPlusBase {
             owner.isRecording = false;
           }
         } else {
-          console.error('!!! No owner reference found when handling onCameraVideoUI event');
+          CError('!!! No owner reference found when handling onCameraVideoUI event');
         }
       },
       async onCameraPhotoUI(event?: java.io.File) {
-        console.log('onCameraPhotoUI() got a file');
+        // CLog('onCameraPhotoUI() got a file');
         const owner = this.owner ? this.owner.get() : null;
         const file = event;
         const options = owner._lastCameraOptions.shift();
@@ -301,7 +292,7 @@ export class CameraPlus extends CameraPlusBase {
 
         const density = Utils.layout.getDisplayDensity();
         if (options) {
-          console.log('have options set', options);
+          // CLog('have options set', options);
           confirmPic = options.confirm ? true : false;
           confirmPicRetakeText = options.confirmRetakeText ? options.confirmRetakeText : owner.confirmRetakeText;
           confirmPicSaveText = options.confirmSaveText ? options.confirmSaveText : owner.confirmSaveText;
@@ -311,7 +302,7 @@ export class CameraPlus extends CameraPlusBase {
           quality = options.quality ? +options.quality : 95;
         } else {
           // use xml property getters or their defaults
-          CLog('Using property getters for defaults, no options.');
+          // CLog('Using property getters for defaults, no options.');
           confirmPic = owner.confirmPhotos;
           saveToGallery = owner.saveToGallery;
           confirmPicRetakeText = owner.confirmRetakeText;
@@ -325,12 +316,12 @@ export class CameraPlus extends CameraPlusBase {
         if (confirmPic === true) {
           owner.sendEvent(CameraPlus.confirmScreenShownEvent);
           const result = await CamHelpers.createImageConfirmationDialog(file.getAbsolutePath(), confirmPicRetakeText, confirmPicSaveText).catch(ex => {
-            CLog('Error createImageConfirmationDialog', ex);
+            CError('Error in createImageConfirmationDialog', ex);
           });
           owner.sendEvent(CameraPlus.confirmScreenDismissedEvent);
-          CLog(`confirmation result = ${result}`);
+          // CLog(`confirmation result = ${result}`);
           if (result !== true) {
-            console.log('image denied, deleting and returning');
+            // CLog('image denied, deleting and returning');
             file.delete();
             return;
           }
@@ -347,19 +338,15 @@ export class CameraPlus extends CameraPlusBase {
           }
           //resize for maxDimension if option set
           if (maxDimension && maxDimension > 0) source = source.resize(maxDimension);
-          // let outasset;
           const saved = source.saveToFile(outFilepath, 'jpg', quality);
           if (saved) {
-            // outasset = new ImageAsset(outFilepath);
             owner.sendEvent(CameraPlus.photoCapturedEvent, outFilepath);
           } else {
-            console.error('unable to save photo to file!');
-            CLog('ERROR saving image to file at path', outFilepath);
+            CError('ERROR saving image to file at path', outFilepath);
             owner.sendEvent(CameraPlus.errorEvent, 'ERROR saving image to file at path: ' + outFilepath);
           }
         } catch (err) {
-          console.error(err);
-          CLog('ERROR saving image to file at path', outFilepath, err);
+          CError('ERROR saving image to file at path', outFilepath, err);
           owner.sendEvent(CameraPlus.errorEvent, err);
         }
       },
@@ -372,7 +359,6 @@ export class CameraPlus extends CameraPlusBase {
             owner._ensureCorrectFlashIcon();
             owner._togglingCamera = true;
           } else {
-            // owner.sendEvent('loaded', owner.camera);
             owner.sendEvent(CameraPlus.cameraReadyEvent, owner.camera);
           }
         }
@@ -383,17 +369,17 @@ export class CameraPlus extends CameraPlusBase {
           owner.isRecording = true;
           owner.sendEvent(CameraPlus.videoRecordingStartedEvent, owner.camera);
         } else {
-          console.error('!!! No owner reference found when handling onCameraVideoUI event');
+          CError('!!! No owner reference found when handling onCameraVideoUI event');
         }
       },
       onCameraVideoUI(event?: java.io.File): void {
         const owner = this.owner ? this.owner.get() : null;
         if (owner) {
           owner.sendEvent(CameraPlus.videoRecordingReadyEvent, event.getAbsolutePath());
-          CLog(`Recording complete`);
+          // CLog(`Recording complete`);
           owner.isRecording = false;
         } else {
-          console.error('!!! No owner reference found when handling onCameraVideoUI event');
+          CError('!!! No owner reference found when handling onCameraVideoUI event');
         }
       },
     });
@@ -406,8 +392,8 @@ export class CameraPlus extends CameraPlusBase {
     CLog('video enabled:', this.isVideoEnabled());
     this.disablePhoto = this.isPhotoDisabled();
     CLog('photo disabled:', this.isPhotoDisabled());
-    CLog('CameraPlus.enableVideo', CameraPlus.enableVideo);
-    CLog('CameraPlus.disablePhoto', CameraPlus.disablePhoto);
+    CLog('CameraPlus.enableVideo:', CameraPlus.enableVideo);
+    CLog('CameraPlus.disablePhoto:', CameraPlus.disablePhoto);
   }
 
   disposeNativeView() {
@@ -423,7 +409,7 @@ export class CameraPlus extends CameraPlusBase {
   }
 
   set cameraId(id: any) {
-    console.log('set cameraID() id:', id, io.github.triniwiz.fancycamera.CameraPosition.valueOf('BACK'));
+    CLog('set cameraID() id:', id, io.github.triniwiz.fancycamera.CameraPosition.valueOf('BACK'));
     if (this._camera) {
       switch (id) {
         case CAMERA_FACING_FRONT:
@@ -445,32 +431,8 @@ export class CameraPlus extends CameraPlusBase {
     if (this._camera) {
       options = options || {};
       CLog('takePicture() options:', JSON.stringify(options));
-      // const owner = this._owner ? this._owner.get() : null;
-
-      // if (!!options.useCameraOptions && typeof options.reqWidth === 'number' && typeof options.reqHeight === 'number') {
-      //Note: this doesn't do anything
-      // (this._camera as any).setOverridePhotoWidth(options.width);
-      // (this._camera as any).setOverridePhotoHeight(options.height);
-      //set the explicit height/width
-      //this._camera.setPictureSize(options.width + 'x' + options.height); //3:4 ratio
-      // owner.pictureSize = options.width + 'x' + options.height;
-      // this.pictureSize = options.width + 'x' + options.height;
-      // console.log('options for width and height set, setting picture size to ', options.width + 'x' + options.height);
-      // } else {
-      //set default photo size
-      // this._camera.setPictureSize('768x1024'); //3:4 ratio
-      // owner.pictureSize = '768x1024';
-      // console.log('options for width and height set, setting picture size to ', '768x1024');
-      // }
-      // console.log('using picture size', this._camera.getPictureSize());
-      // console.log('using picture size', this.pictureSize);
-      // let sizes = this.getAvailablePictureSizes('4x3');
-      // console.dir('available sizes', sizes);
-
       this._camera.setSaveToGallery(!!options.saveToGallery);
-
       this._camera.setAutoSquareCrop(!!options.autoSquareCrop);
-
       this._lastCameraOptions.push(options);
       this._camera.takePhoto();
     }
@@ -478,7 +440,7 @@ export class CameraPlus extends CameraPlusBase {
 
   private releaseCamera() {
     if (this._camera) {
-      console.log('releaseCamera()');
+      CLog('releaseCamera()');
       this._camera.release();
     }
   }
@@ -501,15 +463,12 @@ export class CameraPlus extends CameraPlusBase {
     if (this._camera) {
       this._togglingCamera = true;
       this._camera.toggleCamera();
-
       const camNumber = this.getNumberOfCameras();
       if (camNumber <= 1) {
         CLog(`Android Device has ${camNumber} camera.`);
         return;
       }
-
       this.sendEvent(CameraPlus.toggleCameraEvent, this.camera);
-
       // need to check flash mode when toggling...
       // front cam may not have flash - and just ensure the correct icon shows
       this._ensureCorrectFlashIcon();
@@ -524,37 +483,30 @@ export class CameraPlus extends CameraPlusBase {
       saveToGallery: true,
       quality: CameraVideoQuality.MAX_720P,
     };
-    console.log('android.ts record()', options);
+    CLog('android.ts record()', options);
     if (this._camera) {
       this._camera.setDisableHEVC(!!options.disableHEVC);
       this._camera.setSaveToGallery(!!options.saveToGallery);
       switch (options.quality) {
         case CameraVideoQuality.HIGHEST:
-          //this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.HIGHEST);
           this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('HIGHEST'));
           break;
         case CameraVideoQuality.LOWEST:
-          // this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.LOWEST);
           this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('HIGHEST'));
           break;
         case CameraVideoQuality.MAX_2160P:
-          // this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.MAX_2160P);
           this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('MAX_2160P'));
           break;
         case CameraVideoQuality.MAX_1080P:
-          // this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.MAX_1080P);
           this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('MAX_1080P'));
           break;
         case CameraVideoQuality.MAX_720P:
-          // this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.MAX_720P);
           this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('MAX_720P'));
           break;
         case CameraVideoQuality.QVGA:
-          // this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.QVGA);
           this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('QVGA'));
           break;
         default:
-          // this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.MAX_480P);
           this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('MAX_720P'));
           break;
       }
@@ -562,7 +514,6 @@ export class CameraPlus extends CameraPlusBase {
       this._camera.setMaxAudioBitRate(options.androidMaxAudioBitRate || -1);
       this._camera.setMaxVideoBitrate(options.androidMaxVideoBitRate || -1);
       this._camera.setMaxVideoFrameRate(options.androidMaxFrameRate || -1);
-
       this._camera.startRecording();
     }
   }
@@ -579,7 +530,7 @@ export class CameraPlus extends CameraPlusBase {
       CLog(`*** stopping mediaRecorder ***`);
       this._camera.stopRecording();
     } else {
-      console.error("NO camera instance attached, can't stop recording!");
+      CError("NO camera instance attached, can't stop recording!");
     }
   }
 
@@ -600,12 +551,11 @@ export class CameraPlus extends CameraPlusBase {
   public getCurrentCamera(): 'front' | 'rear' {
     if (!this._camera) return 'rear';
     switch (this._camera.getPosition()) {
-      // case io.github.triniwiz.fancycamera.CameraPosition.FRONT:
       case io.github.triniwiz.fancycamera.CameraPosition.valueOf('FRONT'):
-        // console.log('getCurrentCamera() front');
+        // CLog('getCurrentCamera() front');
         return 'front';
       default:
-        // console.log('getCurrentCamera() rear');
+        // CLog('getCurrentCamera() rear');
         return 'rear';
     }
   }
@@ -645,8 +595,7 @@ export class CameraPlus extends CameraPlusBase {
    */
   public getFlashMode() {
     if (this.hasFlash()) {
-      console.log('getFlashMode() ', this._camera.getFlashMode());
-      // if (this._camera.getFlashMode() !== io.github.triniwiz.fancycamera.CameraFlashMode.OFF) {
+      CLog('getFlashMode() ', this._camera.getFlashMode());
       if (this._camera.getFlashMode() !== io.github.triniwiz.fancycamera.CameraFlashMode.valueOf('OFF')) {
         return 'on';
       }
@@ -662,7 +611,7 @@ export class CameraPlus extends CameraPlusBase {
   _ensureCorrectFlashIcon() {
     // get current flash mode and set correct image drawable
     const currentFlashMode = this.getFlashMode();
-    CLog('_ensureCorrectFlashIcon flash mode', currentFlashMode);
+    // CLog('_ensureCorrectFlashIcon flash mode', currentFlashMode);
 
     // if the flash mode is null then we need to remove the button from the parent layout
     if (currentFlashMode === null) {
@@ -685,7 +634,7 @@ export class CameraPlus extends CameraPlusBase {
     this._flashBtn.setImageResource((android as any).R.color.transparent);
 
     const flashIcon = currentFlashMode === FLASH_MODE_OFF ? this.flashOffIcon : this.flashOnIcon;
-    console.log('flash icon is now ', flashIcon, 'off icon is ', this.flashOffIcon);
+    // CLog('flash icon is now ', flashIcon, 'off icon is ', this.flashOffIcon);
     const imageDrawable = CamHelpers.getImageDrawable(flashIcon);
     this._flashBtn.setImageResource(imageDrawable);
   }
@@ -714,13 +663,13 @@ export class CameraPlus extends CameraPlusBase {
     );
     const flashParams = new android.widget.RelativeLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
     if (this.insetButtons === true) {
-      console.log('insetButtons set to true, adjusting flash button layout');
+      // CLog('insetButtons set to true, adjusting flash button layout');
       // need to get the width of the screen
       const layoutWidth = this._nativeView.getWidth();
-      CLog(`layoutWidth = ${layoutWidth}`);
+      // CLog(`layoutWidth = ${layoutWidth}`);
       const xMargin = layoutWidth * this.insetButtonsPercent;
       const layoutHeight = this._nativeView.getHeight();
-      CLog(`layoutHeight = ${layoutHeight}`);
+      // CLog(`layoutHeight = ${layoutHeight}`);
       const yMargin = layoutHeight * this.insetButtonsPercent;
       // add margin to left and top where the button is positioned
       flashParams.setMargins(xMargin, yMargin, 8, 8);
@@ -752,12 +701,12 @@ export class CameraPlus extends CameraPlusBase {
 
     const toggleCamParams = new android.widget.RelativeLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
     if (this.insetButtons === true) {
-      console.log('insetButtons set to true, adjusting camtoggle button layout');
+      // CLog('insetButtons set to true, adjusting camtoggle button layout');
       const layoutWidth = this._nativeView.getWidth();
-      CLog(`layoutWidth = ${layoutWidth}`);
+      // CLog(`layoutWidth = ${layoutWidth}`);
       const xMargin = layoutWidth * this.insetButtonsPercent;
       const layoutHeight = this._nativeView.getHeight();
-      CLog(`layoutHeight = ${layoutHeight}`);
+      // CLog(`layoutHeight = ${layoutHeight}`);
       const yMargin = layoutHeight * this.insetButtonsPercent;
       toggleCamParams.setMargins(8, yMargin, xMargin, 8);
     } else {
@@ -774,12 +723,10 @@ export class CameraPlus extends CameraPlusBase {
     if (this.enableVideo) {
       //video mode show a circle icon
       this._takePicBtn = new android.widget.ImageButton(Application.android.context) as android.widget.ImageButton;
-      // this._takePicBtn.setPadding(24, 24, 24, 24);
       this._takePicBtn.setMaxHeight(48);
       this._takePicBtn.setMaxWidth(48);
       const takePicDrawable = CamHelpers.getImageDrawable(this.takeVideoIcon);
       this._takePicBtn.setImageResource(takePicDrawable); // set the icon
-      // this._takePicBtn.setBackgroundDrawable(shape); // set the transparent background
       const shape = new android.graphics.drawable.GradientDrawable();
       shape.setColor(0x99000000);
       shape.setCornerRadius(96);
@@ -794,63 +741,43 @@ export class CameraPlus extends CameraPlusBase {
       this._takePicBtn.setBackgroundDrawable(shape); // set the transparent background
     }
 
-    // const shape = CamHelpers.createTransparentCircleDrawable();
-    // this._takePicBtn.setBackgroundDrawable(shape); // set the transparent background
     const ref = new WeakRef(this);
 
     this._takePicBtn.setOnTouchListener(
       new android.view.View.OnTouchListener({
         onTouch: (argsView: android.view.View, pEvent: android.view.MotionEvent) => {
-          CLog(`_initTakePicButton OnClickListener()`);
-          console.log('action:', pEvent.getAction());
+          // CLog(`_initTakePicButton OnClickListener()`);
+          // CLog('action:', pEvent.getAction());
           const owner = ref.get();
           if (this.enableVideo) {
             //Video recording
-            console.log('video mode handling');
+            // CLog('video mode handling');
             //check if we're currently doing a long click for snapchat style recording UI
             if (pEvent.getAction() == android.view.MotionEvent.ACTION_UP) {
               if (this.isButtonLongPressed) {
                 //Note: if scrollview moves with this view inside, this will trigger false positives
-                console.log('long press released, stopping video and setting isButtonLongPressed to false');
+                // CLog('long press released, stopping video and setting isButtonLongPressed to false');
                 this.isButtonLongPressed = false;
                 this.stop();
-                // this._cameraBtn.changeToCircle();
                 const takePicDrawable = CamHelpers.getImageDrawable(this.takeVideoIcon);
                 this._takePicBtn.setImageResource(takePicDrawable); // set the icon
                 return false;
               } else {
-                console.log('not an Action_up ignoring', pEvent.getAction());
+                // CLog('not an Action_up ignoring', pEvent.getAction());
                 return true;
               }
             } else if (pEvent.getAction() == android.view.MotionEvent.ACTION_DOWN) {
               if (!this.isButtonLongPressed && !owner.isRecording) {
-                console.log('Video enabled, starting recording');
+                // CLog('Video enabled, starting recording');
                 this.record();
                 const takePicDrawable = CamHelpers.getImageDrawable(this.stopVideoIcon);
                 this._takePicBtn.setImageResource(takePicDrawable); // set the icon
               }
             }
-            // else {
-            //   console.log('not currently a long-press, handling as tap');
-            //   if (owner.isRecording) {
-            //     console.log('Recording in progress, stopping recording');
-            //     this.stop();
-            //     // this._cameraBtn.changeToCircle();
-            //     const takePicDrawable = CamHelpers.getImageDrawable(this.takeVideoIcon);
-            //     this._takePicBtn.setImageResource(takePicDrawable); // set the icon
-            //   } else {
-            //     console.log('Video enabled, starting recording');
-            //     this.record();
-            //     const takePicDrawable = CamHelpers.getImageDrawable(this.stopVideoIcon);
-            //     this._takePicBtn.setImageResource(takePicDrawable); // set the icon
-            //     // this._cameraBtn.changeToSquare();
-            //   }
-            // }
           } else if (!this.disablePhoto) {
             //Photo Capture
             if (!this.isButtonLongPressed && pEvent.getAction() == android.view.MotionEvent.ACTION_DOWN) {
-              console.log('Photo enabled, taking pic on ACTION_DOWN');
-              // this.takePicture();
+              // CLog('Photo enabled, taking pic on ACTION_DOWN');
               const opts = {
                 saveToGallery: this.saveToGallery,
                 confirm: this.confirmPhotos,
@@ -858,12 +785,12 @@ export class CameraPlus extends CameraPlusBase {
               };
 
               if (owner) {
-                console.log('_initTakePicButton() calling takePicture with options', opts);
+                CLog('_initTakePicButton() calling takePicture with options', opts);
                 owner.takePicture(opts);
               }
-            } else console.log('Ignoring action');
+            } else CLog('Ignoring action');
           } else {
-            console.warn('neither photo or video enabled, ignoring tap');
+            // console.warn('neither photo or video enabled, ignoring tap');
           }
           return false;
         },
@@ -873,11 +800,11 @@ export class CameraPlus extends CameraPlusBase {
     this._takePicBtn.setOnLongClickListener(
       new android.view.View.OnLongClickListener({
         onLongClick: (argsView: android.view.View) => {
-          CLog(`_initTakePicButton OnLongClickListener()`);
+          // CLog(`_initTakePicButton OnLongClickListener()`);
           if (this.enableVideo) {
-            CLog('recordVideo mode, setting isButtonLongPressed flag');
+            // CLog('recordVideo mode, setting isButtonLongPressed flag');
             this.isButtonLongPressed = true;
-          } else console.log('no long click support for photo/preview mode');
+          } //else CLog('no long click support for photo/preview mode');
           return false;
         },
       })
@@ -885,9 +812,9 @@ export class CameraPlus extends CameraPlusBase {
 
     const takePicParams = new android.widget.RelativeLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT);
     if (this.insetButtons === true) {
-      console.log('insetButtons set to true, adjusting camera button layout');
+      // CLog('insetButtons set to true, adjusting camera button layout');
       const layoutHeight = this._nativeView.getHeight();
-      CLog(`layoutHeight = ${layoutHeight}`);
+      // CLog(`layoutHeight = ${layoutHeight}`);
       const yMargin = layoutHeight * this.insetButtonsPercent;
       takePicParams.setMargins(8, 8, 8, yMargin);
     } else {
@@ -930,7 +857,7 @@ export class CameraPlus extends CameraPlusBase {
         }
       }
     } catch (ex) {
-      CLog('_initDefaultButtons error', ex);
+      CError('_initDefaultButtons error', ex);
     }
   }
   /*
@@ -941,7 +868,7 @@ export class CameraPlus extends CameraPlusBase {
       //Note: This will only merge video tracks from  mp4 files, and only succeed if all input have same audio and video format/encoding
       //MediaMuxer support for multiple audio/video tracks only on API 26+ only
       if (+Device.sdkVersion < 26) {
-        console.error('This is only supported on API 26+');
+        CError('This is only supported on API 26+');
         return reject('This is only supported on API 26+');
       }
       if (!inputFiles || inputFiles.length <= 0) return reject('inputFiles is empty!');
@@ -949,7 +876,7 @@ export class CameraPlus extends CameraPlusBase {
       if (File.exists(outputPath)) {
         // remove file if it exists
         File.fromPath(outputPath).removeSync(err => {
-          console.error('Unable to remove file!', err);
+          CError('Unable to remove file!', err);
           return reject('Unable to remove file!' + err.message);
         });
       }
@@ -972,18 +899,18 @@ export class CameraPlus extends CameraPlusBase {
       try {
         let muxerStarted: Boolean = false;
         for (let i = 0; i < inputFiles.length; i++) {
-          console.log('\n\nProcessing file', inputFiles[i], 'index', i);
+          // CLog('\n\nProcessing file', inputFiles[i], 'index', i);
           let mediadata = new android.media.MediaMetadataRetriever();
           mediadata.setDataSource(inputFiles[i]);
           var trackDuration = 0;
           try {
             trackDuration = +mediadata.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION);
-            console.log('trackDuration ', trackDuration); //returned in milliseconds
+            // CLog('trackDuration ', trackDuration); //returned in milliseconds
             let orientation = mediadata.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION);
             outRotation = +orientation;
-            console.log('orientation:', orientation);
+            // CLog('orientation:', orientation);
           } catch (err) {
-            console.error('Unable to extract trackDuration from metadata!');
+            CError('Unable to extract trackDuration from metadata!');
           }
 
           //find video format and select the video track to read from later
@@ -998,13 +925,11 @@ export class CameraPlus extends CameraPlusBase {
               videoExtractor.selectTrack(j);
               if (!videoFormat) {
                 videoFormat = videoExtractor.getTrackFormat(j);
-                // console.log('found a video format', videoFormat);
+                // CLog('found a video format', videoFormat);
               }
               break;
             }
           }
-
-          // console.log('videoExtractor', videoExtractor);
           //TODO: check that all other segment formats match first segment
 
           //find audio format and select the audio track to read from later
@@ -1019,7 +944,7 @@ export class CameraPlus extends CameraPlusBase {
               audioExtractor.selectTrack(j);
               if (!audioFormat) {
                 audioFormat = audioExtractor.getTrackFormat(j);
-                // console.log('found an audio format', audioFormat);
+                // CLog('found an audio format', audioFormat);
               }
               break;
             }
@@ -1027,16 +952,16 @@ export class CameraPlus extends CameraPlusBase {
 
           if (audioTrackIndex == -1) {
             audioTrackIndex = muxer.addTrack(audioFormat);
-            // console.log('added an audio track to muxer');
+            // CLog('added an audio track to muxer');
           }
           if (videoTrackIndex == -1) {
             videoTrackIndex = muxer.addTrack(videoFormat);
-            // console.log('added a video track to muxer');
+            // CLog('added a video track to muxer');
           }
           videoExtractor.seekTo(0, android.media.MediaExtractor.SEEK_TO_CLOSEST_SYNC);
           audioExtractor.seekTo(0, android.media.MediaExtractor.SEEK_TO_CLOSEST_SYNC);
 
-          // console.log('audioTrackIndex', audioTrackIndex, 'videoTrackIndex', videoTrackIndex);
+          // CLog('audioTrackIndex', audioTrackIndex, 'videoTrackIndex', videoTrackIndex);
           let sawEOS = false;
           let sawAudioEOS = false;
           let bufferSize = MAX_SAMPLE_SIZE;
@@ -1048,24 +973,24 @@ export class CameraPlus extends CameraPlusBase {
 
           // start muxer if not started yet
           if (!muxerStarted) {
-            // console.log('Starting muxer after setting rotation', outRotation);
+            // CLog('Starting muxer after setting rotation', outRotation);
             muxer.setOrientationHint(outRotation); //ensure merged video has same orientation as inputs
             muxer.start();
             muxerStarted = true;
           }
           //add file data
           //write video
-          // console.log('sawEOS', sawEOS, 'sawAudioEOS', sawAudioEOS);
+          // CLog('sawEOS', sawEOS, 'sawAudioEOS', sawAudioEOS);
           while (!sawEOS) {
             let videoSize = videoExtractor.readSampleData(videoBuf, offset);
-            // console.log('read video buffer size', videoSize);
+            // CLog('read video buffer size', videoSize);
             if (videoSize < 0) {
-              // console.log('no more buffer left, done with video');
+              // CLog('no more buffer left, done with video');
               sawEOS = true;
             } else {
               //trying to set properties directly on BufferInfo objects doesn't work, need to use the set function
               videoBufferInfo.set(offset, videoSize, videoExtractor.getSampleTime() + totalDuration * 1000 + APPEND_DELAY, android.media.MediaCodec.BUFFER_FLAG_KEY_FRAME);
-              // console.log('videoBufferInfo data', videoBufferInfo.offset, videoBufferInfo.size, videoBufferInfo.presentationTimeUs, videoBufferInfo.flags);
+              // CLog('videoBufferInfo data', videoBufferInfo.offset, videoBufferInfo.size, videoBufferInfo.presentationTimeUs, videoBufferInfo.flags);
               muxer.writeSampleData(videoTrackIndex, videoBuf, videoBufferInfo);
               videoExtractor.advance();
             }
@@ -1075,11 +1000,11 @@ export class CameraPlus extends CameraPlusBase {
           while (!sawAudioEOS) {
             let audioSize = audioExtractor.readSampleData(audioBuf, offset);
             if (audioSize < 0) {
-              console.log('no more buffer left, done with audio');
+              // CLog('no more buffer left, done with audio');
               sawAudioEOS = true;
             } else {
               audioBufferInfo.set(offset, audioSize, audioExtractor.getSampleTime() + totalDuration * 1000 + APPEND_DELAY, android.media.MediaCodec.BUFFER_FLAG_KEY_FRAME);
-              // console.log('audioBufferInfo data', audioBufferInfo.offset, audioBufferInfo.size, audioBufferInfo.presentationTimeUs, audioBufferInfo.flags);
+              // CLog('audioBufferInfo data', audioBufferInfo.offset, audioBufferInfo.size, audioBufferInfo.presentationTimeUs, audioBufferInfo.flags);
               muxer.writeSampleData(audioTrackIndex, audioBuf, audioBufferInfo);
               audioExtractor.advance();
             }
@@ -1095,17 +1020,17 @@ export class CameraPlus extends CameraPlusBase {
           audioExtractor = null;
           totalDuration += trackDuration;
           Utils.GC();
-          console.log('\ntotalDuration (ms) => ', totalDuration);
+          // CLog('\ntotalDuration (ms) => ', totalDuration);
         }
-        // console.log('done merging input files');
-        // console.log(' stopping muxer');
+        // CLog('done merging input files');
+        // CLog(' stopping muxer');
         muxer.stop();
-        // console.log('releasing muxer');
+        // CLog('releasing muxer');
         muxer.release();
-        console.log('finished merging video segments into ', outputPath);
+        CLog('finished merging video segments into ', outputPath);
         return resolve(File.fromPath(outputPath));
       } catch (err) {
-        console.error(err, err.message);
+        CError(err, err.message);
         return reject('Error during merge: ' + err.message);
       }
     });

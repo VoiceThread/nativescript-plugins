@@ -4,7 +4,7 @@
  **********************************************************************************/
 
 import { Color, ImageAsset, View, File, Device, Screen, isIOS, Frame, Application, ImageSource, path, knownFolders } from '@nativescript/core';
-import { CameraPlusBase, CameraTypes, CameraVideoQuality, CLog, GetSetProperty, ICameraOptions, IVideoOptions } from './common';
+import { CameraPlusBase, CameraTypes, CameraVideoQuality, CError, CLog, GetSetProperty, ICameraOptions, IVideoOptions } from './common';
 import { iOSNativeHelper } from '@nativescript/core/utils';
 
 export * from './common';
@@ -124,21 +124,18 @@ export class MySwifty extends SwiftyCamViewController {
   private _flashEnabled: boolean;
   private _flashBtn: UIButton;
   private _switchBtn: UIButton;
-  // private _cameraBtn: UIButton;
   public _cameraBtn: SwiftyCamButton;
   private _maxDuration: number = 3600;
-  // private _blurView: UIView;
   public _swiftyDelegate: SwiftyDelegate;
   private _resized: boolean;
 
   public static initWithOwner(owner: WeakRef<CameraPlus>, defaultCamera: CameraTypes = 'rear') {
     CLog('MySwifty initWithOwner');
     const ctrl = <MySwifty>MySwifty.alloc().init();
-    CLog('ctrl', ctrl);
+    // CLog('ctrl', ctrl);
     ctrl._owner = owner;
     // set default camera
     ctrl.defaultCamera = defaultCamera === 'rear' ? CameraSelection.Rear : CameraSelection.Front;
-    CLog('ctrl.disableAudio:', ctrl.disableAudio);
     CLog('ctrl.defaultCamera:', defaultCamera);
     return ctrl;
   }
@@ -148,12 +145,12 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   public set enableVideo(value: boolean) {
-    console.log('enableVideo set to ', value);
+    CLog('enableVideo set to ', value);
     this._enableVideo = value;
   }
 
   public set disablePhoto(value: boolean) {
-    console.log('disablePhoto set to ', value);
+    CLog('disablePhoto set to ', value);
     this._disablePhoto = value;
   }
 
@@ -167,31 +164,15 @@ export class MySwifty extends SwiftyCamViewController {
     this.view.userInteractionEnabled = true;
     const doubleTapEnabled = this._owner.get().doubleTapCameraSwitch;
     this.doubleTapCameraSwitch = doubleTapEnabled;
-    CLog('doubleTapCameraSwitch:', doubleTapEnabled);
+    // CLog('doubleTapCameraSwitch:', doubleTapEnabled);
 
     // retain delegate in javascript to ensure garbage collector does not get it
     this._swiftyDelegate = <any>SwiftyDelegate.initWithOwner(new WeakRef(this));
     this.cameraDelegate = this._swiftyDelegate;
-    CLog('this.cameraDelegate:', this.cameraDelegate);
+    // CLog('this.cameraDelegate:', this.cameraDelegate);
 
     if (this._owner.get().showCaptureIcon) {
-      CLog('adding main capture button...');
-      /* 
-      // Basic version of button generated with creationButton() below
-      if (this._cameraBtn) this._cameraBtn.removeFromSuperview();
-      this._cameraBtn = createButton(this, null, null, this._enableVideo ? 'recordVideo' : 'snapPicture', null, createIcon('takePic'));
-      this._cameraBtn.translatesAutoresizingMaskIntoConstraints = false;
-      let widthRule = this._cameraBtn.widthAnchor.constraintEqualToConstant(40);
-      widthRule.active = true;
-      let heightRule = this._cameraBtn.heightAnchor.constraintEqualToConstant(40);
-      heightRule.active = true;
-      this.view.addSubview(this._cameraBtn);
-      let centerRule = this._cameraBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor);
-      centerRule.active = true;
-      let bottomRule = this._cameraBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.safeAreaLayoutGuide.bottomAnchor, -40);
-      bottomRule.active = true;
-      */
-      //Version with UI animations and iOS gesture handler
+      // CLog('adding main capture button...');
       if (this._cameraBtn) this._cameraBtn.removeFromSuperview();
       this._cameraBtn = SwiftyCamButton.alloc().init();
       this._cameraBtn.delegate = this;
@@ -206,15 +187,13 @@ export class MySwifty extends SwiftyCamViewController {
       centerRule.active = true;
       let bottomRule = this._cameraBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.safeAreaLayoutGuide.bottomAnchor, -40);
       bottomRule.active = true;
-
       CLog('added main button to view ', this._cameraBtn);
     }
 
     if (this._owner.get().showToggleIcon) {
       if (this._switchBtn) this._switchBtn.removeFromSuperview();
-      CLog('creating toggle/switch camera button...');
+      // CLog('creating toggle/switch camera button...');
       this._switchBtn = createButton(this, null, null, 'switchCamera', null, createIcon('toggle', CGSizeMake(65, 50)));
-      // switchCameraBtn.transform = CGAffineTransformMakeScale(0.7, 0.7);
       this._switchBtn.translatesAutoresizingMaskIntoConstraints = false;
       let widthRule = this._switchBtn.widthAnchor.constraintEqualToConstant(40);
       widthRule.active = true;
@@ -227,8 +206,7 @@ export class MySwifty extends SwiftyCamViewController {
       topRule.active = true;
       let leftRule = this._switchBtn.trailingAnchor.constraintEqualToAnchorConstant(this.view.trailingAnchor, -20);
       leftRule.active = true;
-
-      console.log('added toggle/switch camera button to view ', this._switchBtn);
+      CLog('added toggle/switch camera button to view ', this._switchBtn);
     }
 
     if (this._owner.get().showFlashIcon) {
@@ -240,7 +218,7 @@ export class MySwifty extends SwiftyCamViewController {
       this.setupiOSRotationController();
     }
 
-    console.log('done with viewDidLoad');
+    // CLog('done with viewDidLoad');
     //copy over options from xml if set on camera instance
     this._snapPicOptions = {
       confirm: this._owner.get().confirmPhotos, // from property setter
@@ -267,7 +245,7 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   viewDidAppear(animated: boolean) {
-    console.log('MySwifty viewDidAppear');
+    CLog('MySwifty viewDidAppear');
     super.viewDidAppear(animated);
     CLog('MySwifty viewDidAppear');
   }
@@ -303,7 +281,7 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   public snapPicture(options?: ICameraOptions) {
-    CLog('CameraPlus takePic options:', options);
+    // CLog('CameraPlus takePic options:', options);
     if (options) {
       this._snapPicOptions = options;
     } else {
@@ -316,12 +294,12 @@ export class MySwifty extends SwiftyCamViewController {
         maxDimension: this._owner.get().maxDimension,
       };
     }
-    console.log('using options', this._snapPicOptions);
+    CLog('snapPicture using options', this._snapPicOptions);
     this.takePhoto();
   }
 
   public recordVideo(options?: IVideoOptions) {
-    console.log('recordVideo()');
+    // CLog('recordVideo()');
     options = options || {
       saveToGallery: false,
       disableHEVC: false,
@@ -369,7 +347,7 @@ export class MySwifty extends SwiftyCamViewController {
           this.videoQuality = VideoQuality.Resolution640x480;
           break;
       }
-      console.log('requesting permission to photos library');
+      CLog('requesting permission to photos library');
       const status = PHPhotoLibrary.authorizationStatus();
       if (status === PHAuthorizationStatus.NotDetermined) {
         PHPhotoLibrary.requestAuthorization(status => {
@@ -381,69 +359,65 @@ export class MySwifty extends SwiftyCamViewController {
         this.startVideoRecording();
       }
       this.disableRotation();
-      console.log('requested camera delegate startVideoRecording()');
+      CLog('requested camera delegate startVideoRecording()');
     }
-    // }
   }
 
   public didStartRecording(camera: CameraSelection) {
-    console.log('saw event didStartRecording');
+    CLog('saw event didStartRecording');
     this._owner.get().sendEvent(CameraPlus.videoRecordingStartedEvent, camera);
   }
 
   public recordingReady(path: string) {
-    console.log('recordingReady()', path);
+    CLog('recordingReady()', path);
     if ((this._videoOptions && this._videoOptions.saveToGallery) || this._owner.get().saveToGallery) {
       CLog('Save to Gallery option enabled, checking permission and saving if authorized');
       // TODO: discuss why callback handler(videoDidFinishSavingWithErrorContextInfo) does not emit event correctly - the path passed to the handler is the same as handled here so just go ahead and emit here for now
       const status = PHPhotoLibrary.authorizationStatus();
       if (status === PHAuthorizationStatus.Authorized) {
         UISaveVideoAtPathToSavedPhotosAlbum(path, this, 'videoDidFinishSavingWithErrorContextInfo', null);
-      } else CLog('Not authorized for gallery access, cannot save!!!');
+      } else CError('Not authorized for gallery access, cannot save!!!');
     } else {
       CLog(`video not saved to gallery but recording is at: ${path}`);
     }
     this._owner.get().sendEvent(CameraPlus.videoRecordingReadyEvent, path);
     //debug generated file
-    let options = NSDictionary.dictionaryWithObjectForKey(true, AVURLAssetPreferPreciseDurationAndTimingKey);
+    /*let options = NSDictionary.dictionaryWithObjectForKey(true, AVURLAssetPreferPreciseDurationAndTimingKey);
     let asset = AVURLAsset.URLAssetWithURLOptions(NSURL.fileURLWithPath(path), options);
     let videoAsset = asset.tracksWithMediaType(AVMediaTypeVideo).objectAtIndex(0);
     let audioAsset = asset.tracksWithMediaType(AVMediaTypeAudio).objectAtIndex(0);
     let size = videoAsset.naturalSize;
-    console.log('Output Video track has height', size.height, ' width ', size.width);
+    CLog('Output Video track has height', size.height, ' width ', size.width);
     let currentFrameRate = videoAsset.nominalFrameRate;
-    // highestFrameRate = currentFrameRate > highestFrameRate ? currentFrameRate : highestFrameRate;
-    console.log('video FrameRate', currentFrameRate);
-    // let isPortraitVideo = isVideoPortrait(videoAsset);
-    // console.log('Video in portrait orientation?', isPortraitVideo);
+    CLog('video FrameRate', currentFrameRate);
+    */
   }
 
   public didFinishRecording(camera: CameraSelection) {
-    console.log('didFinishRecording(), sending event CameraPlus.videoRecordingFinishedEvent');
+    CLog('didFinishRecording(), sending event CameraPlus.videoRecordingFinishedEvent');
     this._owner.get().sendEvent(CameraPlus.videoRecordingFinishedEvent, camera);
   }
 
   public videoDidFinishSavingWithErrorContextInfo(path: string, error: NSError, contextInfo: any) {
-    console.log('saw event videoDidFinishSavingWithErrorContextInfo');
+    CLog('saw event videoDidFinishSavingWithErrorContextInfo');
     if (error) {
-      CLog('video save to camera roll error:');
-      CLog(error);
+      // CLog('video save to camera roll error:');
+      CError(error);
       return;
     }
-    CLog(`video saved`, path);
-
+    CLog(`video saved to`, path);
     // ideally could just rely on this, but this will not emit the event (commenting for now and instead doing above in recordready - TODO: discuss why)
     // this._owner.get().sendEvent(CameraPlus.videoRecordingReadyEvent, path);
   }
 
   public switchCam() {
-    console.log('index.ios switchCam()');
-    CLog('CameraPlus switchCam, calling native lib switchCamera()');
+    // CLog('index.ios switchCam()');
+    // CLog('CameraPlus switchCam, calling native lib switchCamera()');
     this.switchCamera();
   }
 
   public toggleFlash() {
-    console.log('index.ios toggleFlash()');
+    // CLog('index.ios toggleFlash()');
     this._flashEnabled = !this._flashEnabled;
     this.flashEnabled = this._flashEnabled; // super class behavior
     CLog('CameraPlus flash enabled:', this._flashEnabled);
@@ -463,7 +437,7 @@ export class MySwifty extends SwiftyCamViewController {
       };
 
     if (this._snapPicOptions && this._snapPicOptions.autoSquareCrop) {
-      console.log('autoSquareCrop enabled, preparing');
+      // CLog('autoSquareCrop enabled, preparing');
       const width = photo.size.width;
       const height = photo.size.height;
       let originalWidth = width;
@@ -477,7 +451,6 @@ export class MySwifty extends SwiftyCamViewController {
         y = (originalWidth - originalHeight) / 2;
         originalWidth = originalHeight;
       }
-
       const rect: any = CGRectMake(x, y, originalWidth, originalHeight);
       const ref = CGImageCreateWithImageInRect(photo.CGImage, rect);
       this._photoToSave = UIImage.imageWithCGImageScaleOrientation(ref, photo.scale, photo.imageOrientation);
@@ -485,7 +458,7 @@ export class MySwifty extends SwiftyCamViewController {
     }
 
     if (this._snapPicOptions && this._snapPicOptions.confirm) {
-      console.log('photo confirmation enabled, preparing');
+      // CLog('photo confirmation enabled, preparing');
       // show the confirmation
       const width = this.view.bounds.size.width;
       const height = this.view.bounds.size.height;
@@ -508,7 +481,7 @@ export class MySwifty extends SwiftyCamViewController {
       this.view.addSubview(this._imageConfirmBg);
       this._owner.get().sendEvent(CameraPlus.confirmScreenShownEvent);
     } else {
-      console.log('no confirmation, just saving');
+      // CLog('no confirmation, just saving');
       // no confirmation - just save
       this.savePhoto();
       return;
@@ -516,7 +489,7 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   public resetPreview() {
-    console.log('resetPreview()');
+    // CLog('resetPreview()');
     if (this._imageConfirmBg) {
       this._imageConfirmBg.removeFromSuperview();
       this._imageConfirmBg = null;
@@ -525,7 +498,7 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   public async savePhoto() {
-    console.log('savePhoto()', this._snapPicOptions);
+    CLog('savePhoto()', this._snapPicOptions);
     if (this._photoToSave) {
       let asset: ImageAsset = new ImageAsset(this._photoToSave); //UIImage
       let outFilepath: string, tempFileName: string, source: ImageSource;
@@ -548,14 +521,12 @@ export class MySwifty extends SwiftyCamViewController {
           asset.options.height = source.height;
           asset.options.width = source.width;
         } else {
-          console.error('unable to save photo to file!');
-          CLog('ERROR saving image to file at path', outFilepath);
+          CError('ERROR saving image to file at path', outFilepath);
           this._owner.get().sendEvent(CameraPlus.errorEvent, 'ERROR saving image to file at path: ' + outFilepath);
           return;
         }
       } catch (err) {
-        console.error(err);
-        CLog('ERROR saving image to file at path', outFilepath, err);
+        CError('ERROR saving image to file at path', outFilepath, err);
         this._owner.get().sendEvent(CameraPlus.errorEvent, err);
         return;
       }
@@ -568,14 +539,13 @@ export class MySwifty extends SwiftyCamViewController {
       this._owner.get().sendEvent(CameraPlus.photoCapturedEvent, outFilepath);
       this.resetPreview();
     } else {
-      console.error('savePhoto() failed, no image to save!');
+      CError('savePhoto() failed, no image to save!');
       this._owner.get().sendEvent(CameraPlus.errorEvent, 'ERROR savePhoto() failed, no image to save!');
     }
   }
 
   public didSwitchCamera(camera: CameraSelection) {
-    console.log('didSwitchCamera()', camera);
-
+    // CLog('didSwitchCamera()', camera);
     this._owner.get().sendEvent(CameraPlus.toggleCameraEvent, camera);
   }
 
@@ -584,7 +554,7 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   private _flashBtnHandler() {
-    console.log('adding _flashBtn ...');
+    // CLog('adding _flashBtn ...');
     if (this._flashBtn) this._flashBtn.removeFromSuperview();
     this._flashBtn = createButton(this, null, null, 'toggleFlash', null, this.flashEnabled ? createIcon('flash') : createIcon('flashOff'));
     this._flashBtn.translatesAutoresizingMaskIntoConstraints = false;
@@ -592,9 +562,7 @@ export class MySwifty extends SwiftyCamViewController {
     widthRule.active = true;
     let heightRule = this._flashBtn.heightAnchor.constraintEqualToConstant(40);
     heightRule.active = true;
-
     this.view.addSubview(this._flashBtn);
-
     let topRule = this._flashBtn.topAnchor.constraintEqualToAnchorConstant(this.view.topAnchor, 20);
     topRule.active = true;
     let leftRule = this._flashBtn.leadingAnchor.constraintEqualToAnchorConstant(this.view.leadingAnchor, 20);
@@ -606,19 +574,19 @@ export class MySwifty extends SwiftyCamViewController {
    */
 
   public buttonWasTapped() {
-    CLog('SwiftyCamButtonDelegate called buttonWasTapped()', this._enableVideo, this._disablePhoto);
+    // CLog('SwiftyCamButtonDelegate called buttonWasTapped()', this._enableVideo, this._disablePhoto);
     if (this._enableVideo && this._disablePhoto) {
       if (this.isRecording) {
-        console.log('Recording in progress, stopping recording');
+        // CLog('Recording in progress, stopping recording');
         this._cameraBtn.changeToCircle();
         this.stopVideoRecording();
       } else {
-        console.log('Video enabled, starting recording');
+        // CLog('Video enabled, starting recording');
         this._cameraBtn.changeToSquare();
         this.startVideoRecording();
       }
     } else if (!this._disablePhoto) {
-      console.log('Photo enabled, taking pic');
+      // CLog('Photo enabled, taking pic');
       this.snapPicture();
     } else {
       console.warn('neither photo or video enabled, ignoring tap');
@@ -628,7 +596,7 @@ export class MySwifty extends SwiftyCamViewController {
   /// Called When UILongPressGestureRecognizer enters UIGestureRecognizerState.began
 
   public buttonDidBeginLongPress() {
-    CLog('SwiftyCamButtonDelegate called buttonDidBeginLongPress()');
+    // CLog('SwiftyCamButtonDelegate called buttonDidBeginLongPress()');
     if (this._enableVideo) {
       this.disableRotation();
       this._cameraBtn.changeToSquare();
@@ -639,7 +607,7 @@ export class MySwifty extends SwiftyCamViewController {
 
   /// Called When UILongPressGestureRecognizer enters UIGestureRecognizerState.end
   public buttonDidEndLongPress() {
-    CLog('SwiftyCamButtonDelegate called buttonDidEndLongPress()');
+    // CLog('SwiftyCamButtonDelegate called buttonDidEndLongPress()');
     if (this._enableVideo) {
       this.enableRotation();
       this._cameraBtn.changeToCircle();
@@ -649,7 +617,7 @@ export class MySwifty extends SwiftyCamViewController {
 
   /// Called when the maximum duration is reached
   public longPressDidReachMaximumDuration() {
-    CLog('SwiftyCamButtonDelegate called longPressDidReachMaximumDuration()');
+    // CLog('SwiftyCamButtonDelegate called longPressDidReachMaximumDuration()');
     if (this._enableVideo) {
       this.stopVideoRecording();
       this._cameraBtn.changeToCircle();
@@ -694,8 +662,8 @@ export class MySwifty extends SwiftyCamViewController {
       Object.defineProperty(proto, 'supportedInterfaceOrientations', {
         get: function () {
           const result = that.allowRotation ? UIInterfaceOrientationMask.AllButUpsideDown : that._currentOrientationMask;
-          // console.log('get supported orientations', result);
-          // console.log('allowRotation', that.allowRotation);
+          // CLog('get supported orientations', result);
+          // CLog('allowRotation', that.allowRotation);
           return result;
         },
         enumerable: true,
@@ -728,14 +696,14 @@ export class MySwifty extends SwiftyCamViewController {
       [UIDeviceOrientation.Portrait]: () => UIInterfaceOrientationMask.Portrait,
       defaultValue: () => this._currentOrientationMask || UIInterfaceOrientationMask.Portrait,
     }).get(UIDevice.currentDevice.orientation as any)();
-    // console.log('current', UIDevice.currentDevice.orientation, this._currentOrientationMask);
+    // CLog('current', UIDevice.currentDevice.orientation, this._currentOrientationMask);
   }
 
   /**
    * @function enableRotation
    */
   public enableRotation(): void {
-    // console.log('enableRotation');
+    // CLog('enableRotation');
     if (!this._owner.get().shouldLockRotation) return;
     this.allowRotation = true;
     if (+iOSNativeHelper.MajorVersion >= 16) {
@@ -750,9 +718,9 @@ export class MySwifty extends SwiftyCamViewController {
    */
   public disableRotation(): void {
     if (!this._owner.get().shouldLockRotation) return;
-    // console.log('disableRotation');
+    // CLog('disableRotation');
     if (!this.allowRotation) {
-      // console.log('allowRotation is already false');
+      // CLog('allowRotation is already false');
       return;
     }
 
@@ -795,14 +763,11 @@ export class CameraPlus extends CameraPlusBase {
   constructor() {
     super();
     this._onLayoutChangeListener = this._onLayoutChangeFn.bind(this);
-    // console.log('CameraPlus constructor');
+    // CLog('CameraPlus constructor');
     this._swifty = MySwifty.initWithOwner(new WeakRef(this), CameraPlus.defaultCamera);
-
     this._swifty.shouldUseDeviceOrientation = CameraPlus.useDeviceOrientation;
-
     this._detectDevice(); //TODO: is this still useful?
-
-    //console.log('done with constructor', this._swifty);
+    //CLog('done with constructor', this._swifty);
   }
 
   private isVideoEnabled() {
@@ -820,8 +785,8 @@ export class CameraPlus extends CameraPlusBase {
     this._swifty.disablePhoto = this.isPhotoDisabled();
     CLog('photo disabled:', this.isPhotoDisabled());
     CLog('default camera:', CameraPlus.defaultCamera);
-    CLog('native view:');
-    CLog(this._swifty.view);
+    // CLog('native view:');
+    // CLog(this._swifty.view);
     this._swifty.view.autoresizingMask = UIViewAutoresizing.FlexibleWidth | UIViewAutoresizing.FlexibleHeight;
     return this._swifty.view;
   }
@@ -909,7 +874,7 @@ export class CameraPlus extends CameraPlusBase {
 
   onLoaded() {
     super.onLoaded();
-    console.log('CameraPlus calling this._swifty.viewDidAppear(true)');
+    // CLog('CameraPlus calling this._swifty.viewDidAppear(true)');
     //TODO: hackalicious, do this properly
     this._swifty.viewDidAppear(true);
   }
@@ -931,7 +896,7 @@ export class CameraPlus extends CameraPlusBase {
    * Toggle Camera front/back
    */
   public toggleCamera() {
-    console.log('CameraPlus toggleCamera()');
+    CLog('CameraPlus toggleCamera()');
     this._swifty.switchCam();
   }
 
@@ -939,7 +904,7 @@ export class CameraPlus extends CameraPlusBase {
    * Toggle flash mode
    */
   public toggleFlash() {
-    console.log('CameraPlus toggleFlash()');
+    CLog('CameraPlus toggleFlash()');
     this._swifty.toggleFlash();
   }
 
@@ -954,7 +919,7 @@ export class CameraPlus extends CameraPlusBase {
    * Snap photo and display confirm save
    */
   public takePicture(options?: ICameraOptions): void {
-    console.log('CameraPlus takePicture', options);
+    CLog('CameraPlus takePicture', options);
     this._updateCameraQuality();
     this._swifty.snapPicture(options);
   }
@@ -963,7 +928,7 @@ export class CameraPlus extends CameraPlusBase {
    * Record video
    */
   public record(options?: IVideoOptions): Promise<any> {
-    console.log('CameraPlus record', options);
+    CLog('CameraPlus record', options);
     this._swifty.recordVideo(options);
     this._swifty._cameraBtn.changeToSquare();
     this._swifty.disableRotation();
@@ -974,7 +939,7 @@ export class CameraPlus extends CameraPlusBase {
    * Stop recording video
    */
   public stop(): void {
-    console.log('CameraPlus stop');
+    CLog('CameraPlus stop');
     this._swifty.stopVideoRecording();
     this._swifty._cameraBtn.changeToCircle();
     this._swifty.enableRotation();
@@ -1001,20 +966,18 @@ export class CameraPlus extends CameraPlusBase {
 
   private _detectDevice() {
     if (typeof this._isIPhoneX === 'undefined') {
-      console.log('checking for iphone x');
+      CLog('checking for iphone x');
       const _SYS_NAMELEN: number = 256;
 
       /* tslint:disable-next-line: no-any */
       const buffer: any = interop.alloc(5 * _SYS_NAMELEN);
       uname(buffer);
       let name: string = NSString.stringWithUTF8String(buffer.add(_SYS_NAMELEN * 4)).toString();
-
       // Get machine name for Simulator
       if (name === 'x86_64' || name === 'i386') {
         name = NSProcessInfo.processInfo.environment.objectForKey('SIMULATOR_MODEL_IDENTIFIER');
       }
-
-      // this._log.debug('isIPhoneX name:', name);
+      // CLog('isIPhoneX name:', name);
       const parts = name.toLowerCase().split('iphone');
       if (parts && parts.length > 1) {
         const versionNumber = parseInt(parts[1]);
@@ -1041,7 +1004,7 @@ export class CameraPlus extends CameraPlusBase {
       if (File.exists(outputPath)) {
         // remove file if it exists
         File.fromPath(outputPath).removeSync(err => {
-          console.error('Unable to remove existing file!', err);
+          CError('Unable to remove existing file!', err);
           return reject('Unable to remove existing file!' + err.message);
         });
       }
@@ -1049,7 +1012,7 @@ export class CameraPlus extends CameraPlusBase {
       if (inputFiles.length == 1) {
         let suc = NSFileManager.defaultManager.copyItemAtPathToPathError(inputFiles[0], outputPath);
         if (!suc) {
-          console.error('Unable to copy file!');
+          CError('Unable to copy file!');
           return reject('Unable to copy file!');
         }
         return resolve(File.fromPath(outputPath));
@@ -1066,30 +1029,30 @@ export class CameraPlus extends CameraPlusBase {
       let haveError = false;
 
       for (let i = 0; i < inputFiles.length; i++) {
-        console.log('Extracting audio and video tracks from ', inputFiles[i]);
+        // CLog('Extracting audio and video tracks from ', inputFiles[i]);
 
         let options = NSDictionary.dictionaryWithObjectForKey(true, AVURLAssetPreferPreciseDurationAndTimingKey);
         let asset = AVURLAsset.URLAssetWithURLOptions(NSURL.fileURLWithPath(inputFiles[i]), options);
         let videoAsset = asset.tracksWithMediaType(AVMediaTypeVideo).objectAtIndex(0);
         let audioAsset = asset.tracksWithMediaType(AVMediaTypeAudio).objectAtIndex(0);
         if (!audioAsset || !videoAsset) {
-          console.error('Unable to find audio or video track for current asset, quitting!');
+          CError('Unable to find audio or video track for current asset, quitting!');
           haveError = true;
           return;
         }
 
         size = videoAsset.naturalSize;
-        // console.log('Video track has height', size.height, ' width ', size.width);
+        // CLog('Video track has height', size.height, ' width ', size.width);
         let currentFrameRate = videoAsset.nominalFrameRate;
         highestFrameRate = currentFrameRate > highestFrameRate ? currentFrameRate : highestFrameRate;
-        // console.log('currentFrameRate', currentFrameRate, ' highestFrameRate', highestFrameRate);
+        // CLog('currentFrameRate', currentFrameRate, ' highestFrameRate', highestFrameRate);
         let trimmingTime: CMTime = CMTimeMake(lround(videoAsset.naturalTimeScale / videoAsset.nominalFrameRate), videoAsset.naturalTimeScale);
         let timeRange: CMTimeRange = CMTimeRangeMake(trimmingTime, CMTimeSubtract(videoAsset.timeRange.duration, trimmingTime));
 
         let videoResult = videoTrack.insertTimeRangeOfTrackAtTimeError(timeRange, videoAsset, currentTime);
         let audioResult = audioTrack.insertTimeRangeOfTrackAtTimeError(timeRange, audioAsset, currentTime);
         if (!videoResult || !audioResult) {
-          console.error('Unable to insert audio or video track, quitting!');
+          CError('Unable to insert audio or video track, quitting!');
           haveError = true;
           return;
         }
@@ -1097,14 +1060,14 @@ export class CameraPlus extends CameraPlusBase {
         let a = videoTrack.preferredTransform;
         let b = videoAsset.preferredTransform;
         if (a.a != b.a || a.b != b.b || a.c != b.c || a.d != b.d) {
-          console.log('videoTrack preferredTransform', a.a, a.b, a.c, a.d, a.tx, a.ty);
-          console.log('videoAsset preferredTransform', b.a, b.b, b.c, b.d, b.tx, b.ty);
+          // CLog('videoTrack preferredTransform', a.a, a.b, a.c, a.d, a.tx, a.ty);
+          // CLog('videoAsset preferredTransform', b.a, b.b, b.c, b.d, b.tx, b.ty);
           console.warn('Segment transforms do not match! cannot merge to have matching segment orientations without transform/layer/composition processing');
         }
 
-        console.log('Current track length is ', CMTimeGetSeconds(videoAsset.timeRange.duration), CMTimeGetSeconds(trimmingTime));
+        // CLog('Current track length is ', CMTimeGetSeconds(videoAsset.timeRange.duration), CMTimeGetSeconds(trimmingTime));
         currentTime = CMTimeAdd(currentTime, timeRange.duration);
-        console.log('Total length is now', CMTimeGetSeconds(currentTime));
+        // CLog('Total length is now', CMTimeGetSeconds(currentTime));
       }
 
       if (haveError) return reject('Error during track extraction');
@@ -1135,24 +1098,24 @@ export class CameraPlus extends CameraPlusBase {
       exportSession.exportAsynchronouslyWithCompletionHandler(() => {
         switch (exportSession.status) {
           case AVAssetExportSessionStatus.Failed:
-            console.error('failed (assetExport?.error)', exportSession.error);
+            CError('failed (assetExport?.error)', exportSession.error);
             reject(exportSession.error);
             break;
           case AVAssetExportSessionStatus.Cancelled:
-            // console.log('cancelled (assetExport?.error)');
+            // CLog('cancelled (assetExport?.error)');
             break;
           case AVAssetExportSessionStatus.Unknown:
-            // console.log('unknown(assetExport?.error)');
+            // CLog('unknown(assetExport?.error)');
             break;
           case AVAssetExportSessionStatus.Waiting:
-            // console.log('waiting(assetExport?.error)');
+            // CLog('waiting(assetExport?.error)');
             break;
           case AVAssetExportSessionStatus.Exporting:
-            // console.log('exporting(assetExport?.error)');
+            // CLog('exporting(assetExport?.error)');
             break;
           case AVAssetExportSessionStatus.Completed:
-            // console.log('MP4 Concatenation Complete');
-            // console.log('exportSession output', CMTimeGetSeconds(exportSession.timeRange.duration));
+            // CLog('MP4 Concatenation Complete');
+            // CLog('exportSession output', CMTimeGetSeconds(exportSession.timeRange.duration));
             const status = PHPhotoLibrary.authorizationStatus();
             if (status === PHAuthorizationStatus.Authorized) {
               UISaveVideoAtPathToSavedPhotosAlbum(outputPath, this, null, null);
@@ -1164,12 +1127,12 @@ export class CameraPlus extends CameraPlusBase {
             let videoAsset = asset.tracksWithMediaType(AVMediaTypeVideo).objectAtIndex(0);
             let audioAsset = asset.tracksWithMediaType(AVMediaTypeAudio).objectAtIndex(0);
             size = videoAsset.naturalSize;
-            console.log('Output Video track has height', size.height, ' width ', size.width);
+            CLog('Output Video track has height', size.height, ' width ', size.width);
             let currentFrameRate = videoAsset.nominalFrameRate;
             // highestFrameRate = currentFrameRate > highestFrameRate ? currentFrameRate : highestFrameRate;
-            console.log('video FrameRate', currentFrameRate);
+            CLog('video FrameRate', currentFrameRate);
             isPortraitVideo = isVideoPortrait(videoAsset);
-            console.log('Video in portrait orientation?', isPortraitVideo);
+            CLog('Video in portrait orientation?', isPortraitVideo);
             */
             resolve(File.fromPath(outputPath));
             break;
@@ -1180,7 +1143,7 @@ export class CameraPlus extends CameraPlusBase {
 }
 
 const createButton = function (target: any, frame: CGRect, label: string, eventName: string, align?: string, img?: UIImage, imgSelected?: UIImage): UIButton {
-  // console.log('createButton()', label, eventName);
+  // CLog('createButton()', label, eventName);
   let btn: UIButton;
   if (frame) {
     btn = UIButton.alloc().initWithFrame(frame);
@@ -1202,7 +1165,7 @@ const createButton = function (target: any, frame: CGRect, label: string, eventN
     btn.contentHorizontalAlignment = align === 'right' ? UIControlContentHorizontalAlignment.Right : UIControlContentHorizontalAlignment.Left;
   }
   if (eventName) {
-    console.log('adding event ', eventName);
+    CLog('adding event ', eventName);
     btn.addTargetActionForControlEvents(target, eventName, UIControlEvents.TouchUpInside);
   }
   return btn;
@@ -1481,43 +1444,3 @@ const drawCircle = function (color: string) {
   iconColor.setFill();
   bezier2Path.fill();
 };
-
-/*const isVideoPortrait = function (videoTrack: AVAssetTrack) {
-  let isPortrait = false;
-  let t = videoTrack.preferredTransform;
-
-  //Portrait
-  if (t.a == 0 && t.b == 1.0 && t.c == -1.0 && t.d == 0) {
-    console.log('Portrait orientation');
-    isPortrait = true;
-  }
-  // PortraitUpsideDown
-  if (t.a == 0 && t.b == -1.0 && t.c == 1.0 && t.d == 0) {
-    console.log('PortraitUpsideDown orientation');
-    isPortrait = true;
-  }
-  // LandscapeRight
-  if (t.a == 1.0 && t.b == 0 && t.c == 0 && t.d == 1.0) {
-    console.log('LandscapeRight orientation');
-    isPortrait = false;
-  }
-  // LandscapeLeft
-  if (t.a == -1.0 && t.b == 0 && t.c == 0 && t.d == -1.0) {
-    console.log('LandscapeLeft orientation');
-    isPortrait = false;
-  }
-  let size = videoTrack.naturalSize;
-  console.log('videoTrack has height', size.height, 'width', size.width);
-  if (size.height > size.width) console.log('Portrait Dimensions');
-  else console.log('Landscape Dimensions');
-  console.log('Current track transorm', t.a, t.b, t.c, t.d, t.tx, t.ty);
-  if (size.width == t.tx && size.height == t.ty) console.log('UIInterfaceOrientationLandscapeRight');
-  else if (t.tx == 0 && t.ty == 0) console.log('UIInterfaceOrientationLandscapeLeft');
-  else if (t.tx == 0 && t.ty == size.width) console.log('UIInterfaceOrientationPortraitUpsideDown');
-  else console.log('UIInterfaceOrientationPortrait');
-
-  // Math.atan2()
-  //
-  return isPortrait;
-};
-*/

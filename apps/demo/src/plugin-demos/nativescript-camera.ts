@@ -7,24 +7,23 @@ import { Video } from 'nativescript-videoplayer';
 import { executeOnMainThread } from '@nativescript/core/utils';
 
 export function navigatingTo(args: EventData) {
-  console.log('navigatingTo()');
+  // console.log('page navigatingTo()');
   const page = <Page>args.object;
   page.bindingContext = new DemoModel(page);
 }
 
 export function navigatingFrom(args: EventData) {
-  console.log('page navigatingFrom()');
+  // console.log('page navigatingFrom()');
   const page = <Page>args.object;
   const video: Video = page.getViewById('nativeVideoPlayer') as Video;
   if (video) {
     if (!isAndroid) video.pause();
-    // video.stop();
     video.src = null;
   } else console.warn('Unable to clear video player when leaving page!');
 }
 
 export async function onLoaded(args) {
-  console.log('page onLoaded()', args.object);
+  // console.log('page onLoaded()', args.object);
 }
 
 export class DemoModel extends DemoSharedNativescriptCamera {
@@ -42,7 +41,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
     this.cam = page.getViewById('camPlus') as unknown as CameraPlus;
 
     //Notes on properties that affect camera instance
-    //TODO: update these as properties are fixed or removed
+    //TODO: update these as properties are fixed or changed
     //[ Both Platforms ]
     //this.cam.enableVideo = true;//defaults to false. Enable to true for video mode
     //this.cam.disablePhoto = true;//defaults to false. Set to true and enableVideo to true, and camera button gestures ignored
@@ -131,7 +130,6 @@ export class DemoModel extends DemoSharedNativescriptCamera {
 
   public refreshUI() {
     const mergeButton = Frame.topmost().getViewById('mergeButton') as Button;
-
     const deleteButton = Frame.topmost().getViewById('deleteButton') as Button;
     if (this.videoSegments.length > 0) {
       deleteButton.visibility = 'visible';
@@ -200,9 +198,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       outputPath = path.join(knownFolders.documents().path, tempFileName);
       if (!File.exists(outputPath)) break;
     }
-
     console.log('starting merge for final recording at:', outputPath);
-
     let previewfile = await this.cam.mergeVideoFiles(this.videoSegments, outputPath);
     if (previewfile.size) {
       console.log('video preview files merged');
@@ -272,15 +268,11 @@ export class DemoModel extends DemoSharedNativescriptCamera {
   }
 
   public async requestGalleryPermission() {
-    console.log('requestGalleryPermission()');
     try {
-      //iOS always needs permission
+      //iOS always needs permission to save to gallery
       if (isIOS) {
-        console.log('iOS checking photo library permissions');
         await checkPermission('photo').then(async (permres: Result) => {
-          console.log('current photos gallery perm:', permres);
           await request('photo').then(async result => {
-            console.log('request perm result:', result);
             if (result[0] == 'authorized' && result[1]) {
               console.log('authorized Photos Gallery permission');
             } else {
@@ -291,16 +283,15 @@ export class DemoModel extends DemoSharedNativescriptCamera {
           });
         });
       }
-      console.log('done checking iOS');
+
       //Android devices on API <29 need legacy write_external_storage permission to save to gallery
+      //newer Android APIs don't need permission when using MediaStore to save images
       if (isAndroid && +Device.sdkVersion < 29) {
         console.log('Android device version: ', Device.sdkVersion);
         //requires old external storage write permission
         await checkPermission('storage').then(async permres => {
-          console.log('storage check:', permres);
           if (permres[0] == 'undetermined' || permres[0] != 'authorized') {
             await request('storage').then(async result => {
-              console.log('storage request', result);
               // console.log(result['android.permission.READ_EXTERNAL_STORAGE']);
               // console.log(result['android.permission.WRITE_EXTERNAL_STORAGE']);
               if (result['android.permission.READ_EXTERNAL_STORAGE'] == 'authorized' && result['android.permission.WRITE_EXTERNAL_STORAGE'] == 'authorized') {
@@ -319,9 +310,5 @@ export class DemoModel extends DemoSharedNativescriptCamera {
     } catch (err) {
       console.error(err);
     }
-    //newer Android APIs don't need permissions for MediaStore to save images
-    console.log('done checking Android');
-
-    console.log('requestGalleryPermission complete, returning');
   }
 }

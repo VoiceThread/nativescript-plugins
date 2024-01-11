@@ -46,19 +46,9 @@ export class MainViewModel extends Observable {
             console.log('request result', result);
             if (result[0] == 'authorized' && permres[1] == true) {
               console.log('authorized');
-              // if (!this.cam) {
-              // this.cam = new CameraPlus();
-              // Frame.topmost().navigate({
-              //   moduleName: 'plugin-demos/nativescript-camera',
-              // });
-              // this.cam.visibility = 'visible';
-              // }
-              // this.cam.takePicture({ saveToGallery: true });
             } else {
               console.error('Unable to request permission!');
               permsok = false;
-              // alert('No permission for camera, cannot open camera demo!');
-              // return;
             }
           });
         } else await alert('No permission for camera! Grant this permission in app settings first');
@@ -87,15 +77,10 @@ export class MainViewModel extends Observable {
           await request('microphone').then(async result => {
             console.log('request result', result);
             if (result[0] == 'authorized' && permres[1] == true) {
-              // if (!this.cam) {
-              // this.cam = new CameraPlus();
               console.log('loading camera demo');
               Frame.topmost().navigate({
                 moduleName: 'plugin-demos/nativescript-camera',
               });
-              // this.cam.visibility = 'visible';
-              // }
-              // this.cam.takePicture({ saveToGallery: true });
             } else await alert('No permission for microphone, cannot open camera demo!');
           });
         } else await alert('No permission for microphone! Grant this permission in app settings first');
@@ -103,8 +88,5 @@ export class MainViewModel extends Observable {
     } catch (err) {
       console.error(err);
     }
-    // Frame.topmost().navigate({
-    //   moduleName: 'plugin-demos/nativescript-camera',
-    // });
   }
 }
