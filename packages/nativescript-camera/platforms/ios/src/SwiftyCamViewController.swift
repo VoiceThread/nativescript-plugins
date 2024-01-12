@@ -117,8 +117,6 @@ import UIKit
   /// Sets wether the taken photo or video should be oriented according to the device orientation
   @objc public var shouldUseDeviceOrientation = true
 
-  @objc public var shouldLockRotation = true
-
   // MARK: Public Get-only Variable Declarations
 
   /// Returns true if the capture session is currently running

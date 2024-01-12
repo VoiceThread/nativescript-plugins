@@ -487,6 +487,7 @@ export class CameraPlus extends CameraPlusBase {
       quality: CameraVideoQuality.MAX_720P,
     };
     this.CLog('android.ts record()', options);
+    console.log('shouldLockRotation', this.shouldLockRotation);
     if (this._camera) {
       this._camera.setDisableHEVC(!!options.disableHEVC);
       this._camera.setSaveToGallery(!!options.saveToGallery);
@@ -517,6 +518,10 @@ export class CameraPlus extends CameraPlusBase {
       this._camera.setMaxAudioBitRate(options.androidMaxAudioBitRate || -1);
       this._camera.setMaxVideoBitrate(options.androidMaxVideoBitRate || -1);
       this._camera.setMaxVideoFrameRate(options.androidMaxFrameRate || -1);
+      if (this.shouldLockRotation) {
+        console.log('shouldLockRotation true, locking rotation during recording');
+        this.disableRotationAndroid();
+      }
       this._camera.startRecording();
     }
   }
@@ -532,6 +537,10 @@ export class CameraPlus extends CameraPlusBase {
     if (this._camera) {
       this.CLog(`*** stopping mediaRecorder ***`);
       this._camera.stopRecording();
+      if (this.shouldLockRotation) {
+        console.log('shouldLockRotation true, unlocking rotation after recording');
+        this.enableRotationAndroid();
+      }
     } else {
       this.CError("NO camera instance attached, can't stop recording!");
     }
@@ -863,6 +872,33 @@ export class CameraPlus extends CameraPlusBase {
       this.CError('_initDefaultButtons error', ex);
     }
   }
+
+  /**
+   * @function enableRotation
+   */
+  private enableRotationAndroid(): void {
+    if (!Application.android || !Application.android.foregroundActivity) {
+      setTimeout(this.enableRotationAndroid, 100);
+      return;
+    }
+
+    const activity = Application.android.foregroundActivity;
+    activity.setRequestedOrientation(13);
+  }
+
+  /**
+   * @function disableRotation
+   */
+  private disableRotationAndroid(disallowPlayerOverride: boolean = false): void {
+    if (!Application.android || !Application.android.foregroundActivity) {
+      setTimeout(this.disableRotationAndroid, 100);
+      return;
+    }
+
+    const activity = Application.android.foregroundActivity;
+    activity.setRequestedOrientation(14); // SCREEN_ORIENTATION_LOCKED = 14
+  }
+
   /*
    * Merge an array of video filenames, must all be valid mp4 format video files with same audio encoding
    */

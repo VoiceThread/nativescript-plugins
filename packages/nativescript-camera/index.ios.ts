@@ -214,7 +214,9 @@ export class MySwifty extends SwiftyCamViewController {
       this._flashBtnHandler();
     }
 
+    // console.log('shouldLockRotation', this._owner.get().shouldLockRotation);
     if (this._owner.get().shouldLockRotation) {
+      // console.log('shouldLockRotation set, adding rotation controller for iOS');
       this.setupiOSRotationController();
     }
 
@@ -310,7 +312,13 @@ export class MySwifty extends SwiftyCamViewController {
       this.stopVideoRecording();
       this._cameraBtn.changeToCircle();
       //unlock rotation
-      this.enableRotation();
+      if (this._owner.get().shouldLockRotation) {
+        this.enableRotation();
+        // console.log('recordVideo stop section, shouldLockRotation true');
+      }
+      // else {
+      // console.log('recordVideo stop section, shouldLockRotation false');
+      // }
     } else {
       // console.log('CameraPlus record video options:', options);
       if (options) {
@@ -358,7 +366,14 @@ export class MySwifty extends SwiftyCamViewController {
         this._cameraBtn.changeToSquare();
         this.startVideoRecording();
       }
-      this.disableRotation();
+      // if (this._owner.get().shouldLockRotation) this.disableRotation();
+      if (this._owner.get().shouldLockRotation) {
+        this.disableRotation();
+        // console.log('recordVideo start section, shouldLockRotation true');
+      }
+      //  else {
+      //   console.log('recordVideo start section, shouldLockRotation false');
+      // }
       // console.log('requested camera delegate startVideoRecording()');
     }
   }
@@ -575,13 +590,15 @@ export class MySwifty extends SwiftyCamViewController {
 
   public buttonWasTapped() {
     // console.log('SwiftyCamButtonDelegate called buttonWasTapped()', this._enableVideo, this._disablePhoto);
-    if (this._enableVideo && this._disablePhoto) {
+    if (this._enableVideo) {
       if (this.isRecording) {
         // console.log('Recording in progress, stopping recording');
+        if (this._owner.get().shouldLockRotation) this.enableRotation();
         this._cameraBtn.changeToCircle();
         this.stopVideoRecording();
       } else {
         // console.log('Video enabled, starting recording');
+        if (this._owner.get().shouldLockRotation) this.disableRotation();
         this._cameraBtn.changeToSquare();
         this.startVideoRecording();
       }
@@ -598,7 +615,7 @@ export class MySwifty extends SwiftyCamViewController {
   public buttonDidBeginLongPress() {
     // console.log('SwiftyCamButtonDelegate called buttonDidBeginLongPress()');
     if (this._enableVideo) {
-      this.disableRotation();
+      if (this._owner.get().shouldLockRotation) this.disableRotation();
       this._cameraBtn.changeToSquare();
       this.startVideoRecording();
     } else console.warn('video not enabled, ignoring long press start');
@@ -609,9 +626,9 @@ export class MySwifty extends SwiftyCamViewController {
   public buttonDidEndLongPress() {
     // console.log('SwiftyCamButtonDelegate called buttonDidEndLongPress()');
     if (this._enableVideo) {
-      this.enableRotation();
-      this._cameraBtn.changeToCircle();
       this.stopVideoRecording();
+      if (this._owner.get().shouldLockRotation) this.enableRotation();
+      this._cameraBtn.changeToCircle();
     } else console.warn('video not enabled, ignoring long press end');
   }
 
@@ -620,6 +637,7 @@ export class MySwifty extends SwiftyCamViewController {
     // console.log('SwiftyCamButtonDelegate called longPressDidReachMaximumDuration()');
     if (this._enableVideo) {
       this.stopVideoRecording();
+      if (this._owner.get().shouldLockRotation) this.enableRotation();
       this._cameraBtn.changeToCircle();
     } else console.warn('video not enabled, ignoring long press max duration');
   }
@@ -662,8 +680,8 @@ export class MySwifty extends SwiftyCamViewController {
       Object.defineProperty(proto, 'supportedInterfaceOrientations', {
         get: function () {
           const result = that.allowRotation ? UIInterfaceOrientationMask.AllButUpsideDown : that._currentOrientationMask;
-          // console.log('get supported orientations', result);
-          // console.log('allowRotation', that.allowRotation);
+          console.log('get supported orientations', result);
+          console.log('allowRotation', that.allowRotation);
           return result;
         },
         enumerable: true,
@@ -695,15 +713,16 @@ export class MySwifty extends SwiftyCamViewController {
       [UIDeviceOrientation.PortraitUpsideDown]: () => UIInterfaceOrientationMask.PortraitUpsideDown,
       [UIDeviceOrientation.Portrait]: () => UIInterfaceOrientationMask.Portrait,
       defaultValue: () => this._currentOrientationMask || UIInterfaceOrientationMask.Portrait,
-    }).get(UIDevice.currentDevice.orientation as any)();
-    // console.log('current', UIDevice.currentDevice.orientation, this._currentOrientationMask);
+    }).get(UIApplication.sharedApplication.statusBarOrientation as any)();
+    // UIDevice.currentDevice.orientation as any)();
+    console.log('current', UIDevice.currentDevice.orientation, UIApplication.sharedApplication.statusBarOrientation, this._currentOrientationMask);
   }
 
   /**
    * @function enableRotation
    */
   public enableRotation(): void {
-    // console.log('enableRotation');
+    // console.log('enableRotation', this._owner.get().shouldLockRotation, this.shouldLockRotation);
     if (!this._owner.get().shouldLockRotation) return;
     this.allowRotation = true;
     if (+iOSNativeHelper.MajorVersion >= 16) {
@@ -717,6 +736,7 @@ export class MySwifty extends SwiftyCamViewController {
    * @function disableRotation
    */
   public disableRotation(): void {
+    // console.log('disableRotation', this._owner.get().shouldLockRotation, this.shouldLockRotation);
     if (!this._owner.get().shouldLockRotation) return;
     // console.log('disableRotation');
     if (!this.allowRotation) {
@@ -951,7 +971,7 @@ export class CameraPlus extends CameraPlusBase {
     this.CLog('CameraPlus record', options);
     this._swifty.recordVideo(options);
     this._swifty._cameraBtn.changeToSquare();
-    this._swifty.disableRotation();
+    if (this.shouldLockRotation) this._swifty.disableRotation();
     return Promise.resolve();
   }
 
@@ -962,7 +982,7 @@ export class CameraPlus extends CameraPlusBase {
     this.CLog('CameraPlus stop');
     this._swifty.stopVideoRecording();
     this._swifty._cameraBtn.changeToCircle();
-    this._swifty.enableRotation();
+    if (this.shouldLockRotation) this._swifty.enableRotation();
   }
 
   /**

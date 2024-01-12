@@ -45,7 +45,7 @@ This nativescript camera plugin works on Android (API 26+) and Apple devices (iO
 ## Future Features
 * ⏯️ Customizable Video quality (dimensions)
 * 🌓 Video Confirmation flag and UI
-* ⚡ More exposed properties/functions for better control over Camera and Photo/Video capture
+* ⚡ Additional properties/functions for better control over Camera and Photo/Video capture
 
 ## Usage
 
@@ -68,7 +68,7 @@ this.cam.confirmPhotos = true;
 this.cam.defaultCamera = 'front';
     ......
 //Check camera and microphone permissions first.
-//Then, add this.cam to a page View as a child and voila!
+//Then, add this.cam to a Layout as a child and voila!
 ```
 or
 ```xml
@@ -203,6 +203,7 @@ If you want to use the `saveToGallery` flag then you will also need to add the f
 | **enableVideo**       | boolean | *false*       | If true the Camera instance can record video and will affect camera UX and main camera button icon used.                                      |
 | **disablePhoto**       | boolean | *false*       | If true the Camera instance UI will only allow video mode operation. if enableVideo is false and disablePhoto is true, the main camera button will not trigger any actions.                                       |
 | **defaultCamera** | `'front'` or `'rear'` | *'rear'*         | Which camera to use on launch.  `'front'` or `'rear'`.                                                  |
+| **shouldLockRotation**| boolean | *true*  | If true, locks the device orientation while recording video|
 
 ## Android Only Properties
 
@@ -298,9 +299,9 @@ export enum CameraVideoQuality {
 
 ## Additional Utils
 
-This plugin also exports a function `mergeVideoFiles` which a dev can use to merge an array of video files produced by the camera plugin. To use it, all input files must be MP4 with the same video and audio codec settings for all video segments. It takes two inputs, first an array of file names for the input video files and second a string path to use to save the merged video file. 
+This plugin also exports a function `mergeVideoFiles` which a dev can use to merge an array of video files produced by the camera plugin. To use it, all input files must be MP4 with the same video and audio codec settings for all video segments. It takes two parameters; the first is an array of file names for the input video files and the second is a string path to use to save the merged video file. 
 ``` js
-mergeVideoFiles(videoSegmentsArray, outputPath)
+let outputFile = mergeVideoFiles(videoSegmentsArray, outputPath)
 ```
 
 

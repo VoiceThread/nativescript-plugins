@@ -143,7 +143,7 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
   // public confirmVideo: boolean = false;
 
   /**
-   * If true locks rotation while recording video. Default is true
+   * If true locks device UI orientation while recording video. Default is true
    */
   @GetSetProperty()
   public shouldLockRotation: boolean = true;
