@@ -285,7 +285,7 @@ export class CameraPlus extends CameraPlusBase {
         // that.CLog('onCameraPhotoUI() got a file');
         const owner = this.owner ? this.owner.get() : null;
         const file = event;
-        const options = owner._lastCameraOptions.shift();
+        const options: ICameraOptions = owner._lastCameraOptions.shift();
         let confirmPic;
         let confirmPicRetakeText;
         let confirmPicSaveText;
@@ -297,7 +297,7 @@ export class CameraPlus extends CameraPlusBase {
         const density = Utils.layout.getDisplayDensity();
         if (options) {
           // that.CLog('have options set', options);
-          confirmPic = options.confirm ? true : false;
+          confirmPic = options.confirmPhotos ? true : false;
           confirmPicRetakeText = options.confirmRetakeText ? options.confirmRetakeText : owner.confirmRetakeText;
           confirmPicSaveText = options.confirmSaveText ? options.confirmSaveText : owner.confirmSaveText;
           saveToGallery = options.saveToGallery ? true : false;
@@ -790,9 +790,9 @@ export class CameraPlus extends CameraPlusBase {
             //Photo Capture
             if (!this.isButtonLongPressed && pEvent.getAction() == android.view.MotionEvent.ACTION_DOWN) {
               // this.CLog('Photo enabled, taking pic on ACTION_DOWN');
-              const opts = {
+              const opts: ICameraOptions = {
                 saveToGallery: this.saveToGallery,
-                confirm: this.confirmPhotos,
+                confirmPhotos: this.confirmPhotos,
                 autoSquareCrop: this.autoSquareCrop,
               };
 

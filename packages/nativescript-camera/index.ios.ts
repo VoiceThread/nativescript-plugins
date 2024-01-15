@@ -223,7 +223,7 @@ export class MySwifty extends SwiftyCamViewController {
     // console.log('done with viewDidLoad');
     //copy over options from xml if set on camera instance
     this._snapPicOptions = {
-      confirm: this._owner.get().confirmPhotos, // from property setter
+      confirmPhotos: this._owner.get().confirmPhotos, // from property setter
       confirmRetakeText: this._owner.get().confirmRetakeText,
       confirmSaveText: this._owner.get().confirmSaveText,
       saveToGallery: this._owner.get().saveToGallery,
@@ -288,7 +288,7 @@ export class MySwifty extends SwiftyCamViewController {
       this._snapPicOptions = options;
     } else {
       this._snapPicOptions = {
-        confirm: this._owner.get().confirmPhotos, // from property setter
+        confirmPhotos: this._owner.get().confirmPhotos, // from property setter
         confirmRetakeText: this._owner.get().confirmRetakeText,
         confirmSaveText: this._owner.get().confirmSaveText,
         saveToGallery: this._owner.get().saveToGallery,
@@ -444,7 +444,7 @@ export class MySwifty extends SwiftyCamViewController {
     // console.log('tookPhoto!', this._snapPicOptions);
     if (!this._snapPicOptions)
       this._snapPicOptions = {
-        confirm: true,
+        confirmPhotos: true,
         confirmRetakeText: 'no',
         confirmSaveText: 'ok',
         saveToGallery: true,
@@ -472,7 +472,7 @@ export class MySwifty extends SwiftyCamViewController {
       CGImageRelease(ref);
     }
 
-    if (this._snapPicOptions && this._snapPicOptions.confirm) {
+    if (this._snapPicOptions && this._snapPicOptions.confirmPhotos) {
       // console.log('photo confirmation enabled, preparing');
       // show the confirmation
       const width = this.view.bounds.size.width;

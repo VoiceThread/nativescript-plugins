@@ -36,9 +36,9 @@ This nativescript camera plugin works on Android (API 26+) and Apple devices (iO
 * 👁️ Camera switching during video recording and option to lock device rotation while recording
 * 👌 Pinch to zoom in/out and tap to focus
 * 📱 Video merge utility
-* 🎞️ Built-in controls for flash, camera switch, camera button
-* ⏱️ Supports square-cropping photos and saving to device Photos
-* 🧩 Photo confirmation flag and UI
+* 🎞️ Built-in buttons for flash, camera switch, camera 
+* ⏱️ Supports square-cropping photos and saving to device Photos library
+* 🧩 Photo confirmation options with built-in UI to show preview
 * 🔍 Customizable output photo dimensions and quality (saved as jpeg)
 
 
@@ -97,7 +97,7 @@ or
   ......
 ```
 
-3. Hook into camera events to handle videos and photos taken events along with other useful events. 
+3. Hook into camera events to handle videos and photos capture events along with other useful events. 
 
 ```javascript
 this.cam.on(CameraPlus.errorEvent, args => {
@@ -121,7 +121,7 @@ this.cam.on(CameraPlus.errorEvent, args => {
     });
 
     this.cam.on(CameraPlus.videoRecordingFinishedEvent, (args: any) => {
-      // some more UI updates
+      // some other UI updates
     });
 
     this.cam.on(CameraPlus.cameraReadyEvent, (args: any) => {
@@ -262,7 +262,7 @@ If you want to use the `saveToGallery` flag then you will also need to add the f
 Photo taking options
 ```TS
 export interface ICameraOptions {
-  confirm?: boolean;
+  confirmPhotos?: boolean;
   saveToGallery?: boolean;
   quality?: number;
   maxDimension?: number;
@@ -275,8 +275,7 @@ export interface ICameraOptions {
 Video recording options
 ```TS
 export interface IVideoOptions {
-  quality?: CameraVideoQuality;
-  confirm?: boolean;
+  quality?: CameraVideoQuality;  
   saveToGallery?: boolean;
   height?: number;
   width?: number;

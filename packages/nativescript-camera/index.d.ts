@@ -263,13 +263,13 @@ export declare class CameraPlus extends ContentView {
 }
 
 export interface ICameraOptions {
-  confirm?: boolean;
+  confirmPhotos?: boolean;
   saveToGallery?: boolean;
+  quality?: number;
   maxDimension?: number;
   autoSquareCrop?: boolean;
   confirmRetakeText?: string;
   confirmSaveText?: string;
-  // useCameraOptions?: boolean;
 }
 
 export declare enum CameraVideoQuality {
@@ -283,7 +283,6 @@ export declare enum CameraVideoQuality {
 }
 export interface IVideoOptions {
   quality?: CameraVideoQuality;
-  confirm?: boolean;
   saveToGallery?: boolean;
   height?: number;
   width?: number;

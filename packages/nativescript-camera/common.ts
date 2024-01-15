@@ -323,7 +323,7 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
 }
 
 export interface ICameraOptions {
-  confirm?: boolean;
+  confirmPhotos?: boolean;
   saveToGallery?: boolean;
   quality?: number;
   maxDimension?: number;
@@ -356,7 +356,6 @@ export enum CameraVideoQuality {
 
 export interface IVideoOptions {
   quality?: CameraVideoQuality;
-  confirm?: boolean;
   saveToGallery?: boolean;
   height?: number;
   width?: number;
