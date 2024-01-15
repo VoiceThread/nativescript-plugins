@@ -271,18 +271,17 @@ export class CameraPlus extends CameraPlusBase {
         that.CError('onCameraError', message);
         const owner = this.owner ? this.owner.get() : null;
         if (owner) {
-          owner._lastCameraOptions.shift();
+          owner._lastCameraOptions.shift(); //remove the last set of options used
           that.CLog(message, null);
           owner.sendEvent(CameraPlus.errorEvent, null, message);
           if (owner.isRecording) {
             owner.isRecording = false;
           }
         } else {
-          that.CError('!!! No owner reference found when handling onCameraVideoUI event');
+          that.CError('!!! No owner reference found when handling onCameraError event');
         }
       },
       async onCameraPhotoUI(event?: java.io.File) {
-        // that.CLog('onCameraPhotoUI() got a file');
         const owner = this.owner ? this.owner.get() : null;
         const file = event;
         const options: ICameraOptions = owner._lastCameraOptions.shift();
@@ -293,10 +292,11 @@ export class CameraPlus extends CameraPlusBase {
         let maxDimension;
         let quality;
         let shouldAutoSquareCrop = owner.autoSquareCrop;
-
+        that.CLog('onCameraPhotoUI() got a file, saved options', options);
         const density = Utils.layout.getDisplayDensity();
         if (options) {
-          // that.CLog('have options set', options);
+          //if we have options saved, use them. otherwise fall back on defaults set on plugin
+          that.CLog('saved options:', options);
           confirmPic = options.confirmPhotos ? true : false;
           confirmPicRetakeText = options.confirmRetakeText ? options.confirmRetakeText : owner.confirmRetakeText;
           confirmPicSaveText = options.confirmSaveText ? options.confirmSaveText : owner.confirmSaveText;
@@ -305,8 +305,8 @@ export class CameraPlus extends CameraPlusBase {
           shouldAutoSquareCrop = !!options.autoSquareCrop;
           quality = options.quality ? +options.quality : 95;
         } else {
-          // use xml property getters or their defaults
-          // that.CLog('Using property getters for defaults, no options.');
+          // otherwise, use xml property getters or their defaults
+          that.CLog('Using property getters for defaults, no options.');
           confirmPic = owner.confirmPhotos;
           saveToGallery = owner.saveToGallery;
           confirmPicRetakeText = owner.confirmRetakeText;
@@ -432,11 +432,23 @@ export class CameraPlus extends CameraPlusBase {
    */
   public takePicture(options?: ICameraOptions): void {
     if (this._camera) {
-      options = options || {};
+      // Use options if passed, otherwise use the current values set on plugin via XML or code,
+      //   or fall back on plugin defaults if no properties set by user before now.
+      options = {
+        confirmPhotos: options?.confirmPhotos ? options.confirmPhotos : this.confirmPhotos,
+        confirmRetakeText: options?.confirmRetakeText ? options.confirmRetakeText : this.confirmRetakeText,
+        confirmSaveText: options?.confirmSaveText ? options.confirmSaveText : this.confirmSaveText,
+        saveToGallery: options?.saveToGallery ? options.saveToGallery : this._camera.getSaveToGallery(),
+        maxDimension: options?.maxDimension ? +options.maxDimension : this.maxDimension,
+        autoSquareCrop: options?.autoSquareCrop ? options.autoSquareCrop : this._camera.getAutoSquareCrop(),
+        quality: options?.quality ? +options.quality : this.quality,
+      };
       this.CLog('takePicture() options:', JSON.stringify(options));
+      //these two options need to be set on native side
       this._camera.setSaveToGallery(!!options.saveToGallery);
       this._camera.setAutoSquareCrop(!!options.autoSquareCrop);
-      this._lastCameraOptions.push(options);
+      //the rest of the options are used on NS side: confirmPhotos, confirmRetakeText, confirmSaveText, maxDimention and quality
+      this._lastCameraOptions.push(options); //save these options for NS side to refer to once a photo file is returned from native code
       this._camera.takePhoto();
     }
   }
@@ -790,17 +802,11 @@ export class CameraPlus extends CameraPlusBase {
             //Photo Capture
             if (!this.isButtonLongPressed && pEvent.getAction() == android.view.MotionEvent.ACTION_DOWN) {
               // this.CLog('Photo enabled, taking pic on ACTION_DOWN');
-              const opts: ICameraOptions = {
-                saveToGallery: this.saveToGallery,
-                confirmPhotos: this.confirmPhotos,
-                autoSquareCrop: this.autoSquareCrop,
-              };
-
               if (owner) {
-                this.CLog('_initTakePicButton() calling takePicture with options', opts);
-                owner.takePicture(opts);
+                this.CLog('_initTakePicButton() calling takePicture without options');
+                owner.takePicture();
               }
-            } else this.CLog('Ignoring action');
+            } //else this.CLog('Ignoring action');
           } else {
             // console.warn('neither photo or video enabled, ignoring tap');
           }

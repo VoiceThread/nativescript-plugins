@@ -21,23 +21,23 @@
 
         <Cam:CameraPlus height="{{ cameraHeight }}"
           id="camPlus"
-          enableVideo="true"
+          debug="true"
+          enableVideo="false"
           defaultCamera="front"
           disablePhoto="false"
-          saveToGallery="true"
           showCaptureIcon="true"
           showToggleIcon="true"
           showFlashIcon="true"
-          confirmPhotos="true"
-          autoSquareCrop="false"
           insetButtons="true"
           insetButtonsPercent="0.02"
-          shouldLockRotation="true"
+          shouldLockRotation="false"
+          confirmPhotos="true"
+          saveToGallery="false"
+          autoSquareCrop="false"
           confirmRetakeText="nah"
           confirmSaveText="yeah"
           maxDimension="800"
-          quality="90"
-          debug="true">
+          quality="90">
           <!-- 
               iOS only properties: doubleTapCameraSwitch='true'  
           -->
@@ -96,7 +96,7 @@
           controls="true"
           loop="false"
           autoplay="false"
-          height="300"
+          height="400"
           src=""
           opacity="1"
           visibility="hidden"/>

@@ -11,16 +11,18 @@
 - [NativeScript Camera  ](#nativescript-camera--)
   - [Contents](#contents)
   - [Installation](#installation)
+  - [Features](#features)
   - [Usage](#usage)
   - [Android Permissions](#android-permissions)
   - [iOS Permissions](#ios-permissions)  
-  - [Android](#android)
-  - [iOS](#ios)
+  - [Properties](#properties)  
+  - [Methods](#cross-platform-public-methods)  
+  - [Events](#events)  
+  - [Interfaces](#option-interfaces)  
   - [Acknowledgements](#acknowledgements)
   - [License](#license)
-
+------------------------------
 ## Installation
-
 ```bash
 npm install @voicethread/nativescript-camera --save
 ```
@@ -28,10 +30,9 @@ OR
 ```bash
 ns plugin install @voicethread/nativescript-camera
 ```
-
+------------------------------
 ## Features
 This nativescript camera plugin works on Android (API 26+) and Apple devices (iOS 12+) and has the following features:
-
 * 📸 Photo and Video capture
 * 👁️ Camera switching during video recording and option to lock device rotation while recording
 * 👌 Pinch to zoom in/out and tap to focus
@@ -41,25 +42,21 @@ This nativescript camera plugin works on Android (API 26+) and Apple devices (iO
 * 🧩 Photo confirmation options with built-in UI to show preview
 * 🔍 Customizable output photo dimensions and quality (saved as jpeg)
 
-
 ## Future Features
-* ⏯️ Customizable Video quality (dimensions)
+* ⏯️ Customizable Video quality and dimensions
 * 🌓 Video Confirmation flag and UI
-* ⚡ Additional properties/functions for better control over Camera and Photo/Video capture
-
+* ⚡ Additional properties/functions for more control over Camera and Photo/Video capture
+------------------------------
 ## Usage
-
 The best way to understand how to use the plugin is to look at the demo app included in this repo.
 The `apps/demo/` folder contains a simple NS TypeScript application that uses this plugin. Look at `apps/demo/src/plugin-demos/nativescript-camera.ts` and `apps/demo/src/plugin-demos/nativescript-camera.xml` for camera plugin usage, and `apps/demo/src/main-view-model.ts` for obtaining permissions before using the camera plugin. 
 
 1. Import the plugin.
-
 ```javascript
 import { CameraPlus } from '@voicethread/nativescript-camera';
 ```
 
 2. Create a camera instance via JS/TS or XML:
-
 ```javascript
 this.cam = new CameraPlus();
 this.cam.id = "camPlus"
@@ -130,11 +127,11 @@ this.cam.on(CameraPlus.errorEvent, args => {
 ```
 
 4. Use the built-in buttons or control the camera using exposed functions in your app.
-
+------------------------------
 ### Permissions
 Before creating/using a Camera instance, you will need to ensure that permissions for both the Camera an the Microphone have been granted by the user. An example using the community permissions plugin can be seen in `apps/demo/src/main-view-model.ts`.
-### Android Permissions
 
+### Android Permissions
 To request permissions in the demo app, we use the @nativescript-community [perms plugin](https://github.com/nativescript-community/perms). 
 
 
@@ -186,9 +183,8 @@ If you want to use the `saveToGallery` flag then you will also need to add the f
 
 > **NOTE**: if you do use the perms plugin in a production app, make sure to read their README.md first, as using this plugin in production apps may require you to add all iOS Info.plist permission strings to avoid being rejected by automatic processing since the plugin includes code for all permission types.
 
-
+------------------------------
 ## Properties
-
 | Name                  | Type    | Default    | Description                                                                                                                  |
 | --------------------- | ------- | -----------|----------------------------------------------------------------------------------------------------------------------------- |
 | **debug**             | boolean | *false*      | If true logs will be output in the console to help debug the Camera plugin.                                           |
@@ -206,7 +202,6 @@ If you want to use the `saveToGallery` flag then you will also need to add the f
 | **shouldLockRotation**| boolean | *true*  | If true, locks the device orientation while recording video|
 
 ## Android Only Properties
-
 | Name                 | Type    | Description                                                                                 |
 | -------------------- | ------- | ------------------------------------------------------------------------------------------- |
 | **flashOnIcon**      | string  | Name of app_resource drawable for the native image button when flash is on (enabled).       |
@@ -219,13 +214,13 @@ If you want to use the `saveToGallery` flag then you will also need to add the f
 | **insetButtonsPercent**|number | The percentage to inset by, from 0.0 - 1.0                                                  |
 
 ## iOS Only Properties
-
 | Name                      | Type    | Description                                                   |
 | ------------------------- | ------- | ------------------------------------------------------------- |
 | **doubleTapCameraSwitch** | boolean | Enable/disable double tap gesture to switch camera. (enabled) |
 
-## Cross Platform Public Methods
+------------------------------
 
+## Cross Platform Public Methods
 | Method                                       | Description                                                                                                                                                     |
 | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **isCameraAvailable()**                      | Returns true if the device has at least one camera.                                                                                                             |
@@ -237,14 +232,12 @@ If you want to use the `saveToGallery` flag then you will also need to add the f
 | **stop()**                                   | Stops the video recording. When the video file is ready, the `videoRecordingReadyEvent` event will be emitted with its path.                                                                   |
 
 ## Android Only Public Methods
-
 | Method                                                  | Description                                                                                                                                         |
 | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **getNumberOfCameras()**                                | Returns the number of cameras on the device.                                                                                                        |
 | **hasFlash()**                                          | Returns true if the active camera has a flash mode.                                                                                                 |
-
+------------------------------
 ## Events
-
 | Name                            | Description                                                                            |
 | ------------------------------- | -------------------------------------------------------------------------------------- |
 | **errorEvent**                  | Executes when an error is emitted from the Camera                                     |
@@ -256,9 +249,8 @@ If you want to use the `saveToGallery` flag then you will also need to add the f
 | **confirmScreenShownEvent**     | Executes when the picture confirm dialog is shown..                                    |
 | **confirmScreenDismissedEvent** | Executes when the picture confirm dialog is dismissed either by Retake or Save button. |
 | **cameraReadyEvent**            | Executes when the camera instance is done initializing                                 |
-
+------------------------------
 ## Option Interfaces
-
 Photo taking options
 ```TS
 export interface ICameraOptions {
@@ -295,21 +287,21 @@ export enum CameraVideoQuality {
 }
 ```
 
+------------------------------
 
 ## Additional Utils
-
-This plugin also exports a function `mergeVideoFiles` which a dev can use to merge an array of video files produced by the camera plugin. To use it, all input files must be MP4 with the same video and audio codec settings for all video segments. It takes two parameters; the first is an array of file names for the input video files and the second is a string path to use to save the merged video file. 
+This plugin also exports a function `mergeVideoFiles` which a dev can use to merge an array of video files produced by the camera plugin. To use it, all input files must be MP4 with the same video and audio codec settings for all video segments. It takes two parameters; the first is an array of file names for the input video files and the second is a path string to save the merged video file to. 
 ``` js
 let outputFile = mergeVideoFiles(videoSegmentsArray, outputPath)
 ```
 
+------------------------------ 
 
 ## Acknowledgements
-
 This plugin was based on [Nativescript-Camera-Plus](https://github.com/nstudio/nativescript-camera-plus) for NS,  [SwiftyCam](https://github.com/NathanWalker/SwiftyCam) for iOS and [FancyCamera](https://github.com/triniwiz/fancycamera) for Android. 
 
+------------------------------
 ## License
-
 Apache License Version 2.0
 
 

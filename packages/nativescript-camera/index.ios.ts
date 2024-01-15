@@ -294,9 +294,10 @@ export class MySwifty extends SwiftyCamViewController {
         saveToGallery: this._owner.get().saveToGallery,
         autoSquareCrop: this._owner.get().autoSquareCrop,
         maxDimension: this._owner.get().maxDimension,
+        quality: this._owner.get().quality,
       };
     }
-    // console.log('snapPicture using options', this._snapPicOptions);
+    // console.log('snapPicture() using options', this._snapPicOptions);
     this.takePhoto();
   }
 
@@ -439,16 +440,19 @@ export class MySwifty extends SwiftyCamViewController {
     if (this._owner.get().showFlashIcon) this._flashBtnHandler();
   }
 
+  //handler when an image is returned from native camera code
   public tookPhoto(photo: UIImage) {
     this._photoToSave = photo;
-    // console.log('tookPhoto!', this._snapPicOptions);
+    // console.log('tookPhoto()', this._snapPicOptions);
     if (!this._snapPicOptions)
       this._snapPicOptions = {
-        confirmPhotos: true,
-        confirmRetakeText: 'no',
-        confirmSaveText: 'ok',
-        saveToGallery: true,
-        autoSquareCrop: false,
+        confirmPhotos: this._owner.get().confirmPhotos,
+        confirmRetakeText: this._owner.get().confirmRetakeText,
+        confirmSaveText: this._owner.get().confirmSaveText,
+        saveToGallery: this._owner.get().saveToGallery,
+        autoSquareCrop: this._owner.get().autoSquareCrop,
+        maxDimension: this._owner.get().maxDimension,
+        quality: this._owner.get().quality,
       };
 
     if (this._snapPicOptions && this._snapPicOptions.autoSquareCrop) {
@@ -959,8 +963,18 @@ export class CameraPlus extends CameraPlusBase {
    * Snap photo and display confirm save
    */
   public takePicture(options?: ICameraOptions): void {
-    this.CLog('CameraPlus takePicture', options);
+    // this.CLog('CameraPlus takePicture() options passed', options);
+    options = {
+      confirmPhotos: options?.confirmPhotos ? options.confirmPhotos : this.confirmPhotos,
+      confirmRetakeText: options?.confirmRetakeText ? options.confirmRetakeText : this.confirmRetakeText,
+      confirmSaveText: options?.confirmSaveText ? options.confirmSaveText : this.confirmSaveText,
+      saveToGallery: options?.saveToGallery ? options.saveToGallery : this.saveToGallery,
+      maxDimension: options?.maxDimension ? +options.maxDimension : this.maxDimension,
+      autoSquareCrop: options?.autoSquareCrop ? options.autoSquareCrop : this.autoSquareCrop,
+      quality: options?.quality ? +options.quality : this.quality,
+    };
     this._updateCameraQuality();
+    // this.CLog('takePicture() options being used with snapPicture()', options);
     this._swifty.snapPicture(options);
   }
 

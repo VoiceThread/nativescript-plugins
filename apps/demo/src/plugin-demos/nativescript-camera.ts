@@ -1,6 +1,6 @@
 import { EventData, Page, alert, Frame, Screen, Image, File, isIOS, isAndroid, Button, path, knownFolders, Device } from '@nativescript/core';
 import { DemoSharedNativescriptCamera } from '@demo/shared';
-import { CameraPlus } from '@voicethread/nativescript-camera';
+import { CameraPlus, ICameraOptions } from '@voicethread/nativescript-camera';
 import { ObservableProperty } from './observable-property';
 import { Result, checkMultiple, check as checkPermission, request } from '@nativescript-community/perms';
 import { Video } from 'nativescript-videoplayer';
@@ -41,19 +41,19 @@ export class DemoModel extends DemoSharedNativescriptCamera {
     this.cam = page.getViewById('camPlus') as unknown as CameraPlus;
 
     //Notes on properties that affect camera instance
+
     //TODO: update these as properties are fixed or changed
+
     //[ Both Platforms ]
     //this.cam.enableVideo = true;//defaults to false. Enable to true for video mode
     //this.cam.disablePhoto = true;//defaults to false. Set to true and enableVideo to true, and camera button gestures ignored
-    //  UNSUPPORTED
+    //CURRENTLY UNSUPPORTED:
     // console.log('getAvailablePictureSizes', this.cam.getAvailablePictureSizes('1:1'));//not currently supported/working
 
     //[ Android only ]
     if (isAndroid) {
       // this.cam.autoFocus = false; // defaults to true so camera will auto focus before capturing image
-      // console.log('balance', this.cam.whiteBalance);
-      // console.log('balance', this.cam.whiteBalance);
-      //  UNSUPPORTED
+      //CURRENTLY UNSUPPORTED:
       // this.cam.whiteBalance = 'twilight';//not curreently supported to change whiteBalance, can read current whiteBalance
       // this.cam.zoom = 0.4; //not currently supported to set the zoom, but can read zoom level float from 0.0-1.0
       // this.cam.ratio = '1:1'; //not currently supported, camera defaults to size based on viewport dimensions
@@ -145,6 +145,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
     }
   }
 
+  // called by custom button on demo page
   public async recordDemoVideo() {
     try {
       let canRecord = true;
@@ -180,6 +181,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
     }
   }
 
+  // called by custom button on demo page
   public stopRecordingDemoVideo() {
     try {
       console.log(`*** stop recording ***`);
@@ -190,6 +192,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
     }
   }
 
+  // called by custom button on demo page
   public async mergeVideos() {
     console.log('mergeVideos()');
     let tempFileName, outputPath;
@@ -215,6 +218,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
     }
   }
 
+  // called by custom button on demo page
   public deleteLastSegment() {
     console.log('deleteLastSegment()');
     console.log('Segments in session:', this.videoSegments);
@@ -225,21 +229,25 @@ export class DemoModel extends DemoSharedNativescriptCamera {
     this.refreshUI();
   }
 
+  // called by custom button on demo page
   public toggleFlashOnCam() {
     console.log('toggleFlashOnCam()');
     this.cam.toggleFlash();
   }
 
+  // called by custom button on demo page
   public toggleShowingFlashIcon() {
     console.log(`showFlashIcon = ${this.cam.showFlashIcon}`);
     this.cam.showFlashIcon = !this.cam.showFlashIcon;
   }
 
+  // called by custom button on demo page
   public toggleTheCamera() {
     console.log('toggleTheCamera()');
     this.cam.toggleCamera();
   }
 
+  // called by custom button on demo page
   public async takePicFromCam() {
     console.log('takePicFromCam()');
     await checkPermission('camera').then(async permres => {
@@ -249,17 +257,32 @@ export class DemoModel extends DemoSharedNativescriptCamera {
             if (!this.cam) {
               this.cam = new CameraPlus();
             }
-            //take the photo
-            let customOptions = {
+            /*
+            //take the photo, using the same properties set via XML
+            // NOTE: not really needed unless you want to override a property set in XML without changing the current plugin value
+            let currentOptions: ICameraOptions = {
+              confirmPhotos: this.cam.confirmPhotos,
               saveToGallery: this.cam.saveToGallery,
-              autoSquareCrop: this.cam.autoSquareCrop,
-              confirm: this.cam.confirmPhotos,
-              confirmRetakeText: this.cam.confirmRetakeText,
-              confirmSaveText: this.cam.confirmSaveText,
               maxDimension: this.cam.maxDimension,
               quality: this.cam.quality,
+              autoSquareCrop: this.cam.autoSquareCrop,
+              confirmRetakeText: this.cam.confirmRetakeText,
+              confirmSaveText: this.cam.confirmSaveText,
             };
-            console.log('options', customOptions);
+            console.log('current options', currentOptions);
+            this.cam.takePicture(currentOptions);
+            */
+            //Or use custom options instead:
+            let customOptions: ICameraOptions = {
+              confirmPhotos: true,
+              saveToGallery: true,
+              maxDimension: 1000,
+              quality: 50,
+              autoSquareCrop: false,
+              confirmRetakeText: 'Hate it!',
+              confirmSaveText: 'Love it!',
+            };
+            console.log('current options', customOptions);
             this.cam.takePicture(customOptions);
           } else alert('No permission for camera, cannot take a photo!');
         });

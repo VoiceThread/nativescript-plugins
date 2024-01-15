@@ -127,13 +127,13 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
    * When confirming capture this text will be presented to the user to retake the photo. Default is 'Retake'
    */
   @GetSetProperty()
-  public confirmRetakeText?: string;
+  public confirmRetakeText?: string = 'Retake';
 
   /**
    * When confirming capture this text will be presented to the user to save the photo. Default is 'Save'
    */
   @GetSetProperty()
-  public confirmSaveText?: string;
+  public confirmSaveText?: string = 'Save';
 
   /**
    * If true the default videorecordingready event will present a confirmation dialog. Default is false.
@@ -162,11 +162,11 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
   public quality: number = 95;
 
   /**
-   * Maximum dimension among width/height to use for the saved photo image.
+   * Maximum dimension among width/height to use for the saved photo image. Default is 1200 max dimension
    * NOTE: this only applies to photos, videos not supported yet
    */
   @GetSetProperty()
-  public maxDimension: number;
+  public maxDimension: number = 1200;
 
   /**
    * If true the default flash toggle icon/button will show on the Camera Plus layout. Default is true.
