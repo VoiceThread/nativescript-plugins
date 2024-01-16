@@ -146,6 +146,26 @@ export declare class CameraPlus extends ContentView {
   showCaptureIcon: boolean;
 
   /**
+   * The resolution used when capturing video from camera
+   */
+  videoQuality: CameraVideoQuality;
+
+  /**
+   * The requested height of video being captured
+   */
+  videoHeight: number;
+
+  /**
+   * The requested height of video being captured
+   */
+  videoWidth: number;
+
+  /**
+   * If true, uses h.264 encoding for greater compatibility. If false uses h.265 encoding.
+   */
+  @GetSetProperty()
+  public disableHEVC: boolean = true;
+  /**
    * If true when a video is done recording, a confirmation dialog will show. Default is true.
    */
   //TODO: not supported yet
@@ -282,8 +302,8 @@ export declare enum CameraVideoQuality {
   QVGA = 'qvga',
 }
 export interface IVideoOptions {
-  quality?: CameraVideoQuality;
-  saveToGallery?: boolean;
+  saveToGallery?: boolean; //shared with ICameraOptions
+  videoQuality?: CameraVideoQuality;
   height?: number;
   width?: number;
   disableHEVC?: boolean;

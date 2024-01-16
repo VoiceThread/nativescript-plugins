@@ -81,7 +81,7 @@ import UIKit
   @objc public var videoQuality: VideoQuality = .high
 
   //default to h264 for greater compatibility
-  @objc public var videoCodecType: AVVideoCodecType = AVVideoCodecType.h264
+  @objc public var videoCodecType: AVVideoCodecType = AVVideoCodecType.hevc  //AVVideoCodecType.h264
 
   /// Sets whether flash is enabled for photo and video capture
   @objc public var flashEnabled = false
@@ -497,7 +497,7 @@ import UIKit
       let outputFileUrl = self.outputFileDirectory.appendingPathComponent(
         outputFileName, isDirectory: false)
       do {
-        let assetWriter =
+        let assetWriter: AVAssetWriter =
           try self.assetWriter ?? AVAssetWriter(outputURL: outputFileUrl, fileType: fileType)
         self.assetWriter = assetWriter
         NSLog("Assigned assetWriter")
@@ -506,7 +506,9 @@ import UIKit
         return
       }
 
-      guard let assetWriter = self.assetWriter else { fatalError("asset writer is nil") }
+      guard let assetWriter: AVAssetWriter = self.assetWriter else {
+        fatalError("asset writer is nil")
+      }
 
       self.setBackgroundAudioPreference()
 
@@ -516,7 +518,7 @@ import UIKit
         videoCompressionSettings?[AVVideoCompressionPropertiesKey] as? [String: Any]
       compressionProperties?[AVVideoExpectedSourceFrameRateKey] = self.frameRate
       videoCompressionSettings?[AVVideoCompressionPropertiesKey] = compressionProperties
-      let assetWriterVideoInput =
+      let assetWriterVideoInput: AVAssetWriterInput =
         self.assetWriterVideoInput
         ?? AVAssetWriterInput(
           mediaType: AVMediaType.video, outputSettings: videoCompressionSettings)

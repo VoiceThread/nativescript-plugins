@@ -268,15 +268,20 @@ export class CameraPlus extends CameraPlusBase {
       onReady(): void {},
       onCameraCloseUI(): void {},
       onCameraError(message: string, ex: java.lang.Exception): void {
-        that.CError('onCameraError', message);
-        const owner = this.owner ? this.owner.get() : null;
+        that.CError('listenerImpl.onCameraError:', message);
+        const owner: CameraPlus = this.owner ? this.owner.get() : null;
+        console.log('owner', owner);
         if (owner) {
+          if (owner.isRecording) {
+            console.log('isRecording during error, stopping and resetting button');
+            owner.isRecording = false;
+            owner.stopRecording();
+          } else {
+            console.log('not recording, just sending error event');
+          }
           owner._lastCameraOptions.shift(); //remove the last set of options used
           that.CLog(message, null);
           owner.sendEvent(CameraPlus.errorEvent, null, message);
-          if (owner.isRecording) {
-            owner.isRecording = false;
-          }
         } else {
           that.CError('!!! No owner reference found when handling onCameraError event');
         }
@@ -493,37 +498,56 @@ export class CameraPlus extends CameraPlusBase {
   }
 
   public async record(options?: IVideoOptions) {
-    options = options || {
-      disableHEVC: true,
-      saveToGallery: true,
-      quality: CameraVideoQuality.MAX_720P,
+    // options = options || {
+    //   disableHEVC: true,
+    //   saveToGallery: true,
+    //   videoQuality: CameraVideoQuality.MAX_720P,
+    // };
+    options = {
+      saveToGallery: options?.saveToGallery ? options.saveToGallery : this._camera.getSaveToGallery(),
+      videoQuality: options?.videoQuality ? options.videoQuality : this.videoQuality,
+      videoHeight: options?.videoHeight ? options.videoHeight : this.videoHeight,
+      videoWidth: options?.videoWidth ? options.videoWidth : this.videoWidth,
+      disableHEVC: options?.disableHEVC ? options.disableHEVC : this.disableHEVC,
+      //if these options are not specified, -1 will let Android select based on requested videoQuality
+      androidMaxVideoBitRate: options?.androidMaxVideoBitRate ? options.androidMaxVideoBitRate : -1,
+      androidMaxFrameRate: options?.androidMaxFrameRate ? options.androidMaxFrameRate : -1,
+      androidMaxAudioBitRate: options?.androidMaxAudioBitRate ? options.androidMaxAudioBitRate : -1,
     };
     this.CLog('android.ts record()', options);
     console.log('shouldLockRotation', this.shouldLockRotation);
     if (this._camera) {
       this._camera.setDisableHEVC(!!options.disableHEVC);
       this._camera.setSaveToGallery(!!options.saveToGallery);
-      switch (options.quality) {
+      console.log('setting videoQuality based on option', options.videoQuality);
+      switch (options.videoQuality) {
         case CameraVideoQuality.HIGHEST:
           this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('HIGHEST'));
+          console.log('Set quality ', io.github.triniwiz.fancycamera.Quality.valueOf('HIGHEST'));
           break;
         case CameraVideoQuality.LOWEST:
-          this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('HIGHEST'));
+          this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('LOWEST'));
+          console.log('Set quality ', io.github.triniwiz.fancycamera.Quality.valueOf('LOWEST'));
           break;
         case CameraVideoQuality.MAX_2160P:
           this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('MAX_2160P'));
+          console.log('Set quality ', io.github.triniwiz.fancycamera.Quality.valueOf('MAX_2160P'));
           break;
         case CameraVideoQuality.MAX_1080P:
           this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('MAX_1080P'));
+          console.log('Set quality ', io.github.triniwiz.fancycamera.Quality.valueOf('MAX_1080P'));
           break;
         case CameraVideoQuality.MAX_720P:
           this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('MAX_720P'));
+          console.log('Set quality ', io.github.triniwiz.fancycamera.Quality.valueOf('MAX_720P'));
           break;
         case CameraVideoQuality.QVGA:
           this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('QVGA'));
+          console.log('Set quality ', io.github.triniwiz.fancycamera.Quality.valueOf('QVGA'));
           break;
         default:
           this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('MAX_720P'));
+          console.log('Set quality ', io.github.triniwiz.fancycamera.Quality.valueOf('MAX_720P'));
           break;
       }
       // -1 uses profile value;
@@ -534,6 +558,8 @@ export class CameraPlus extends CameraPlusBase {
         console.log('shouldLockRotation true, locking rotation during recording');
         this.disableRotationAndroid();
       }
+      const takePicDrawable = CamHelpers.getImageDrawable(this.stopVideoIcon);
+      this._takePicBtn.setImageResource(takePicDrawable); // set the icon
       this._camera.startRecording();
     }
   }
@@ -548,6 +574,8 @@ export class CameraPlus extends CameraPlusBase {
   public stopRecording() {
     if (this._camera) {
       this.CLog(`*** stopping mediaRecorder ***`);
+      const takePicDrawable = CamHelpers.getImageDrawable(this.takeVideoIcon);
+      this._takePicBtn.setImageResource(takePicDrawable); // set the icon
       this._camera.stopRecording();
       if (this.shouldLockRotation) {
         console.log('shouldLockRotation true, unlocking rotation after recording');
@@ -783,8 +811,9 @@ export class CameraPlus extends CameraPlusBase {
                 // this.CLog('long press released, stopping video and setting isButtonLongPressed to false');
                 this.isButtonLongPressed = false;
                 this.stop();
-                const takePicDrawable = CamHelpers.getImageDrawable(this.takeVideoIcon);
-                this._takePicBtn.setImageResource(takePicDrawable); // set the icon
+                owner.isRecording = false;
+                // const takePicDrawable = CamHelpers.getImageDrawable(this.takeVideoIcon);
+                // this._takePicBtn.setImageResource(takePicDrawable); // set the icon
                 return false;
               } else {
                 // this.CLog('not an Action_up ignoring', pEvent.getAction());
@@ -793,9 +822,10 @@ export class CameraPlus extends CameraPlusBase {
             } else if (pEvent.getAction() == android.view.MotionEvent.ACTION_DOWN) {
               if (!this.isButtonLongPressed && !owner.isRecording) {
                 // this.CLog('Video enabled, starting recording');
+                owner.isRecording = true;
                 this.record();
-                const takePicDrawable = CamHelpers.getImageDrawable(this.stopVideoIcon);
-                this._takePicBtn.setImageResource(takePicDrawable); // set the icon
+                // const takePicDrawable = CamHelpers.getImageDrawable(this.stopVideoIcon);
+                // this._takePicBtn.setImageResource(takePicDrawable); // set the icon
               }
             }
           } else if (!this.disablePhoto) {

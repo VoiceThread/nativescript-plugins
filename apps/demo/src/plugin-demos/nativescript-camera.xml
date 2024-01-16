@@ -22,7 +22,7 @@
         <Cam:CameraPlus height="{{ cameraHeight }}"
           id="camPlus"
           debug="true"
-          enableVideo="false"
+          enableVideo="true"
           defaultCamera="front"
           disablePhoto="false"
           showCaptureIcon="true"
@@ -37,7 +37,11 @@
           confirmRetakeText="nah"
           confirmSaveText="yeah"
           maxDimension="800"
-          quality="90">
+          quality="90"
+          videoQuality="1080p"
+          videoHeight="1920"
+          videoWidth="1080"
+          disableHEVC="false">
           <!-- 
               iOS only properties: doubleTapCameraSwitch='true'  
           -->

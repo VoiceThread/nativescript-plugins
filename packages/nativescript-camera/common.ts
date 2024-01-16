@@ -136,6 +136,30 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
   public confirmSaveText?: string = 'Save';
 
   /**
+   * The resolution used when capturing video from camera
+   */
+  @GetSetProperty()
+  public videoQuality: CameraVideoQuality = CameraVideoQuality.MAX_720P;
+
+  /**
+   * The requested height of video being captured
+   */
+  @GetSetProperty()
+  public videoHeight: number = 1080;
+
+  /**
+   * The requested height of video being captured
+   */
+  @GetSetProperty()
+  public videoWidth: number = 720;
+
+  /**
+   * If true, uses h.264 encoding for greater compatibility. If false uses h.265 encoding.
+   */
+  @GetSetProperty()
+  public disableHEVC: boolean = true;
+
+  /**
    * If true the default videorecordingready event will present a confirmation dialog. Default is false.
    */
   //TODO: not supported yet
@@ -355,10 +379,10 @@ export enum CameraVideoQuality {
 }
 
 export interface IVideoOptions {
-  quality?: CameraVideoQuality;
-  saveToGallery?: boolean;
-  height?: number;
-  width?: number;
+  saveToGallery?: boolean; //shared with ICameraOptions
+  videoQuality?: CameraVideoQuality;
+  videoHeight?: number;
+  videoWidth?: number;
   disableHEVC?: boolean;
   androidMaxVideoBitRate?: number;
   androidMaxFrameRate?: number;

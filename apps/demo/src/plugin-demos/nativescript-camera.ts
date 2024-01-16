@@ -1,6 +1,6 @@
 import { EventData, Page, alert, Frame, Screen, Image, File, isIOS, isAndroid, Button, path, knownFolders, Device } from '@nativescript/core';
 import { DemoSharedNativescriptCamera } from '@demo/shared';
-import { CameraPlus, ICameraOptions } from '@voicethread/nativescript-camera';
+import { CameraPlus, CameraVideoQuality, ICameraOptions } from '@voicethread/nativescript-camera';
 import { ObservableProperty } from './observable-property';
 import { Result, checkMultiple, check as checkPermission, request } from '@nativescript-community/perms';
 import { Video } from 'nativescript-videoplayer';
@@ -18,6 +18,7 @@ export function navigatingFrom(args: EventData) {
   const video: Video = page.getViewById('nativeVideoPlayer') as Video;
   if (video) {
     if (!isAndroid) video.pause();
+    video.disposeNativeView();
     video.src = null;
   } else console.warn('Unable to clear video player when leaving page!');
 }
@@ -101,11 +102,15 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       video.opacity = 1;
       console.log('event passed path: ', args.data);
       video.src = args.data;
+      console.log('Resolution of video file', this.getVideoResolution(args.data));
       video.loop = true;
       video.play();
       //add to current array of movie segments
       this.videoSegments.push(videoFile.path);
       this.refreshUI();
+      //dump out some information on recording
+      console.log('Height/width:', this.getVideoResolution(args.data));
+      console.log('codec:', this.getVideoCodec(args.data));
     });
 
     this.cam.on(CameraPlus.videoRecordingStartedEvent, (args: any) => {
@@ -175,6 +180,13 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       console.log(`*** start recording ***`);
       this.cam.record({
         saveToGallery: this.cam.saveToGallery,
+        videoQuality: CameraVideoQuality.MAX_720P,
+        height: 1280, //these are the standard dimensions for a 720p recording
+        width: 720, // 720x1280
+        disableHEVC: true,
+        androidMaxVideoBitRate: 100,
+        androidMaxFrameRate: 30,
+        androidMaxAudioBitRate: 100,
       });
     } catch (err) {
       console.log(err);
@@ -332,6 +344,98 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       }
     } catch (err) {
       console.error(err);
+    }
+  }
+
+  public getVideoCodec(videoPath: string): string {
+    let videoFormat = null;
+    if (isAndroid) {
+      // const metaRetriever = new android.media.MediaMetadataRetriever();
+      // metaRetriever.setDataSource(videoPath);
+      // return {
+      //   width: +metaRetriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH),
+      //   height: +metaRetriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT),
+      // };
+      let mediadata = new android.media.MediaMetadataRetriever();
+      mediadata.setDataSource(videoPath);
+
+      //find video format and select the video track to read from later
+      let videoExtractor: android.media.MediaExtractor = new android.media.MediaExtractor();
+      videoExtractor.setDataSource(videoPath);
+      let videoTracks = videoExtractor.getTrackCount();
+
+      for (let j = 0; j < videoTracks; j++) {
+        let mf = videoExtractor.getTrackFormat(j);
+        let mime = mf.getString(android.media.MediaFormat.KEY_MIME);
+        if (mime.startsWith('video/')) {
+          videoExtractor.selectTrack(j);
+          videoFormat = videoExtractor.getTrackFormat(j);
+          console.log('found a video format', videoFormat);
+          break;
+        }
+      }
+    } else {
+      const filePath = NSURL.fileURLWithPath(videoPath);
+      const avAsset = AVURLAsset.assetWithURL(filePath);
+      const track: AVAssetTrack = avAsset.tracksWithMediaType(AVMediaTypeVideo).firstObject;
+      if (!track) {
+        return '';
+        // return {
+        //   width: 0,
+        //   height: 0,
+        // };
+      }
+
+      let mediaSubtypes = track.formatDescriptions;
+      for (let i = 0; i < mediaSubtypes.count; i++) {
+        let type = mediaSubtypes.objectAtIndex(i);
+        console.log('type:', type);
+        let subtype = CMFormatDescriptionGetMediaSubType(type);
+        // console.log('subtype', subtype);
+        //extract from byte array
+        let bytes = [(subtype >> 24) & 0xff, (subtype >> 16) & 0xff, (subtype >> 8) & 0xff, subtype & 0xff, 0];
+        // console.log('bytes', bytes);
+        let str = bytes
+          .map(byte => {
+            return String.fromCharCode(byte);
+          })
+          .join('');
+        // console.log('str', str);
+        videoFormat = str;
+      }
+      // const size = track.naturalSize;
+      // return {
+      //   width: size.width,
+      //   height: size.height,
+      // };
+      // const format = track.metadataForFormat;
+      return videoFormat;
+    }
+  }
+  //util to check video resolution produced
+  public getVideoResolution(videoPath: string): { width: number; height: number } {
+    if (isAndroid) {
+      const metaRetriever = new android.media.MediaMetadataRetriever();
+      metaRetriever.setDataSource(videoPath);
+      return {
+        width: +metaRetriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH),
+        height: +metaRetriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT),
+      };
+    } else {
+      const filePath = NSURL.fileURLWithPath(videoPath);
+      const avAsset = AVURLAsset.assetWithURL(filePath);
+      const track = avAsset.tracksWithMediaType(AVMediaTypeVideo).firstObject;
+      if (!track) {
+        return {
+          width: 0,
+          height: 0,
+        };
+      }
+      const size = track.naturalSize;
+      return {
+        width: size.width,
+        height: size.height,
+      };
     }
   }
 }

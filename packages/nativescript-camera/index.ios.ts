@@ -229,7 +229,19 @@ export class MySwifty extends SwiftyCamViewController {
       saveToGallery: this._owner.get().saveToGallery,
       autoSquareCrop: this._owner.get().autoSquareCrop,
       maxDimension: this._owner.get().maxDimension,
+      quality: this._owner.get().quality,
     };
+    console.log('this._snapPicOptions', this._snapPicOptions);
+
+    this._videoOptions = {
+      saveToGallery: this._owner.get().saveToGallery,
+      videoQuality: this._owner.get().videoQuality,
+      videoHeight: this._owner.get().videoHeight,
+      videoWidth: this._owner.get().videoWidth,
+      disableHEVC: this._owner.get().disableHEVC,
+    };
+    console.log('this._videoOptions', this._videoOptions);
+
     this._owner.get().sendEvent(CameraPlus.cameraReadyEvent, owner);
   }
 
@@ -288,7 +300,8 @@ export class MySwifty extends SwiftyCamViewController {
       this._snapPicOptions = options;
     } else {
       this._snapPicOptions = {
-        confirmPhotos: this._owner.get().confirmPhotos, // from property setter
+        // read from properties' setters/getters
+        confirmPhotos: this._owner.get().confirmPhotos,
         confirmRetakeText: this._owner.get().confirmRetakeText,
         confirmSaveText: this._owner.get().confirmSaveText,
         saveToGallery: this._owner.get().saveToGallery,
@@ -302,26 +315,27 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   public recordVideo(options?: IVideoOptions) {
-    // console.log('recordVideo()');
+    console.log('recordVideo()');
     options = options || {
       saveToGallery: false,
       disableHEVC: false,
     };
+    options.disableHEVC = true;
 
     if (this.isRecording) {
-      // console.log('CameraPlus stop video recording.');
+      console.log('CameraPlus stop video recording.');
       this.stopVideoRecording();
       this._cameraBtn.changeToCircle();
       //unlock rotation
       if (this._owner.get().shouldLockRotation) {
         this.enableRotation();
-        // console.log('recordVideo stop section, shouldLockRotation true');
+        console.log('recordVideo stop section, shouldLockRotation true');
       }
       // else {
       // console.log('recordVideo stop section, shouldLockRotation false');
       // }
     } else {
-      // console.log('CameraPlus record video options:', options);
+      console.log('CameraPlus record video options:', options);
       if (options) {
         this._videoOptions = options;
       } else {
@@ -332,8 +346,12 @@ export class MySwifty extends SwiftyCamViewController {
       }
       if (!options.disableHEVC && parseFloat(Device.sdkVersion) >= 11) {
         this.videoCodecType = AVVideoCodecTypeHEVC;
+        console.log('Using H265 encoding');
+      } else {
+        this.videoCodecType = AVVideoCodecTypeH264;
+        console.log('H264 encoding');
       }
-      switch (options ? options.quality : CameraVideoQuality.MAX_480P) {
+      switch (options ? options.videoQuality : CameraVideoQuality.MAX_720P) {
         case CameraVideoQuality.MAX_2160P:
           this.videoQuality = VideoQuality.Resolution3840x2160;
           break;
@@ -778,11 +796,15 @@ export class CameraPlus extends CameraPlusBase {
   private _swifty: MySwifty;
   private _isIPhoneX: boolean;
   private _defaultCamera: CameraTypes = 'rear';
-  @GetSetProperty()
-  public enableVideo: boolean;
 
-  @GetSetProperty()
-  public disablePhoto: boolean;
+  // @GetSetProperty()
+  // public enableVideo: boolean;
+
+  // @GetSetProperty()
+  // public disablePhoto: boolean;
+
+  // @GetSetProperty()
+  // public videoQuality: CameraVideoQuality;
 
   // @ts-ignore
   get defaultCamera() {

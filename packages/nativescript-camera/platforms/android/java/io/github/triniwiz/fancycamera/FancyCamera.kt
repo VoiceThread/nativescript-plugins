@@ -189,7 +189,7 @@ class FancyCamera : FrameLayout {
 
     var maxVideoFrameRate: Int = -1
 
-    var disableHEVC: Boolean = false
+    var disableHEVC: Boolean = true
 
     val db: Double
         get() {
