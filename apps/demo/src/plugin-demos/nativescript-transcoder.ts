@@ -1,4 +1,4 @@
-import { Observable, EventData, Page, File, Application, Frame, knownFolders, StackLayout, Label, Color, ScrollView, Button, TextField, TextView } from '@nativescript/core';
+import { Observable, EventData, Page, File, Application, Frame, isAndroid, isIOS, knownFolders, StackLayout, Label, Color, ScrollView, Button, TextField, TextView, Device } from '@nativescript/core';
 import { DemoSharedNativescriptTranscoder } from '@demo/shared';
 import { TempFile } from '@voicethread/nativescript-filepicker/files';
 import { filePicker, galleryPicker, MediaType, getFreeMBs } from '@voicethread/nativescript-filepicker';
@@ -9,6 +9,9 @@ import { Video } from 'nativescript-videoplayer';
 export function navigatingTo(args: EventData) {
   const page = <Page>args.object;
   page.bindingContext = new DemoModel();
+  if (isIOS) {
+    (page.getViewById('ios-gallery-button') as Button).visibility = 'visible';
+  }
 }
 
 export class DemoModel extends DemoSharedNativescriptTranscoder {
@@ -19,7 +22,68 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
     this.transcoder = new NativescriptTranscoder();
   }
 
+  //pick videos and images from device files
   async pickVideos() {
+    this.pickedFiles = [];
+    let canPick = true;
+    try {
+      let tempPath = TempFile.getPath('tempfile', 'tmp');
+      let freeSpace = getFreeMBs(tempPath);
+
+      console.log('free MBs on file picker temp directory', freeSpace);
+      console.log('temp directory path: ', tempPath);
+
+      //check free space before allowing picker to create temp copy of selected files
+      if (freeSpace > 400) {
+        if (isAndroid && +Device.sdkVersion > 32) {
+          const result = await checkMultiple({ photo: {}, audio: {}, video: {} });
+          if (result['photo'] != 'authorized') {
+            console.log('No photo permission, requesting...');
+            await request('photo').then(result => {
+              console.log('Request result', result);
+              if (result[0] != 'authorized') canPick = false;
+            });
+          }
+          if (result['video'] != 'authorized') {
+            console.log('No video permission, requesting...');
+            await request('video').then(result => {
+              console.log('Request result', result);
+              if (result[0] != 'authorized') canPick = false;
+            });
+          }
+          if (result['audio'] != 'authorized') {
+            console.log('No audio permission, requesting...');
+            await request('audio').then(result => {
+              console.log('Request result', result);
+              if (result[0] != 'authorized') canPick = false;
+            });
+          }
+          console.log('canPick?:', canPick);
+        } else if (isAndroid) {
+          //just request external_storage perms otherwise
+          const result = await checkPermission('storage');
+          if (result['storage'] != 'authorized') console.log('No storage permission, requesting...');
+          await request('storage').then(result => {
+            console.log('Request result', result);
+            if (result['android.permission.READ_EXTERNAL_STORAGE'] != 'authorized') canPick = false;
+          });
+        }
+
+        if (canPick) {
+          let files = await filePicker(MediaType.IMAGE | MediaType.VIDEO, true);
+          console.log('files', files);
+          if (files.length) this.pickedFiles = files;
+          console.log('Selected files', this?.pickedFiles);
+          this.updateFileListView();
+        } else alert('Need permissions to pick files from device storage');
+      } else alert('Low free space on device, picking not allowed');
+    } catch (err) {
+      if (err) alert(err?.message);
+    }
+  }
+
+  //Pick videos and images from iOS photos gallery
+  async pickVideoGallery() {
     this.pickedFiles = [];
     try {
       let tempPath = TempFile.getPath('tempfile', 'tmp');
@@ -29,8 +93,20 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
       console.log('temp directory path: ', tempPath);
       if (freeSpace > 400) {
         //check before allowing picker to create temp copy of selected files
-        this.pickedFiles = await filePicker(MediaType.VIDEO, true);
-        this.updateFileListView();
+        checkPermission('photo').then(async permres => {
+          if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
+            await requestPermission('photo').then(async result => {
+              if (result[0] == 'authorized') {
+                try {
+                  this.pickedFiles = await galleryPicker(MediaType.IMAGE + MediaType.VIDEO, true);
+                  this.updateFileListView();
+                } catch (err) {
+                  if (err) alert(err?.message);
+                }
+              } else alert("No permission for files, can't open picker");
+            });
+          } else alert("No permission for files, can't open picker. Grant this permission in app settings first and then try again");
+        });
       } else alert('Low free space on device, picking not allowed');
     } catch (err) {
       if (err) alert(err?.message);
@@ -44,23 +120,6 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
     } catch (err) {
       if (err) alert(err?.message);
     }
-  }
-
-  async pickImageVideo() {
-    checkPermission('photo').then(async permres => {
-      if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
-        await requestPermission('photo').then(async result => {
-          if (result[0] == 'authorized') {
-            try {
-              this.pickedFiles = await galleryPicker(MediaType.IMAGE + MediaType.VIDEO, true);
-              this.updateFileListView();
-            } catch (err) {
-              if (err) alert(err?.message);
-            }
-          } else alert("No permission for files, can't open picker");
-        });
-      } else alert("No permission for files, can't open picker. Grant this permission in app settings first and then try again");
-    });
   }
 
   clear() {
@@ -357,7 +416,9 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
       const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
       video.opacity = 1;
       video.src = tempPath;
-      video.loop = false;
+      video.loop = true;
+      video.controls = true;
+      video.play();
       const outputDetailsLabel: Label = Frame.topmost().getViewById('outputDetails');
       outputDetailsLabel.text = `Output Size: ${this.formatBytes(tempFile.size)}`;
       outputDetailsLabel.textWrap = true;

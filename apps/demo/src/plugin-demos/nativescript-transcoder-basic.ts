@@ -1,14 +1,17 @@
-import { EventData, Page, File, Frame, knownFolders, Label, Color, isAndroid, Device, Progress } from '@nativescript/core';
+import { EventData, Page, File, Frame, knownFolders, Button, Label, Color, isAndroid, Device, Progress, isIOS } from '@nativescript/core';
 import { DemoSharedNativescriptTranscoder } from '@demo/shared';
 import { filePicker, galleryPicker, MediaType } from '@voicethread/nativescript-filepicker';
 import { MessageData, NativescriptTranscoder } from '@voicethread/nativescript-transcoder';
-import { check as checkPermission, request, request as requestPermission } from '@nativescript-community/perms';
+import { check as checkPermission, request, request as requestPermission, checkMultiple } from '@nativescript-community/perms';
 import { Video } from 'nativescript-videoplayer';
 import { executeOnMainThread } from '@nativescript/core/utils';
 
 export function navigatingTo(args: EventData) {
   const page = <Page>args.object;
   page.bindingContext = new DemoModel();
+  if (isIOS) {
+    (page.getViewById('ios-gallery-button') as Button).visibility = 'visible';
+  }
 }
 
 export class DemoModel extends DemoSharedNativescriptTranscoder {
@@ -19,42 +22,74 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
   constructor() {
     super();
     this.transcoder = new NativescriptTranscoder();
+    //Note: enabling logging may slow down encoding due to frequent event handling and console output
     this.transcoder.setLogLevel('verbose');
   }
 
+  //Pick video from device files
   async pickVideo() {
     this.pickedFile = undefined;
-    if (isAndroid) {
-      if (isAndroid && +Device.sdkVersion > 32) {
-        requestPermission('storage').then(async result => {
-          if (result['android.permission.READ_EXTERNAL_STORAGE'] === 'authorized') {
-            const files = await filePicker(MediaType.VIDEO, false);
-            this.pickedFile = files?.[0];
-          }
-        });
-      } else {
-        await request('video').then(async result => {
-          if (result[0] != 'authorized') {
-            this.pickedFile = await filePicker(MediaType.VIDEO, false)?.[0];
-          }
+    let canPick = true;
+    if (isAndroid && +Device.sdkVersion > 32) {
+      const result = await checkMultiple({ photo: {}, audio: {}, video: {} });
+      if (result['photo'] != 'authorized') {
+        console.log('No photo permission, requesting...');
+        await request('photo').then(result => {
+          console.log('Request result', result);
+          if (result[0] != 'authorized') canPick = false;
         });
       }
-    } else {
-      checkPermission('photo').then(async permres => {
-        if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
-          await requestPermission('photo').then(async result => {
-            if (result[0] == 'authorized') {
-              try {
-                const files = await galleryPicker(MediaType.VIDEO, false);
-                this.pickedFile = files?.[0];
-              } catch (err) {
-                if (err) alert(err?.message);
-              }
-            } else alert("No permission for files, can't open picker");
-          });
-        } else alert("No permission for files, can't open picker. Grant this permission in app settings first and then try again");
+      if (result['video'] != 'authorized') {
+        console.log('No video permission, requesting...');
+        await request('video').then(result => {
+          console.log('Request result', result);
+          if (result[0] != 'authorized') canPick = false;
+        });
+      }
+      if (result['audio'] != 'authorized') {
+        console.log('No audio permission, requesting...');
+        await request('audio').then(result => {
+          console.log('Request result', result);
+          if (result[0] != 'authorized') canPick = false;
+        });
+      }
+      console.log('canPick?:', canPick);
+    } else if (isAndroid) {
+      //just request external_storage perms otherwise
+      const result = await checkPermission('storage');
+      if (result['storage'] != 'authorized') console.log('No storage permission, requesting...');
+      await request('storage').then(result => {
+        console.log('Request result', result);
+        if (result['android.permission.READ_EXTERNAL_STORAGE'] != 'authorized') canPick = false;
       });
     }
+
+    if (canPick) {
+      let files = await filePicker(MediaType.VIDEO, false);
+      console.log('files', files);
+      if (files.length) this.pickedFile = files[0];
+      console.log('Selected file', this?.pickedFile, this?.pickedFile?.path);
+    } else alert('Need permissions to pick files from device storage');
+  }
+
+  //Pick video from iOS photos gallery
+  async pickVideoGallery() {
+    this.pickedFile = undefined;
+    checkPermission('photo').then(async permres => {
+      if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
+        await requestPermission('photo').then(async result => {
+          if (result[0] == 'authorized') {
+            try {
+              const files = await galleryPicker(MediaType.VIDEO, false);
+              if (files.length) this.pickedFile = files?.[0];
+              console.log('Selected file', this?.pickedFile, this?.pickedFile?.path);
+            } catch (err) {
+              if (err) alert(err?.message);
+            }
+          } else alert("No permission for files, can't open picker");
+        });
+      } else alert("No permission for files, can't open picker. Grant this permission in app settings first and then try again");
+    });
   }
 
   processVideo480() {
@@ -75,10 +110,12 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
 
   processVideo(quality: '480p' | '720p' | '1080p', frameRate?: number) {
     if (!this.pickedFile) {
+      console.error('No file selected to process');
       return;
     }
     // android doesn't support 480p
     if (isAndroid && quality === '480p') {
+      console.error('Android does not support 480p!');
       return;
     }
     const tempPath = knownFolders.documents().getFile(`video-copy-${this.count}.mp4`).path;
@@ -87,7 +124,7 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
       const file = File.fromPath(tempPath);
       file.removeSync();
     }
-    console.log('[PROCESSING STARTED]');
+    console.log('[PROCESSING STARTED] quality: ' + quality + (frameRate ? ' frameRate:' + frameRate : ''));
     const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
     video.visibility = 'collapsed';
     const outputDetailsLabel: Label = Frame.topmost().getViewById('outputDetails');
@@ -128,7 +165,9 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
         video.visibility = 'visible';
         video.opacity = 1;
         video.src = tempPath;
-        video.loop = false;
+        video.loop = true;
+        video.controls = true;
+        video.play();
         outputDetailsLabel.visibility = 'visible';
         outputDetailsLabel.text = `Output Size: ${this.transcoder.getVideoSizeString(transcodedFile.path)}`;
         outputDetailsLabel.textWrap = true;
