@@ -487,7 +487,7 @@ class NSAVAssetExportSession {
   frameRate: number;
   private _videoInput: AVAssetWriterInput;
   private _videoPixelBufferAdaptor;
-  private _inputQueue: NSObject;
+  private _inputQueue: interop.Pointer | interop.Reference<any>;
   outputURL: NSURL;
   outputFileType: string;
 
