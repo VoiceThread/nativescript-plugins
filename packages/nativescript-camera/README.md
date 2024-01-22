@@ -43,7 +43,7 @@ This nativescript camera plugin works on Android (API 26+) and Apple devices (iO
 * 🔍 Customizable output photo dimensions and quality (saved as jpeg)
 
 ## Future Features
-* ⏯️ Customizable Video quality and dimensions
+* ⏯️ Customizable Video quality, codec and dimensions
 * 🌓 Video Confirmation flag and UI
 * ⚡ Additional properties/functions for more control over Camera and Photo/Video capture
 ------------------------------
@@ -269,9 +269,6 @@ Video recording options
 export interface IVideoOptions {
   quality?: CameraVideoQuality;  
   saveToGallery?: boolean;
-  height?: number;
-  width?: number;
-  disableHEVC?: boolean;
   androidMaxVideoBitRate?: number;
   androidMaxFrameRate?: number;
   androidMaxAudioBitRate?: number;

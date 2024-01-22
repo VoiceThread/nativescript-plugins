@@ -236,9 +236,9 @@ export class MySwifty extends SwiftyCamViewController {
     this._videoOptions = {
       saveToGallery: this._owner.get().saveToGallery,
       videoQuality: this._owner.get().videoQuality,
-      videoHeight: this._owner.get().videoHeight,
-      videoWidth: this._owner.get().videoWidth,
-      disableHEVC: this._owner.get().disableHEVC,
+      // videoHeight: this._owner.get().videoHeight,
+      // videoWidth: this._owner.get().videoWidth,
+      // disableHEVC: this._owner.get().disableHEVC,
     };
     console.log('this._videoOptions', this._videoOptions);
 
@@ -318,9 +318,9 @@ export class MySwifty extends SwiftyCamViewController {
     console.log('recordVideo()');
     options = options || {
       saveToGallery: false,
-      disableHEVC: false,
+      // disableHEVC: false,
     };
-    options.disableHEVC = true;
+    // options.disableHEVC = true;
 
     if (this.isRecording) {
       console.log('CameraPlus stop video recording.');
@@ -344,13 +344,13 @@ export class MySwifty extends SwiftyCamViewController {
           saveToGallery: this._owner.get().saveToGallery,
         };
       }
-      if (!options.disableHEVC && parseFloat(Device.sdkVersion) >= 11) {
-        this.videoCodecType = AVVideoCodecTypeHEVC;
-        console.log('Using H265 encoding');
-      } else {
-        this.videoCodecType = AVVideoCodecTypeH264;
-        console.log('H264 encoding');
-      }
+      // if (!options.disableHEVC && parseFloat(Device.sdkVersion) >= 11) {
+      //   this.videoCodecType = AVVideoCodecTypeHEVC;
+      //   console.log('Using H265 encoding');
+      // } else {
+      //   this.videoCodecType = AVVideoCodecTypeH264;
+      //   console.log('H264 encoding');
+      // }
       switch (options ? options.videoQuality : CameraVideoQuality.MAX_720P) {
         case CameraVideoQuality.MAX_2160P:
           this.videoQuality = VideoQuality.Resolution3840x2160;

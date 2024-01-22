@@ -181,9 +181,6 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       this.cam.record({
         saveToGallery: this.cam.saveToGallery,
         videoQuality: CameraVideoQuality.MAX_720P,
-        height: 1280, //these are the standard dimensions for a 720p recording
-        width: 720, // 720x1280
-        disableHEVC: true,
         androidMaxVideoBitRate: 100,
         androidMaxFrameRate: 30,
         androidMaxAudioBitRate: 100,

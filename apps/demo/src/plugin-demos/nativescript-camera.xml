@@ -38,10 +38,7 @@
           confirmSaveText="yeah"
           maxDimension="800"
           quality="90"
-          videoQuality="1080p"
-          videoHeight="1920"
-          videoWidth="1080"
-          disableHEVC="false">
+          videoQuality="1080p">
           <!-- 
               iOS only properties: doubleTapCameraSwitch='true'  
           -->

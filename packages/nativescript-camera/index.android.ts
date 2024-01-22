@@ -40,10 +40,10 @@ export class CameraPlus extends CameraPlusBase {
   public flashOffIcon: string = 'ic_flash_off_white';
   @GetSetProperty()
   public toggleCameraIcon: string = 'ic_switch_camera_white';
-  @GetSetProperty()
-  public confirmPhotos: boolean = false;
-  @GetSetProperty()
-  public saveToGallery: boolean = false;
+  // @GetSetProperty()
+  // public confirmPhotos: boolean = false;
+  // @GetSetProperty()
+  // public saveToGallery: boolean = false;
   @GetSetProperty()
   public takePicIcon: string = 'ic_camera_white';
   @GetSetProperty()
@@ -54,7 +54,7 @@ export class CameraPlus extends CameraPlusBase {
   public insetButtons: boolean = false;
   @GetSetProperty()
   public insetButtonsPercent: number = 0.1;
-  @GetSetProperty()
+  // @GetSetProperty()
   public isRecording: boolean = false;
   private _nativeView;
   private _owner: WeakRef<any>;
@@ -506,9 +506,9 @@ export class CameraPlus extends CameraPlusBase {
     options = {
       saveToGallery: options?.saveToGallery ? options.saveToGallery : this._camera.getSaveToGallery(),
       videoQuality: options?.videoQuality ? options.videoQuality : this.videoQuality,
-      videoHeight: options?.videoHeight ? options.videoHeight : this.videoHeight,
-      videoWidth: options?.videoWidth ? options.videoWidth : this.videoWidth,
-      disableHEVC: options?.disableHEVC ? options.disableHEVC : this.disableHEVC,
+      // videoHeight: options?.videoHeight ? options.videoHeight : this.videoHeight,
+      // videoWidth: options?.videoWidth ? options.videoWidth : this.videoWidth,
+      // disableHEVC: options?.disableHEVC ? options.disableHEVC : this.disableHEVC,
       //if these options are not specified, -1 will let Android select based on requested videoQuality
       androidMaxVideoBitRate: options?.androidMaxVideoBitRate ? options.androidMaxVideoBitRate : -1,
       androidMaxFrameRate: options?.androidMaxFrameRate ? options.androidMaxFrameRate : -1,
@@ -517,7 +517,9 @@ export class CameraPlus extends CameraPlusBase {
     this.CLog('android.ts record()', options);
     console.log('shouldLockRotation', this.shouldLockRotation);
     if (this._camera) {
-      this._camera.setDisableHEVC(!!options.disableHEVC);
+      // this._camera.setDisableHEVC(!!options.disableHEVC);
+      // console.log('Disabling HEVC?', options.disableHEVC);
+      // console.log('camera setting after this._camera.setDisableHEVC(!!options.disableHEVC);', this._camera.getDisableHEVC());
       this._camera.setSaveToGallery(!!options.saveToGallery);
       console.log('setting videoQuality based on option', options.videoQuality);
       switch (options.videoQuality) {
