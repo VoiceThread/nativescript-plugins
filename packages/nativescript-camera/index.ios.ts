@@ -121,7 +121,7 @@ export class MySwifty extends SwiftyCamViewController {
   private _isRecording: boolean;
   private _photoToSave: any;
   private _imageConfirmBg: UIView;
-  private _flashEnabled: boolean;
+  private _flashEnabled: boolean = false;
   private _flashBtn: UIButton;
   private _switchBtn: UIButton;
   public _cameraBtn: SwiftyCamButton;
@@ -193,7 +193,7 @@ export class MySwifty extends SwiftyCamViewController {
     if (this._owner.get().showToggleIcon) {
       if (this._switchBtn) this._switchBtn.removeFromSuperview();
       // console.log('creating toggle/switch camera button...');
-      this._switchBtn = createButton(this, null, null, 'switchCamera', null, createIcon('toggle', CGSizeMake(65, 50)));
+      this._switchBtn = createButton(this, null, null, 'switchCam', null, createIcon('toggle', CGSizeMake(65, 50)));
       this._switchBtn.translatesAutoresizingMaskIntoConstraints = false;
       let widthRule = this._switchBtn.widthAnchor.constraintEqualToConstant(40);
       widthRule.active = true;
@@ -212,6 +212,7 @@ export class MySwifty extends SwiftyCamViewController {
     if (this._owner.get().showFlashIcon) {
       // console.log('adding _flashBtn ...');
       this._flashBtnHandler();
+      this.flashEnabled = this._flashEnabled;
     }
 
     // console.log('shouldLockRotation', this._owner.get().shouldLockRotation);
@@ -495,16 +496,18 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   public switchCam() {
-    // console.log('index.ios switchCam()');
-    // console.log('CameraPlus switchCam, calling native lib switchCamera()');
+    console.log('index.ios switchCam()');
+    console.log('CameraPlus switchCam, calling native lib switchCamera()');
     this.switchCamera();
+    if (this._owner.get().showFlashIcon) this._flashBtnHandler();
+    else console.log('flash button not enabled, not rendering');
   }
 
   public toggleFlash() {
-    // console.log('index.ios toggleFlash()');
+    console.log('index.ios toggleFlash()');
     this._flashEnabled = !this._flashEnabled;
     this.flashEnabled = this._flashEnabled; // super class behavior
-    // console.log('CameraPlus flash enabled:', this._flashEnabled);
+    console.log('CameraPlus flash enabled:', this._flashEnabled);
     if (this._owner.get().showFlashIcon) this._flashBtnHandler();
   }
 
@@ -641,8 +644,12 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   private _flashBtnHandler() {
-    // console.log('adding _flashBtn ...');
+    console.log('_flashBtnHandler()');
     if (this._flashBtn) this._flashBtn.removeFromSuperview();
+    if (!this.videoDevice.isTorchModeSupported(AVCaptureTorchMode.On)) {
+      console.log('ios camera does not support torch mode! Removing flash button');
+      return;
+    } else console.log('flash supported, rendering button');
     this._flashBtn = createButton(this, null, null, 'toggleFlash', null, this.flashEnabled ? createIcon('flash') : createIcon('flashOff'));
     this._flashBtn.translatesAutoresizingMaskIntoConstraints = false;
     let widthRule = this._flashBtn.widthAnchor.constraintEqualToConstant(40);

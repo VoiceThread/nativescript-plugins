@@ -478,8 +478,22 @@ import UIKit
     assert(
       Thread.isMainThread,
       "[ASCamera]: This function -startRecording must be called on the main thread.")
+
+    //configure flash if set
+    guard let device = videoDevice else {
+      NSLog("!!!!   NO Camera Device to capture from!!!!!")
+      //TODO: sent an error event with more info?
+      return
+    }
+
     //TODO: remove this, just for logging so it shows on main thread console
     self.configureSessionQuality()  //update video quality based on property
+    if device.hasFlash == true && flashEnabled == true {
+      NSLog("flash enabled, turning on")
+      changeTorchSettings(device: device, mode: .on)
+    } else {
+      NSLog("flash disabled, ignoring before recording start")
+    }
     self.getVideoTransform()
     self.executeAsync { [weak self] in
       guard let self = self else {
@@ -670,6 +684,19 @@ import UIKit
       self.assetWriter = nil
       self.assetWriterAudioInput = nil
       self.assetWriterVideoInput = nil
+      //disable torch if was on during recording
+      guard let device = videoDevice else {
+        NSLog("!!!!   NO Camera Device available to disable torch after stopRecording() ")
+        //TODO: sent an error event with more info?
+        return
+      }
+      if device.isTorchActive == true {
+        NSLog("torch active, disabling after recording finished")
+        self.changeTorchSettings(device: device, mode: .off)
+      } else {
+        NSLog("torch not active, no need to turn off after recording finished")
+      }
+
     }
 
   }
@@ -1029,6 +1056,44 @@ import UIKit
     do {
       try device.lockForConfiguration()
       device.flashMode = mode
+      try device.setTorchModeOn(level: 1.0)
+      NSLog("changeFlashSettings() set to ")
+      if mode == AVCaptureDevice.FlashMode.on {
+        NSLog("on")
+      } else {
+        NSLog("off")
+      }
+      device.unlockForConfiguration()
+    } catch {
+      NSLog("[SwiftyCam]: \(error)")
+    }
+  }
+
+  /**
+   Enable or disable flash for video
+  */
+  @objc public func changeTorchSettings(device: AVCaptureDevice, mode: AVCaptureDevice.TorchMode) {
+    do {
+      guard device.isTorchAvailable else {
+        NSLog("torch not available on tnis device, ignoring changeTorchSettings request ")
+        return
+      }
+      try device.lockForConfiguration()
+
+      NSLog("changeTorchSettings() set to ")
+      if mode == AVCaptureDevice.TorchMode.on {
+        try device.setTorchModeOn(level: 1.0)
+        // device.setTorchModeOn(level: 1.0)
+        device.torchMode = .on
+        // device.TorchMode = AVCaptureDevice.TorchMode.on
+        NSLog("on")
+      } else {
+        // device.TorchMode = AVCaptureDevice.TorchMode.off
+        // device.torchLevel = 0.0
+        // try device.setTorchModeOn(level: 0)
+        device.torchMode = .off
+        NSLog("off")
+      }
       device.unlockForConfiguration()
     } catch {
       NSLog("[SwiftyCam]: \(error)")

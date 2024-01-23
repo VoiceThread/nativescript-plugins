@@ -669,6 +669,7 @@ export class CameraPlus extends CameraPlusBase {
     if (this._camera) {
       // @ts-ignore
       this._camera.toggleFlash();
+      this._owner.get()._ensureCorrectFlashIcon();
     }
   }
 
