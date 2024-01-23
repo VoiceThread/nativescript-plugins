@@ -564,7 +564,8 @@ export class CameraPlus extends CameraPlusBase {
       return;
     }
     options = {
-      saveToGallery: options?.saveToGallery ? options.saveToGallery : this._camera.getSaveToGallery(),
+      // saveToGallery: options?.saveToGallery ? options.saveToGallery : this._camera.getSaveToGallery(),
+      saveToGallery: options?.saveToGallery ? options.saveToGallery : this.saveToGallery,
       videoQuality: options?.videoQuality ? options.videoQuality : this.videoQuality,
       // videoHeight: options?.videoHeight ? options.videoHeight : this.videoHeight,
       // videoWidth: options?.videoWidth ? options.videoWidth : this.videoWidth,
@@ -574,6 +575,8 @@ export class CameraPlus extends CameraPlusBase {
       androidMaxFrameRate: options?.androidMaxFrameRate ? options.androidMaxFrameRate : -1,
       androidMaxAudioBitRate: options?.androidMaxAudioBitRate ? options.androidMaxAudioBitRate : -1,
     };
+    if (options.saveToGallery) this._camera.setSaveToGallery(true);
+    else this._camera.setSaveToGallery(false);
     this.CLog('android.ts record()', options);
     console.log('shouldLockRotation', this.shouldLockRotation);
     if (this._camera) {

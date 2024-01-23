@@ -180,7 +180,8 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       console.log(`*** start recording ***`);
       this.cam.videoQuality = CameraVideoQuality.MAX_1080P;
       this.cam.record({
-        saveToGallery: this.cam.saveToGallery,
+        // saveToGallery: this.cam.saveToGallery,
+        saveToGallery: true,
         videoQuality: CameraVideoQuality.MAX_2160P,
         androidMaxVideoBitRate: 100,
         androidMaxFrameRate: 30,

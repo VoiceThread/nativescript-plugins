@@ -125,8 +125,6 @@ declare class SwiftyCamViewController
 
   desiredFrameRate: number;
 
-  disableAudio: boolean;
-
   doubleTapCameraSwitch: boolean;
 
   flashEnabled: boolean;
@@ -160,8 +158,6 @@ declare class SwiftyCamViewController
   readonly session: AVCaptureSession;
 
   setupResult: SessionSetupResult;
-
-  shouldLockRotation: boolean;
 
   shouldUseDeviceOrientation: boolean;
 
@@ -212,6 +208,8 @@ declare class SwiftyCamViewController
   changeFlashSettingsWithDeviceMode(device: AVCaptureDevice, mode: AVCaptureFlashMode): void;
 
   class(): typeof NSObject;
+
+  configureSessionQuality(): void;
 
   conformsToProtocol(aProtocol: any /* Protocol */): boolean;
 

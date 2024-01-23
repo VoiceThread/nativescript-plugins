@@ -1422,7 +1422,7 @@ extension SwiftyCamViewController {
   }
 }
 extension SwiftyCamViewController {
-  private func configureSessionQuality() {
+  @objc open func configureSessionQuality() {
     let preset: AVCaptureSession.Preset
     switch self.videoQuality {
     case .high:
@@ -1458,12 +1458,13 @@ extension SwiftyCamViewController {
       )
       return
     }
-
+    // if session.sessionPreset != preset {
     session.sessionPreset = preset
     NSLog(
       "[ASCamera]:  sessionPreset set to \(preset)."
     )
     self.configureFrameRate()
+    // }
   }
 
   /// Note: Fixing framerate does affect low light capture performance
