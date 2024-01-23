@@ -421,6 +421,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     override var quality: Quality = Quality.MAX_720P
         set(value) {
             if (!isRecording && field != value) {
+                Log.d("org.nativescript.plugindemo", "quality() set to " + value)
                 field = value
                 videoCapture?.let {
                     cameraProvider?.let {
@@ -643,7 +644,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                                     QualitySelector.from(
                                             getRecorderQuality(quality),
                                             FallbackStrategy.lowerQualityOrHigherThan(
-                                                    androidx.camera.video.Quality.HD
+                                                    androidx.camera.video.Quality.SD
                                             )
                                     )
                             )

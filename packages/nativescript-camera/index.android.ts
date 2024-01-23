@@ -55,7 +55,8 @@ export class CameraPlus extends CameraPlusBase {
   @GetSetProperty()
   public insetButtonsPercent: number = 0.1;
   // @GetSetProperty()
-  public isRecording: boolean = false;
+  private isRecording: boolean = false;
+  private _videoQuality: CameraVideoQuality = CameraVideoQuality.MAX_720P;
   private _nativeView;
   private _owner: WeakRef<any>;
   private _mediaRecorder: android.media.MediaRecorder;
@@ -109,6 +110,19 @@ export class CameraPlus extends CameraPlusBase {
   set ratio(value: string) {
     if (this._camera) {
       this._camera.setRatio(value);
+    }
+  }
+
+  // @ts-ignore
+  get videoQuality() {
+    return this._camera ? this._videoQuality : CameraVideoQuality.MAX_720P;
+  }
+
+  set videoQuality(value: CameraVideoQuality) {
+    if (this._camera) {
+      this._videoQuality = value;
+      this.CLog('set videoQuality', value);
+      this.updateQuality();
     }
   }
 
@@ -287,7 +301,7 @@ export class CameraPlus extends CameraPlusBase {
         }
       },
       async onCameraPhotoUI(event?: java.io.File) {
-        const owner = this.owner ? this.owner.get() : null;
+        const owner: CameraPlus = this.owner ? this.owner.get() : null;
         const file = event;
         const options: ICameraOptions = owner._lastCameraOptions.shift();
         let confirmPic;
@@ -360,7 +374,7 @@ export class CameraPlus extends CameraPlusBase {
         }
       },
       onCameraOpenUI(): void {
-        const owner = this.owner ? this.owner.get() : null;
+        const owner: CameraPlus = this.owner ? this.owner.get() : null;
         if (owner) {
           owner._initDefaultButtons();
           if (owner._togglingCamera) {
@@ -370,11 +384,12 @@ export class CameraPlus extends CameraPlusBase {
           } else {
             owner.sendEvent(CameraPlus.cameraReadyEvent, owner.camera);
             that.CLog('Camera ready on ' + DEVICE_INFO_STRING());
+            owner.isRecording = false;
           }
         }
       },
       onCameraVideoStartUI(): void {
-        const owner = this.owner ? this.owner.get() : null;
+        const owner: CameraPlus = this.owner ? this.owner.get() : null;
         if (owner) {
           owner.isRecording = true;
           owner.sendEvent(CameraPlus.videoRecordingStartedEvent, owner.camera);
@@ -383,7 +398,7 @@ export class CameraPlus extends CameraPlusBase {
         }
       },
       onCameraVideoUI(event?: java.io.File): void {
-        const owner = this.owner ? this.owner.get() : null;
+        const owner: CameraPlus = this.owner ? this.owner.get() : null;
         if (owner) {
           owner.sendEvent(CameraPlus.videoRecordingReadyEvent, event.getAbsolutePath());
           // this.CLog(`Recording complete`);
@@ -402,6 +417,10 @@ export class CameraPlus extends CameraPlusBase {
     this.CLog('video enabled:', this.isVideoEnabled());
     this.disablePhoto = this.isPhotoDisabled();
     this.CLog('photo disabled:', this.isPhotoDisabled());
+    this.isRecording = false;
+    this.CLog('video  quality:', this.videoQuality);
+    // this._camera.setQuality(this.videoQuality);
+    this.updateQuality();
   }
 
   disposeNativeView() {
@@ -497,12 +516,53 @@ export class CameraPlus extends CameraPlusBase {
     }
   }
 
+  private updateQuality() {
+    console.log('updateQuality()', this.videoQuality);
+    switch (this.videoQuality) {
+      case CameraVideoQuality.HIGHEST:
+        this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('HIGHEST'));
+        console.log('Set quality ', io.github.triniwiz.fancycamera.Quality.valueOf('HIGHEST'));
+        break;
+      case CameraVideoQuality.LOWEST:
+        this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('LOWEST'));
+        console.log('Set quality ', io.github.triniwiz.fancycamera.Quality.valueOf('LOWEST'));
+        break;
+      case CameraVideoQuality.MAX_2160P:
+        this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('MAX_2160P'));
+        console.log('Set quality ', io.github.triniwiz.fancycamera.Quality.valueOf('MAX_2160P'));
+        break;
+      case CameraVideoQuality.MAX_1080P:
+        this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('MAX_1080P'));
+        console.log('Set quality ', io.github.triniwiz.fancycamera.Quality.valueOf('MAX_1080P'));
+        break;
+      case CameraVideoQuality.MAX_720P:
+        this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('MAX_720P'));
+        console.log('Set quality ', io.github.triniwiz.fancycamera.Quality.valueOf('MAX_720P'));
+        break;
+      case CameraVideoQuality.MAX_480P:
+        this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('MAX_480P'));
+        console.log('Set quality ', io.github.triniwiz.fancycamera.Quality.valueOf('MAX_480P'));
+        break;
+      case CameraVideoQuality.QVGA:
+        this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('QVGA'));
+        console.log('Set quality ', io.github.triniwiz.fancycamera.Quality.valueOf('QVGA'));
+        break;
+      default:
+        this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('MAX_720P'));
+        console.log('Set quality ', io.github.triniwiz.fancycamera.Quality.valueOf('MAX_720P'));
+        break;
+    }
+  }
   public async record(options?: IVideoOptions) {
     // options = options || {
     //   disableHEVC: true,
     //   saveToGallery: true,
     //   videoQuality: CameraVideoQuality.MAX_720P,
     // };
+    if (this.isRecording) {
+      console.warn('Currently recording, cannot call record()');
+      return;
+    }
     options = {
       saveToGallery: options?.saveToGallery ? options.saveToGallery : this._camera.getSaveToGallery(),
       videoQuality: options?.videoQuality ? options.videoQuality : this.videoQuality,
@@ -543,6 +603,10 @@ export class CameraPlus extends CameraPlusBase {
           this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('MAX_720P'));
           console.log('Set quality ', io.github.triniwiz.fancycamera.Quality.valueOf('MAX_720P'));
           break;
+        case CameraVideoQuality.MAX_480P:
+          this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('MAX_480P'));
+          console.log('Set quality ', io.github.triniwiz.fancycamera.Quality.valueOf('MAX_480P'));
+          break;
         case CameraVideoQuality.QVGA:
           this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('QVGA'));
           console.log('Set quality ', io.github.triniwiz.fancycamera.Quality.valueOf('QVGA'));
@@ -563,6 +627,7 @@ export class CameraPlus extends CameraPlusBase {
       const takePicDrawable = CamHelpers.getImageDrawable(this.stopVideoIcon);
       this._takePicBtn.setImageResource(takePicDrawable); // set the icon
       this._camera.startRecording();
+      this.isRecording = true;
     }
   }
 
@@ -574,11 +639,16 @@ export class CameraPlus extends CameraPlusBase {
   }
 
   public stopRecording() {
+    if (!this.isRecording) {
+      console.warn('not currently recording, cannot call stopRecording()');
+      return;
+    }
     if (this._camera) {
       this.CLog(`*** stopping mediaRecorder ***`);
       const takePicDrawable = CamHelpers.getImageDrawable(this.takeVideoIcon);
       this._takePicBtn.setImageResource(takePicDrawable); // set the icon
       this._camera.stopRecording();
+      this.isRecording = false;
       if (this.shouldLockRotation) {
         console.log('shouldLockRotation true, unlocking rotation after recording');
         this.enableRotationAndroid();
@@ -824,8 +894,8 @@ export class CameraPlus extends CameraPlusBase {
             } else if (pEvent.getAction() == android.view.MotionEvent.ACTION_DOWN) {
               if (!this.isButtonLongPressed && !owner.isRecording) {
                 // this.CLog('Video enabled, starting recording');
-                owner.isRecording = true;
                 this.record();
+                owner.isRecording = true;
                 // const takePicDrawable = CamHelpers.getImageDrawable(this.stopVideoIcon);
                 // this._takePicBtn.setImageResource(takePicDrawable); // set the icon
               }
