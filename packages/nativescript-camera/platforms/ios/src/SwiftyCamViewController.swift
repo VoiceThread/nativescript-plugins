@@ -479,7 +479,7 @@ import UIKit
       Thread.isMainThread,
       "[ASCamera]: This function -startRecording must be called on the main thread.")
     //TODO: remove this, just for logging so it shows on main thread console
-
+    self.configureSessionQuality()  //update video quality based on property
     self.getVideoTransform()
     self.executeAsync { [weak self] in
       guard let self = self else {
@@ -1588,7 +1588,6 @@ extension SwiftyCamViewController {
       } else {
         // NSLog("[ASCamera]: Could not add video device input to the session")
         NSLog("[SwiftyCam]: Could not add video device input to the session")
-        // NSLog(session.canSetSessionPreset(videoInputPresetFromVideoQuality(quality: videoQuality)))
         setupResult = .configurationFailed
         session.commitConfiguration()
         return
