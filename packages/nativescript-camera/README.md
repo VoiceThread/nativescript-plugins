@@ -32,18 +32,19 @@ ns plugin install @voicethread/nativescript-camera
 ```
 ------------------------------
 ## Features
-This nativescript camera plugin works on Android (API 26+) and Apple devices (iOS 12+) and has the following features:
-* 📸 Photo and Video capture
+This nativescript camera plugin works on Android (API 26+) and Apple (iOS 12+) devices and has the following features:
+* 📷 Photo and Video capture modes
 * 👁️ Camera switching during video recording and option to lock device rotation while recording
 * 👌 Pinch to zoom in/out and tap to focus
 * 📱 Video merge utility
 * 🎞️ Built-in buttons for flash, camera switch, camera 
-* ⏱️ Supports square-cropping photos and saving to device Photos library
+* 📸 Flash/Torch control in both photo and video modes
+* ⏱️ Supports square-cropping photos and saving photos/videos to device Photos library
 * 🧩 Photo confirmation options with built-in UI to show preview
 * 🔍 Customizable output photo dimensions and quality (saved as jpeg)
 
 ## Future Features
-* ⏯️ Customizable Video quality, codec and dimensions
+* ⏯️ Customizable video codec and dimensions
 * 🌓 Video Confirmation flag and UI
 * ⚡ Additional properties/functions for more control over Camera and Photo/Video capture
 ------------------------------

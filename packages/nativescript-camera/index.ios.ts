@@ -646,7 +646,7 @@ export class MySwifty extends SwiftyCamViewController {
   private _flashBtnHandler() {
     console.log('_flashBtnHandler()');
     if (this._flashBtn) this._flashBtn.removeFromSuperview();
-    if (!this.videoDevice.isTorchModeSupported(AVCaptureTorchMode.On)) {
+    if (this.videoDevice && !this.videoDevice.isTorchModeSupported(AVCaptureTorchMode.On)) {
       console.log('ios camera does not support torch mode! Removing flash button');
       return;
     } else console.log('flash supported, rendering button');
