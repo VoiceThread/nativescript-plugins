@@ -103,7 +103,7 @@ import UIKit
   @objc public var lowLightBoost = true
 
   /// Set whether SwiftyCam should allow background audio from other applications
-  @objc public var allowBackgroundAudio = true
+  @objc public var allowBackgroundAudio = false
 
   /// Sets whether a double tap to switch cameras is supported
   @objc public var doubleTapCameraSwitch = true
@@ -814,13 +814,13 @@ import UIKit
         self.session.removeInput(input)
       }
       self.addVideoInput()
-      NSLog("configureSession() adding video input")
+      NSLog("configureSession() added video input")
       self.addVideoOutput()
-      NSLog("configureSession() adding video output")
+      NSLog("configureSession() added video output")
       self.addAudioInput()
-      NSLog("configureSession() adding audio input")
+      NSLog("configureSession() added audio input")
       self.addAudioOutput()
-      NSLog("configureSession() adding audio output")
+      NSLog("configureSession() added audio output")
       self.configureSessionQuality()
       NSLog("configureSession() configured quality")
 
@@ -1683,8 +1683,57 @@ extension SwiftyCamViewController {
       NSLog("[ASCamera]: Could not add audio device input to the session")
       return
     }
+    //configure device AVAudioSession to allow bluetooth for playback and recording
     do {
+      try AVAudioSession.sharedInstance().setCategory(
+        AVAudioSession.Category.playAndRecord,
+        options: [.allowBluetooth, .allowAirPlay, .defaultToSpeaker])
+      //set this to false to use our preferred selection of audio inputs and options
+      session.automaticallyConfiguresApplicationAudioSession = false
+    } catch {
+      NSLog("[SwiftyCam]: Failed to set AVAudioSEssion preferences")
+    }
+    // search available audio inputs and prefer bluetooth, then wired, then headset then builtin
+    // Note: default behavior is to select the last one found for each type, so if you have multiple bluetooth
+    //    inputs, the last one discovered is used, but may not be the one you actually want
+    do {
+      let availableInputs = AVAudioSession.sharedInstance().availableInputs
+      // for input: AVAudioSessionPortDescription in availableInputs! {
+      //   NSLog("%@ %@", input.portName, input.portType.rawValue)
+      //   // NSLog(input.portType.rawValue)
+      // }
+      if let bluetoothInput =
+        (availableInputs?.filter { $0.portType.rawValue.contains("Bluetooth") })?
+        .first
+      {
+        try? AVAudioSession.sharedInstance().setPreferredInput(bluetoothInput)
+        NSLog(
+          "setting bluetooth input %@ %@", bluetoothInput.portType.rawValue, bluetoothInput.portName
+        )
+      } else if let wiredInput =
+        (availableInputs?.filter { $0.portType.rawValue.contains("Wired") })?
+        .first
+      {
+        try? AVAudioSession.sharedInstance().setPreferredInput(wiredInput)
+        NSLog("setting wired input %@", wiredInput.portType.rawValue)
+      } else if let headsetInput =
+        (availableInputs?.filter { $0.portType.rawValue.contains("Headset") })?
+        .first
+      {
+        try? AVAudioSession.sharedInstance().setPreferredInput(headsetInput)
+        NSLog("setting wired input %@", headsetInput.portType.rawValue)
+      } else if let builtinInput =
+        (availableInputs?.filter { $0.portType.rawValue.contains("BuiltIn") })?
+        .first
+      {
+        try? AVAudioSession.sharedInstance().setPreferredInput(builtinInput)
+        NSLog("setting builtin input %@", builtinInput.portType.rawValue)
+      } else {
+        NSLog("WARNING! No extra input found, using Microphone")
+      }
+
       let audioDeviceInput = try AVCaptureDeviceInput(device: audioDevice)
+
       if self.session.canAddInput(audioDeviceInput) {
         self.session.addInput(audioDeviceInput)
         self.audioInput = audioDeviceInput
