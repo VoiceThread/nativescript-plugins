@@ -24,6 +24,15 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
   transcode(inputPath: string, outputPath: string, videoConfig: VideoConfig): Promise<File> {
     this.reset();
     const assetInputName = 'input';
+
+    const allowedTranscodingResolution = this.getAllowedTranscodingResolution(inputPath);
+
+    if (!videoConfig.force && !allowedTranscodingResolution.includes(videoConfig.quality)) {
+      return Promise.reject(
+        'Transcoding to a higher resolution is not allowed by default. If you want to do this intentionally, pass in { force: true } as part of the vidoeConfig object to bypass this check.'
+      );
+    }
+
     this.addAsset({
       name: assetInputName,
       path: inputPath,
@@ -47,6 +56,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
     const avAsset = AVURLAsset.assetWithURL(filePath);
     const audioTracks = avAsset.tracksWithMediaType(AVMediaTypeAudio);
     const videoTracks = avAsset.tracksWithMediaType(AVMediaTypeVideo);
+
     this.assets[asset.name] = {
       ...asset,
       avAsset: avAsset,
@@ -202,7 +212,6 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
                 videoTrack.scaleTimeRangeToDuration(outputRange, segmentDuration);
               }
               currentTrack.trackID = videoTrack.trackID;
-
               // Record the filter so we can match up later when we get the layer instructions
               if (filter === 'FadeOut') {
                 this.log('[process] Setting FadeOut Filter');
@@ -211,14 +220,13 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
               ++videoTrackIndex;
             }
             // Insert audio track segment
-            if (segmentDuration.value > 0 && filter !== 'Mute' && !scaleTime && (trackType === 'audio' || trackType === 'videoAudio')) {
+            if (segmentDuration.value > 0 && filter !== 'Mute' && !scaleTime && (trackType === 'audio' || trackType === 'videoAudio') && audioTracks.count > 0) {
               // Same approach as video for audio tracks
               let audioTrack: AVMutableCompositionTrack;
-
               if (audioTrackIndex >= audioTracks.count) {
                 audioTrack = this._composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeAudio, kCMPersistentTrackID_Invalid);
               } else {
-                audioTrack = audioTrack[audioTrackIndex];
+                audioTrack = audioTracks[audioTrackIndex];
               }
 
               // Add audio asset to the track
@@ -240,7 +248,6 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
         currentSegment.duration = duration;
         currentSegment.start = start;
         outputPosition = CMTimeAdd(outputPosition, outputTimeRange.duration);
-
         // Keep cross reference of segments to instructions for later processing
         instructionSegments.addObject(currentSegment);
       }
@@ -277,7 +284,6 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
       }
       // const targetSize = this._videoConfig.quality === 'high' ? CGSizeMake(1920.0, 1080.0) : CGSizeMake(1280.0, 720.0);
       const transform = firstAssetTrack.preferredTransform;
-
       // TODO: make this configurable as orientation - horizontal vs vertical
       const targetVideoAngle = (atan2(transform.b, transform.a) * 180) / Math.PI;
       if (targetVideoAngle === 90 || targetVideoAngle === -90) {

@@ -4,6 +4,13 @@ import { NativescriptTranscoderCommon, VideoConfig, VideoResolution } from './co
 export class NativescriptTranscoder extends NativescriptTranscoderCommon {
   transcode(inputPath: string, outputPath: string, videoConfig: VideoConfig): Promise<File> {
     return new Promise((resolve, reject) => {
+      const allowedTranscodingResolution = this.getAllowedTranscodingResolution(inputPath);
+      if (!videoConfig.force && allowedTranscodingResolution.includes(videoConfig.quality)) {
+        return Promise.reject(
+          'Transcoding to a higher resolution is not allowed by default. If you want to do this intentionally, pass in { force: true } as part of the vidoeConfig object to bypass this check.'
+        );
+      }
+
       const emit = (event: string, data: any) => {
         this.notify({ eventName: event, object: this, data });
       };
