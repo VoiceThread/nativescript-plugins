@@ -62,18 +62,15 @@ export function createDateTimeStamp() {
  */
 export function getOptimalPreviewSize(sizes: java.util.List<android.hardware.Camera.Size>, width: number, height: number): android.hardware.Camera.Size {
   const targetRatio = height / width;
-  // console.log(`targetRatio = ${targetRatio}`);
 
   if (sizes === null) return null;
 
   let optimalSize = null as android.hardware.Camera.Size;
 
   const targetHeight = height;
-  // console.log(`targetHeight = ${targetHeight}`);
 
   for (let i = 0; i < sizes.size(); i++) {
     const element = sizes.get(i) as android.hardware.Camera.Size;
-    // console.log(`size.width = ${element.width}, size.height = ${element.height}`);
     if (element.width <= width && element.height <= height) {
       if (optimalSize == null) {
         optimalSize = element;
@@ -87,7 +84,6 @@ export function getOptimalPreviewSize(sizes: java.util.List<android.hardware.Cam
       }
     }
   }
-  // console.log(`optimalSize = ${optimalSize}, optimalSize.width = ${optimalSize.width}, optimalSize.height = ${optimalSize.height}`);
   return optimalSize;
 }
 
@@ -107,9 +103,7 @@ export function getOptimalPictureSize(sizes: java.util.List<android.hardware.Cam
   let minDiff = Number.MAX_SAFE_INTEGER;
 
   const targetHeight = height;
-  // console.log(`targetHeight = ${targetHeight}`);
   const targetWidth = height;
-  // console.log(`targetWidth = ${targetWidth}`);
 
   for (let i = 0; i < sizes.size(); i++) {
     const size = sizes.get(i) as android.hardware.Camera.Size;
@@ -126,8 +120,6 @@ export function getOptimalPictureSize(sizes: java.util.List<android.hardware.Cam
 
     if (size.width > desiredMinimumWidth && size.width < desiredMaximumWidth && size.height < size.width) {
       optimalSize = size;
-      // console.log('setting size width', size.width + '');
-      // console.log('setting size height', size.height + '');
       sizeSet = true;
       break;
     }
@@ -138,7 +130,6 @@ export function getOptimalPictureSize(sizes: java.util.List<android.hardware.Cam
     minDiff = Number.MAX_SAFE_INTEGER;
     for (let i = 0; i < sizes.size(); i++) {
       const element = sizes.get(i) as android.hardware.Camera.Size;
-      // console.log(`size.width = ${element.width}, size.height = ${element.height}`);
       if (Math.abs(element.height - targetHeight) < minDiff) {
         optimalSize = element;
         minDiff = Math.abs(element.height - targetHeight);
@@ -147,7 +138,6 @@ export function getOptimalPictureSize(sizes: java.util.List<android.hardware.Cam
     sizeSet = true;
   }
 
-  // console.log(`optimalPictureSize = ${optimalSize}, optimalPictureSize.width = ${optimalSize.width}, optimalPictureSize.height = ${optimalSize.height}`);
   return optimalSize;
 }
 
@@ -196,8 +186,6 @@ export function getOrientationFromBytes(data): number {
       orientation = 7;
     }
   }
-
-  // console.log('Orientation: ', orientation);
   return orientation;
 }
 
