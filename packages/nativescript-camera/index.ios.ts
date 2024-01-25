@@ -4,7 +4,7 @@
  **********************************************************************************/
 
 import { Color, ImageAsset, View, File, Device, Screen, isIOS, Frame, Application, ImageSource, path, knownFolders } from '@nativescript/core';
-import { CameraPlusBase, CameraTypes, CameraVideoQuality, GetSetProperty, ICameraOptions, IVideoOptions } from './common';
+import { NSCameraBase, CameraTypes, CameraVideoQuality, GetSetProperty, ICameraOptions, IVideoOptions } from './common';
 import { iOSNativeHelper } from '@nativescript/core/utils';
 
 export * from './common';
@@ -112,7 +112,7 @@ export class MySwifty extends SwiftyCamViewController {
       params: [NSString, NSError, interop.Pointer],
     },
   };
-  private _owner: WeakRef<CameraPlus>;
+  private _owner: WeakRef<NSCamera>;
   private _snapPicOptions: ICameraOptions;
   private _enableVideo: boolean;
   private _disablePhoto: boolean;
@@ -129,7 +129,7 @@ export class MySwifty extends SwiftyCamViewController {
   public _swiftyDelegate: SwiftyDelegate;
   private _resized: boolean;
 
-  public static initWithOwner(owner: WeakRef<CameraPlus>, defaultCamera: CameraTypes = 'rear') {
+  public static initWithOwner(owner: WeakRef<NSCamera>, defaultCamera: CameraTypes = 'rear') {
     // console.log('MySwifty initWithOwner');
     const ctrl = <MySwifty>MySwifty.alloc().init();
     // console.log('ctrl', ctrl);
@@ -278,7 +278,7 @@ export class MySwifty extends SwiftyCamViewController {
         break;
     }
     this.configureSessionQuality();
-    this._owner.get().sendEvent(CameraPlus.cameraReadyEvent, owner);
+    this._owner.get().sendEvent(NSCamera.cameraReadyEvent, owner);
   }
 
   doLayout() {
@@ -331,7 +331,7 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   public snapPicture(options?: ICameraOptions) {
-    // console.log('CameraPlus takePic options:', options);
+    // console.log('NSCamera takePic options:', options);
     if (options) {
       this._snapPicOptions = options;
     } else {
@@ -362,7 +362,7 @@ export class MySwifty extends SwiftyCamViewController {
       videoQuality: options?.videoQuality ? options.videoQuality : this._owner.get().videoQuality,
     };
     if (this.isRecording) {
-      console.log('CameraPlus stop video recording.');
+      console.log('NSCamera stop video recording.');
       this.stopVideoRecording();
       this._cameraBtn.changeToCircle();
       //unlock rotation
@@ -374,7 +374,7 @@ export class MySwifty extends SwiftyCamViewController {
       // console.log('recordVideo stop section, shouldLockRotation false');
       // }
     } else {
-      console.log('CameraPlus record video options:', options);
+      console.log('NSCamera record video options:', options);
       // if (options) {
       //   this._videoOptions = options;
       // } else {
@@ -450,7 +450,7 @@ export class MySwifty extends SwiftyCamViewController {
 
   public didStartRecording(camera: CameraSelection) {
     // console.log('saw event didStartRecording');
-    this._owner.get().sendEvent(CameraPlus.videoRecordingStartedEvent, camera);
+    this._owner.get().sendEvent(NSCamera.videoRecordingStartedEvent, camera);
   }
 
   public recordingReady(path: string) {
@@ -465,7 +465,7 @@ export class MySwifty extends SwiftyCamViewController {
     } else {
       // console.log(`video not saved to gallery but recording is at: ${path}`);
     }
-    this._owner.get().sendEvent(CameraPlus.videoRecordingReadyEvent, path);
+    this._owner.get().sendEvent(NSCamera.videoRecordingReadyEvent, path);
     //debug generated file
     /*let options = NSDictionary.dictionaryWithObjectForKey(true, AVURLAssetPreferPreciseDurationAndTimingKey);
     let asset = AVURLAsset.URLAssetWithURLOptions(NSURL.fileURLWithPath(path), options);
@@ -479,8 +479,8 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   public didFinishRecording(camera: CameraSelection) {
-    // console.log('didFinishRecording(), sending event CameraPlus.videoRecordingFinishedEvent');
-    this._owner.get().sendEvent(CameraPlus.videoRecordingFinishedEvent, camera);
+    // console.log('didFinishRecording(), sending event NSCamera.videoRecordingFinishedEvent');
+    this._owner.get().sendEvent(NSCamera.videoRecordingFinishedEvent, camera);
   }
 
   public videoDidFinishSavingWithErrorContextInfo(path: string, error: NSError, contextInfo: any) {
@@ -492,12 +492,12 @@ export class MySwifty extends SwiftyCamViewController {
     }
     // console.log(`video saved to`, path);
     // ideally could just rely on this, but this will not emit the event (commenting for now and instead doing above in recordready - TODO: discuss why)
-    // this._owner.get().sendEvent(CameraPlus.videoRecordingReadyEvent, path);
+    // this._owner.get().sendEvent(NSCamera.videoRecordingReadyEvent, path);
   }
 
   public switchCam() {
     console.log('index.ios switchCam()');
-    console.log('CameraPlus switchCam, calling native lib switchCamera()');
+    console.log('NSCamera switchCam, calling native lib switchCamera()');
     this.switchCamera();
     if (this._owner.get().showFlashIcon) this._flashBtnHandler();
     else console.log('flash button not enabled, not rendering');
@@ -507,7 +507,7 @@ export class MySwifty extends SwiftyCamViewController {
     console.log('index.ios toggleFlash()');
     this._flashEnabled = !this._flashEnabled;
     this.flashEnabled = this._flashEnabled; // super class behavior
-    console.log('CameraPlus flash enabled:', this._flashEnabled);
+    console.log('NSCamera flash enabled:', this._flashEnabled);
     if (this._owner.get().showFlashIcon) this._flashBtnHandler();
   }
 
@@ -569,7 +569,7 @@ export class MySwifty extends SwiftyCamViewController {
       this._imageConfirmBg.addSubview(retakeBtn);
       this._imageConfirmBg.addSubview(saveBtn);
       this.view.addSubview(this._imageConfirmBg);
-      this._owner.get().sendEvent(CameraPlus.confirmScreenShownEvent);
+      this._owner.get().sendEvent(NSCamera.confirmScreenShownEvent);
     } else {
       // console.log('no confirmation, just saving');
       // no confirmation - just save
@@ -583,7 +583,7 @@ export class MySwifty extends SwiftyCamViewController {
     if (this._imageConfirmBg) {
       this._imageConfirmBg.removeFromSuperview();
       this._imageConfirmBg = null;
-      this._owner.get().sendEvent(CameraPlus.confirmScreenDismissedEvent);
+      this._owner.get().sendEvent(NSCamera.confirmScreenDismissedEvent);
     }
   }
 
@@ -612,12 +612,12 @@ export class MySwifty extends SwiftyCamViewController {
           asset.options.width = source.width;
         } else {
           console.error('ERROR saving image to file at path', outFilepath);
-          this._owner.get().sendEvent(CameraPlus.errorEvent, 'ERROR saving image to file at path: ' + outFilepath);
+          this._owner.get().sendEvent(NSCamera.errorEvent, 'ERROR saving image to file at path: ' + outFilepath);
           return;
         }
       } catch (err) {
         console.error('ERROR saving image to file at path', outFilepath, err);
-        this._owner.get().sendEvent(CameraPlus.errorEvent, err);
+        this._owner.get().sendEvent(NSCamera.errorEvent, err);
         return;
       }
       if (this._snapPicOptions.saveToGallery) {
@@ -625,18 +625,18 @@ export class MySwifty extends SwiftyCamViewController {
         //    if we want exact dimensions, need to rescale using native code first
         UIImageWriteToSavedPhotosAlbum(asset.nativeImage, null, null, null);
       }
-      // this._owner.get().sendEvent(CameraPlus.photoCapturedEvent, asset);
-      this._owner.get().sendEvent(CameraPlus.photoCapturedEvent, outFilepath);
+      // this._owner.get().sendEvent(NSCamera.photoCapturedEvent, asset);
+      this._owner.get().sendEvent(NSCamera.photoCapturedEvent, outFilepath);
       this.resetPreview();
     } else {
       console.error('savePhoto() failed, no image to save!');
-      this._owner.get().sendEvent(CameraPlus.errorEvent, 'ERROR savePhoto() failed, no image to save!');
+      this._owner.get().sendEvent(NSCamera.errorEvent, 'ERROR savePhoto() failed, no image to save!');
     }
   }
 
   public didSwitchCamera(camera: CameraSelection) {
     // console.log('didSwitchCamera()', camera);
-    this._owner.get().sendEvent(CameraPlus.toggleCameraEvent, camera);
+    this._owner.get().sendEvent(NSCamera.toggleCameraEvent, camera);
   }
 
   public isCameraAvailable() {
@@ -853,7 +853,7 @@ export class MySwifty extends SwiftyCamViewController {
   }
 }
 
-export class CameraPlus extends CameraPlusBase {
+export class NSCamera extends NSCameraBase {
   //currently we want this orientation flag disabled
   public static useDeviceOrientation: boolean = false;
   private _swifty: MySwifty;
@@ -892,23 +892,23 @@ export class CameraPlus extends CameraPlusBase {
   constructor() {
     super();
     this._onLayoutChangeListener = this._onLayoutChangeFn.bind(this);
-    // this.CLog('CameraPlus constructor');
+    // this.CLog('NSCamera constructor');
     this._swifty = MySwifty.initWithOwner(new WeakRef(this), this.defaultCamera);
-    this._swifty.shouldUseDeviceOrientation = CameraPlus.useDeviceOrientation;
+    this._swifty.shouldUseDeviceOrientation = NSCamera.useDeviceOrientation;
     this._detectDevice(); //TODO: is this still useful?
     //this.CLog('done with constructor', this._swifty);
   }
 
   private isVideoEnabled() {
-    return this.enableVideo === true; //|| CameraPlus.enableVideo;
+    return this.enableVideo === true; //|| NSCamera.enableVideo;
   }
 
   private isPhotoDisabled() {
-    return this.disablePhoto === true; //|| CameraPlus.disablePhoto;
+    return this.disablePhoto === true; //|| NSCamera.disablePhoto;
   }
 
   createNativeView() {
-    this.CLog('CameraPlus createNativeView');
+    this.CLog('NSCamera createNativeView');
     this._swifty.enableVideo = this.isVideoEnabled();
     this.CLog('video enabled:', this.isVideoEnabled());
     this._swifty.disablePhoto = this.isPhotoDisabled();
@@ -1003,7 +1003,7 @@ export class CameraPlus extends CameraPlusBase {
 
   onLoaded() {
     super.onLoaded();
-    // this.CLog('CameraPlus calling this._swifty.viewDidAppear(true)');
+    // this.CLog('NSCamera calling this._swifty.viewDidAppear(true)');
     //TODO: hackalicious, do this properly
     this._swifty.viewDidAppear(true);
   }
@@ -1025,7 +1025,7 @@ export class CameraPlus extends CameraPlusBase {
    * Toggle Camera front/back
    */
   public toggleCamera() {
-    this.CLog('CameraPlus toggleCamera()');
+    this.CLog('NSCamera toggleCamera()');
     this._swifty.switchCam();
   }
 
@@ -1033,7 +1033,7 @@ export class CameraPlus extends CameraPlusBase {
    * Toggle flash mode
    */
   public toggleFlash() {
-    this.CLog('CameraPlus toggleFlash()');
+    this.CLog('NSCamera toggleFlash()');
     this._swifty.toggleFlash();
   }
 
@@ -1048,7 +1048,7 @@ export class CameraPlus extends CameraPlusBase {
    * Snap photo and display confirm save
    */
   public takePicture(options?: ICameraOptions): void {
-    // this.CLog('CameraPlus takePicture() options passed', options);
+    // this.CLog('NSCamera takePicture() options passed', options);
     options = {
       confirmPhotos: options?.confirmPhotos ? options.confirmPhotos : this.confirmPhotos,
       confirmRetakeText: options?.confirmRetakeText ? options.confirmRetakeText : this.confirmRetakeText,
@@ -1067,7 +1067,7 @@ export class CameraPlus extends CameraPlusBase {
    * Record video
    */
   public record(options?: IVideoOptions): Promise<any> {
-    this.CLog('CameraPlus record', options);
+    this.CLog('NSCamera record', options);
     this._swifty.recordVideo(options);
     this._swifty._cameraBtn.changeToSquare();
     if (this.shouldLockRotation) this._swifty.disableRotation();
@@ -1078,7 +1078,7 @@ export class CameraPlus extends CameraPlusBase {
    * Stop recording video
    */
   public stop(): void {
-    this.CLog('CameraPlus stop');
+    this.CLog('NSCamera stop');
     this._swifty.stopVideoRecording();
     this._swifty._cameraBtn.changeToCircle();
     if (this.shouldLockRotation) this._swifty.enableRotation();

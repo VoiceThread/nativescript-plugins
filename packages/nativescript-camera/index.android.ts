@@ -5,7 +5,7 @@
 
 import { Application, ImageAsset, Device, View, File, Utils, AndroidApplication, ImageSource, path, knownFolders } from '@nativescript/core';
 import * as types from '@nativescript/core/utils/types';
-import { CameraPlusBase, CameraTypes, CameraVideoQuality, GetSetProperty, ICameraOptions, ICameraPlusEvents, IVideoOptions, WhiteBalance } from './common';
+import { NSCameraBase, CameraTypes, CameraVideoQuality, GetSetProperty, ICameraOptions, IVideoOptions, WhiteBalance } from './common';
 import * as CamHelpers from './helpers';
 export * from './common';
 export { CameraVideoQuality, WhiteBalance } from './common';
@@ -30,7 +30,7 @@ const RESULT_CODE_PICKER_IMAGES = 941;
 const RESULT_OK = -1;
 
 const DEVICE_INFO_STRING = () => `device: ${Device.manufacturer} ${Device.model} on SDK: ${Device.sdkVersion}`;
-export class CameraPlus extends CameraPlusBase {
+export class NSCamera extends NSCameraBase {
   private _camera: io.github.triniwiz.fancycamera.FancyCamera;
   private _cameraId;
 
@@ -283,7 +283,7 @@ export class CameraPlus extends CameraPlusBase {
       onCameraCloseUI(): void {},
       onCameraError(message: string, ex: java.lang.Exception): void {
         that.CError('listenerImpl.onCameraError:', message);
-        const owner: CameraPlus = this.owner ? this.owner.get() : null;
+        const owner: NSCamera = this.owner ? this.owner.get() : null;
         console.log('owner', owner);
         if (owner) {
           if (owner.isRecording) {
@@ -295,13 +295,13 @@ export class CameraPlus extends CameraPlusBase {
           }
           owner._lastCameraOptions.shift(); //remove the last set of options used
           that.CLog(message, null);
-          owner.sendEvent(CameraPlus.errorEvent, null, message);
+          owner.sendEvent(NSCamera.errorEvent, null, message);
         } else {
           that.CError('!!! No owner reference found when handling onCameraError event');
         }
       },
       async onCameraPhotoUI(event?: java.io.File) {
-        const owner: CameraPlus = this.owner ? this.owner.get() : null;
+        const owner: NSCamera = this.owner ? this.owner.get() : null;
         const file = event;
         const options: ICameraOptions = owner._lastCameraOptions.shift();
         let confirmPic;
@@ -337,11 +337,11 @@ export class CameraPlus extends CameraPlusBase {
         }
 
         if (confirmPic === true) {
-          owner.sendEvent(CameraPlus.confirmScreenShownEvent);
+          owner.sendEvent(NSCamera.confirmScreenShownEvent);
           const result = await CamHelpers.createImageConfirmationDialog(file.getAbsolutePath(), confirmPicRetakeText, confirmPicSaveText).catch(ex => {
             that.CError('Error in createImageConfirmationDialog', ex);
           });
-          owner.sendEvent(CameraPlus.confirmScreenDismissedEvent);
+          owner.sendEvent(NSCamera.confirmScreenDismissedEvent);
           // that.CLog(`confirmation result = ${result}`);
           if (result !== true) {
             // that.CLog('image denied, deleting and returning');
@@ -363,44 +363,44 @@ export class CameraPlus extends CameraPlusBase {
           if (maxDimension && maxDimension > 0) source = source.resize(maxDimension);
           const saved = source.saveToFile(outFilepath, 'jpg', quality);
           if (saved) {
-            owner.sendEvent(CameraPlus.photoCapturedEvent, outFilepath);
+            owner.sendEvent(NSCamera.photoCapturedEvent, outFilepath);
           } else {
             that.CError('ERROR saving image to file at path', outFilepath);
-            owner.sendEvent(CameraPlus.errorEvent, 'ERROR saving image to file at path: ' + outFilepath);
+            owner.sendEvent(NSCamera.errorEvent, 'ERROR saving image to file at path: ' + outFilepath);
           }
         } catch (err) {
           that.CError('ERROR saving image to file at path', outFilepath, err);
-          owner.sendEvent(CameraPlus.errorEvent, err);
+          owner.sendEvent(NSCamera.errorEvent, err);
         }
       },
       onCameraOpenUI(): void {
-        const owner: CameraPlus = this.owner ? this.owner.get() : null;
+        const owner: NSCamera = this.owner ? this.owner.get() : null;
         if (owner) {
           owner._initDefaultButtons();
           if (owner._togglingCamera) {
-            owner.sendEvent(CameraPlus.toggleCameraEvent, owner.camera);
+            owner.sendEvent(NSCamera.toggleCameraEvent, owner.camera);
             owner._ensureCorrectFlashIcon();
             owner._togglingCamera = true;
           } else {
-            owner.sendEvent(CameraPlus.cameraReadyEvent, owner.camera);
+            owner.sendEvent(NSCamera.cameraReadyEvent, owner.camera);
             that.CLog('Camera ready on ' + DEVICE_INFO_STRING());
             owner.isRecording = false;
           }
         }
       },
       onCameraVideoStartUI(): void {
-        const owner: CameraPlus = this.owner ? this.owner.get() : null;
+        const owner: NSCamera = this.owner ? this.owner.get() : null;
         if (owner) {
           owner.isRecording = true;
-          owner.sendEvent(CameraPlus.videoRecordingStartedEvent, owner.camera);
+          owner.sendEvent(NSCamera.videoRecordingStartedEvent, owner.camera);
         } else {
           that.CError('!!! No owner reference found when handling onCameraVideoUI event');
         }
       },
       onCameraVideoUI(event?: java.io.File): void {
-        const owner: CameraPlus = this.owner ? this.owner.get() : null;
+        const owner: NSCamera = this.owner ? this.owner.get() : null;
         if (owner) {
-          owner.sendEvent(CameraPlus.videoRecordingReadyEvent, event.getAbsolutePath());
+          owner.sendEvent(NSCamera.videoRecordingReadyEvent, event.getAbsolutePath());
           // this.CLog(`Recording complete`);
           owner.isRecording = false;
         } else {
@@ -507,7 +507,7 @@ export class CameraPlus extends CameraPlusBase {
         this.CLog(`Android Device has ${camNumber} camera.`);
         return;
       }
-      this.sendEvent(CameraPlus.toggleCameraEvent, this.camera);
+      this.sendEvent(NSCamera.toggleCameraEvent, this.camera);
       // need to check flash mode when toggling...
       // front cam may not have flash - and just ensure the correct icon shows
       this._ensureCorrectFlashIcon();

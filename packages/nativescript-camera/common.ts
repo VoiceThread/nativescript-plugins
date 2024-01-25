@@ -4,11 +4,11 @@
  **********************************************************************************/
 
 import { ContentView, File, isAndroid } from '@nativescript/core';
-import { CameraPlus as CameraPlusDefinition } from '.';
+import { NSCamera as NSCameraDefinition } from '.';
 
 export type CameraTypes = 'front' | 'rear';
 
-export abstract class CameraPlusBase extends ContentView implements CameraPlusDefinition {
+export abstract class NSCameraBase extends ContentView implements NSCameraDefinition {
   @GetSetProperty()
   public debug: boolean = false;
 
@@ -36,7 +36,7 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
   public defaultCamera: CameraTypes = 'rear';
 
   /*
-   * String value for hooking into the errorEvent. This event fires when an error is emitted from CameraPlus.
+   * String value for hooking into the errorEvent. This event fires when an error is emitted from NSCamera.
    */
   public static errorEvent = 'errorEvent';
 
@@ -202,20 +202,20 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
   public maxDimension: number = 1200;
 
   /**
-   * If true the default flash toggle icon/button will show on the Camera Plus layout. Default is true.
+   * If true the default flash toggle icon/button will show on the NSCamera layout. Default is true.
    * Note: if the currently selected camera does not have a flash associated, this will be hidden
    */
   @GetSetProperty()
   public showFlashIcon: boolean = true;
 
   /**
-   * If true the default camera toggle (front/back) icon/button will show on the Camera Plus layout. Default is true.
+   * If true the default camera toggle (front/back) icon/button will show on the NSCamera layout. Default is true.
    */
   @GetSetProperty()
   public showToggleIcon: boolean = true;
 
   /**
-   * If true the default capture (take picture) icon/button will show on the Camera Plus layout. Default is true.
+   * If true the default capture (take picture) icon/button will show on the NSCamera layout. Default is true.
    */
   @GetSetProperty()
   public showCaptureIcon: boolean = true;
@@ -280,7 +280,7 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
   }
 
   /**
-   * Takes a picture of the current preview of the CameraPlus.
+   * Takes a picture of the current preview of the NSCamera.
    */
   abstract takePicture(options?: ICameraOptions): void;
 
@@ -445,18 +445,6 @@ export interface ICameraOptions {
   autoSquareCrop?: boolean;
   confirmRetakeText?: string;
   confirmSaveText?: string;
-}
-
-export interface ICameraPlusEvents {
-  photoCapturedEvent: any;
-  toggleCameraEvent: any;
-  imagesSelectedEvent: any;
-  videoRecordingStartedEvent: any;
-  videoRecordingFinishedEvent: any;
-  videoRecordingReadyEvent: any;
-  cameraReadyEvent: any;
-  confirmScreenShownEvent: any;
-  confirmScreenDismissedEvent: any;
 }
 
 export enum CameraVideoQuality {

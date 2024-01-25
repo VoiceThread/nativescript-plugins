@@ -4,7 +4,7 @@
  **********************************************************************************/
 
 import { Observable, ContentView, File } from '@nativescript/core';
-export declare class CameraPlus extends ContentView {
+export declare class NSCamera extends ContentView {
   /**
    * Video Support (off by default)
    * users should set this in a component constructor before their view creates the component
@@ -26,7 +26,7 @@ export declare class CameraPlus extends ContentView {
   public defaultCamera: 'front' | 'rear';
 
   /**
-   * String value for hooking into the errorEvent. This event fires when an error is emitted from Camera Plus.
+   * String value for hooking into the errorEvent. This event fires when an error is emitted from NSCamera.
    */
   public static errorEvent: string;
 
@@ -134,18 +134,18 @@ export declare class CameraPlus extends ContentView {
   confirmSaveText?: string;
 
   /**
-   * If true the default flash toggle icon/button will show on the Camera Plus layout. Default is true.
+   * If true the default flash toggle icon/button will show on the NSCamera layout. Default is true.
    * Note: if the currently selected camera does not have a flash associated, this will be hidden
    */
   showFlashIcon: boolean;
 
   /**
-   * If true the default camera toggle (front/back) icon/button will show on the Camera Plus layout. Default is true.
+   * If true the default camera toggle (front/back) icon/button will show on the NSCamera layout. Default is true.
    */
   showToggleIcon: boolean;
 
   /**
-   * If true the default capture (take picture) icon/button will show on the Camera Plus layout. Default is true.
+   * If true the default capture (take picture) icon/button will show on the NSCamera layout. Default is true.
    */
   showCaptureIcon: boolean;
 
@@ -251,7 +251,7 @@ export declare class CameraPlus extends ContentView {
   getFlashMode(): string;
 
   /**
-   * Takes a picture of the current preview of the CameraPlus.
+   * Takes a picture of the current preview of the NSCamera.
    */
   takePicture(options?: ICameraOptions): void;
 
@@ -329,17 +329,6 @@ export interface IVideoOptions {
   androidMaxVideoBitRate?: number;
   androidMaxFrameRate?: number;
   androidMaxAudioBitRate?: number;
-}
-
-export interface ICameraPlusEvents {
-  errorEvent: any;
-  photoCapturedEvent: any;
-  toggleCameraEvent: any;
-  imagesSelectedEvent: any;
-  videoRecordingStartedEvent: any;
-  videoRecordingFinishedEvent: any;
-  videoRecordingReadyEvent: any;
-  cameraReadyEvent: any;
 }
 
 /**

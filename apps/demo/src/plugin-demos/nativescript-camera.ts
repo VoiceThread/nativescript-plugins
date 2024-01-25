@@ -1,6 +1,6 @@
 import { EventData, Page, alert, Frame, Screen, Image, File, isIOS, isAndroid, Button, path, knownFolders, Device } from '@nativescript/core';
 import { DemoSharedNativescriptCamera } from '@demo/shared';
-import { CameraPlus, CameraVideoQuality, ICameraOptions } from '@voicethread/nativescript-camera';
+import { NSCamera, CameraVideoQuality, ICameraOptions } from '@voicethread/nativescript-camera';
 import { ObservableProperty } from './observable-property';
 import { Result, checkMultiple, check as checkPermission, request } from '@nativescript-community/perms';
 import { Video } from 'nativescript-videoplayer';
@@ -25,14 +25,14 @@ export async function onLoaded(args) {}
 export class DemoModel extends DemoSharedNativescriptCamera {
   private _counter: number = 0;
   @ObservableProperty()
-  public cam: CameraPlus;
+  public cam: NSCamera;
   @ObservableProperty()
   public cameraHeight: number;
   public videoSegments = [];
 
   constructor(page: Page) {
     super();
-    this.cam = page.getViewById('camPlus') as unknown as CameraPlus;
+    this.cam = page.getViewById('nscamera') as unknown as NSCamera;
 
     //Notes on properties that affect camera instance
     //[ Both Platforms ]
@@ -61,15 +61,15 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       return;
     }
 
-    this.cam.on(CameraPlus.errorEvent, args => {
+    this.cam.on(NSCamera.errorEvent, args => {
       console.error('errorEvent:', args);
     });
 
-    this.cam.on(CameraPlus.toggleCameraEvent, (args: any) => {
+    this.cam.on(NSCamera.toggleCameraEvent, (args: any) => {
       console.log(`toggleCameraEvent: ${args}`);
     });
 
-    this.cam.on(CameraPlus.photoCapturedEvent, (args: any) => {
+    this.cam.on(NSCamera.photoCapturedEvent, (args: any) => {
       console.log(`photoCapturedEvent: ${args}`);
       //args.data should be the path of the jpeg file produced by camera library
       if (typeof args.data !== 'string') {
@@ -82,7 +82,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       testImg.src = args.data;
     });
 
-    this.cam.on(CameraPlus.videoRecordingReadyEvent, (args: any) => {
+    this.cam.on(NSCamera.videoRecordingReadyEvent, (args: any) => {
       //args.data should be the path of the file created with the video recording
       console.log(`videoRecordingReadyEvent:`, args.data);
       let videoFile = File.fromPath(args.data);
@@ -102,17 +102,17 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       console.log('codec:', this.cam.getVideoCodec(args.data));
     });
 
-    this.cam.on(CameraPlus.videoRecordingStartedEvent, (args: any) => {
+    this.cam.on(NSCamera.videoRecordingStartedEvent, (args: any) => {
       console.log(`videoRecordingStartedEvent:`, args.data);
       const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
       video.visibility = 'hidden';
     });
 
-    this.cam.on(CameraPlus.videoRecordingFinishedEvent, (args: any) => {
+    this.cam.on(NSCamera.videoRecordingFinishedEvent, (args: any) => {
       console.log(`videoRecordingFinishedEvent:`, args);
     });
 
-    this.cam.on(CameraPlus.cameraReadyEvent, (args: any) => {
+    this.cam.on(NSCamera.cameraReadyEvent, (args: any) => {
       console.log(`cameraReadyEvent:`, args);
       if (this.cam.saveToGallery) {
         console.log('saveToGallery set true, checking permissions');
@@ -244,7 +244,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
         await request('camera').then(async result => {
           if (result[0] == 'authorized') {
             if (!this.cam) {
-              this.cam = new CameraPlus();
+              this.cam = new NSCamera();
             }
             /*
             //take the photo, using the same properties set via XML

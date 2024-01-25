@@ -15,12 +15,12 @@
       id="CamScrollView">
       <StackLayout >
         <StackLayout class="p-10">
-          <Label text="Anything else can go in your page or you can let the camera take up entire page layout. You can also add layout containers inside the CameraPlus to overlay view elements over the camera preview if needed."
+          <Label text="You can include the camera as part of a page or let the camera take up the entire page layout. You can also add layout containers inside the NSCamera to overlay view elements over the camera preview."
             textWrap="true" />
         </StackLayout>
 
-        <Cam:CameraPlus height="{{ cameraHeight }}"
-          id="camPlus"
+        <Cam:NSCamera height="{{ cameraHeight }}"
+          id="nscamera"
           debug="true"
           enableVideo="true"
           defaultCamera="front"
@@ -42,11 +42,11 @@
           <!-- 
               iOS only properties: doubleTapCameraSwitch='true'  
           -->
-        </Cam:CameraPlus>
+        </Cam:NSCamera>
 
 
         <StackLayout class="p-10">
-          <Label text="The buttons below are using the public methods for the Camera Plus."
+          <Label text="The buttons below are using the public methods for the NSCamera."
             textWrap="true" />
         </StackLayout>
 

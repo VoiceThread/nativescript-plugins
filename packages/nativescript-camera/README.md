@@ -56,13 +56,13 @@ The `apps/demo/` folder contains a simple NS TypeScript application that uses th
 
 1. Import the plugin.
 ```javascript
-import { CameraPlus } from '@voicethread/nativescript-camera';
+import { NSCamera } from '@voicethread/nativescript-camera';
 ```
 
 2. Create a camera instance via JS/TS or XML:
 ```javascript
-this.cam = new CameraPlus();
-this.cam.id = "camPlus"
+this.cam = new NSCamera();
+this.cam.id = "nscamera"
 this.cam.enableVideo = true;
 this.cam.confirmPhotos = true;
 this.cam.defaultCamera = 'front';
@@ -74,8 +74,8 @@ or
 ```xml
 <Page xmlns="http://schemas.nativescript.org/tns.xsd" xmlns:Cam="@voicethread/nativescript-camera">
   ......
-      <Cam:CameraPlus height="{{ cameraHeight }}"
-          id="camPlus"
+      <Cam:NSCamera height="{{ cameraHeight }}"
+          id="nscamera"
           defaultCamera="front"
           enableVideo="true"
           disablePhoto="false"
@@ -93,38 +93,38 @@ or
           maxDimension="800"
           quality="90"
           debug="true">         
-        </Cam:CameraPlus>
+        </Cam:NSCamera>
   ......
 ```
 
 3. Hook into camera events to handle videos and photos capture events along with other useful events. 
 
 ```javascript
-this.cam.on(CameraPlus.errorEvent, args => {
+this.cam.on(NSCamera.errorEvent, args => {
       //handle error
     });
 
-    this.cam.on(CameraPlus.toggleCameraEvent, (args: any) => {
+    this.cam.on(NSCamera.toggleCameraEvent, (args: any) => {
       // update some UI/state
     });
 
-    this.cam.on(CameraPlus.photoCapturedEvent, (args: any) => {
+    this.cam.on(NSCamera.photoCapturedEvent, (args: any) => {
       // args.data should be the path of the jpeg file produced by camera library
     });
 
-    this.cam.on(CameraPlus.videoRecordingReadyEvent, (args: any) => {
+    this.cam.on(NSCamera.videoRecordingReadyEvent, (args: any) => {
       //args.data should be the path of the file created with the video recording      
     });
 
-    this.cam.on(CameraPlus.videoRecordingStartedEvent, (args: any) => {
+    this.cam.on(NSCamera.videoRecordingStartedEvent, (args: any) => {
       // update some UI/state
     });
 
-    this.cam.on(CameraPlus.videoRecordingFinishedEvent, (args: any) => {
+    this.cam.on(NSCamera.videoRecordingFinishedEvent, (args: any) => {
       // some other UI updates
     });
 
-    this.cam.on(CameraPlus.cameraReadyEvent, (args: any) => {
+    this.cam.on(NSCamera.cameraReadyEvent, (args: any) => {
       // lets you know once native camera instance is ready and initialized
     });
 ```
@@ -195,10 +195,10 @@ If you want to use the `saveToGallery` flag then you will also need to add the f
 | **confirmRetakeText** | string  | *'Retake'*   | When confirming capture this text will be presented to the user to retake the photo.                                       |
 | **confirmSaveText**   | string  | *'Save'*     | When confirming capture this text will be presented to the user to save the photo.                                         |
 | **saveToGallery**     | boolean | *true*       | If true, photos or videos captured by the plugin will be saved to the device photos gallery.                                                        |
-| **showFlashIcon**     | boolean | *true*       | If true the default flash toggle icon/button will show on the Camera Plus layout. Note: if the current camera does not have a flashlight this will be automatically hidden.                                         |
-| **showToggleIcon**    | boolean | *true*       | If true the default camera toggle (front/back) icon button will show on the Camera Plus layout.                            |
-| **showCaptureIcon**   | boolean | *true*       | If true the default capture (take picture) icon/button will show on the Camera Plus layout.                                |
-| **showGalleryIcon**   | boolean | *true*       | If true the choose from gallery/library icon/button will show on the Camera Plus layout.                                   |
+| **showFlashIcon**     | boolean | *true*       | If true the default flash toggle icon/button will show on the NSCamera layout. Note: if the current camera does not have a flashlight this will be automatically hidden.                                         |
+| **showToggleIcon**    | boolean | *true*       | If true the default camera toggle (front/back) icon button will show on the NSCamera layout.                            |
+| **showCaptureIcon**   | boolean | *true*       | If true the default capture (take picture) icon/button will show on the NSCamera layout.                                |
+| **showGalleryIcon**   | boolean | *true*       | If true the choose from gallery/library icon/button will show on the NSCamera layout.                                   |
 | **enableVideo**       | boolean | *false*       | If true the Camera instance can record video and will affect camera UX and main camera button icon used.                                      |
 | **disablePhoto**       | boolean | *false*       | If true the Camera instance UI will only allow video mode operation. if enableVideo is false and disablePhoto is true, the main camera button will not trigger any actions.                                       |
 | **defaultCamera** | `'front'` or `'rear'` | *'rear'*         | Which camera to use on launch.  `'front'` or `'rear'`.                                                  |
