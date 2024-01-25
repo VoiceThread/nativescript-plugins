@@ -23,14 +23,48 @@ export class NativescriptTranscoderCommon extends Observable {
   public static TRANSCODING_ERROR = 'transcoding-error';
   public static TRANSCODING_CANCELLED = 'transcoding-cancelled';
 
+  private resolutionMap = {
+    '1080p': {
+      width: 1920.0,
+      height: 1080.0,
+    },
+    '720p': {
+      width: 1280.0,
+      height: 720.0,
+    },
+    '480p': {
+      width: 640.0,
+      height: 480.0,
+    },
+  };
+
   // utilities
   getVideoSize(videoPath: string): number {
     const file = File.fromPath(videoPath);
     return file?.size || 0;
   }
+
   getVideoSizeString(videoPath: string): string {
     const fileSize = this.getVideoSize(videoPath);
     return this.formatBytes(fileSize);
+  }
+
+  getAllowedTranscodingResolution(videoPath: string): string[] {
+    const videoSize = this.getVideoResolution(videoPath);
+    const resolution = videoSize.width * videoSize.height;
+    const allowedResolution = Object.entries(this.resolutionMap).reduce((acc, [key, val]) => {
+      // only allow transcoding to lower quality
+      if (resolution > val.width * val.height) {
+        acc.push(key);
+      }
+      return acc;
+    }, []);
+    return allowedResolution;
+  }
+
+  getVideoResolution(videoPath: string): VideoResolution {
+    // implemented separately in ios and android files
+    return { width: 0, height: 0 };
   }
 
   private formatBytes(bytes: number, decimals = 2): string {
@@ -49,11 +83,12 @@ export class NativescriptTranscoderCommon extends Observable {
 export type LogLevel = 'none' | 'verbose';
 
 export interface VideoConfig {
-  quality?: '480p' | '720p' | '1080p'; // iOS only
+  quality?: '480p' | '720p' | '1080p'; // 480p is iOS only
   frameRate?: number; // iOS only
   audioChannels?: number; // iOS only
   audioSampleRate?: number; // iOS only
   audioBitRate?: number; // iOS only
+  force?: boolean; // force transcoding to allow transcoding to the same or higher quality
 }
 
 export interface Asset {
