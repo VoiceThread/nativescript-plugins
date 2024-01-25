@@ -295,6 +295,9 @@ export enum CameraVideoQuality {
 
 *App Suspension and Resume* - You should add event listeners that will tear down the Camera View and re-initialize it to avoid problems with device camera access. You can see an example in the demo application. 
 
+*Pinch to Zoom* - for iOS this is currently only supported for rear cameras. 
+
+*Main Camera Button* - for both platforms, the main camera button supports both tap and long-press gestures when in video recording mode. Tap to start/stop recording, or long-press the button to record until you stop pressing the button. 
 
 ------------------------------
 
