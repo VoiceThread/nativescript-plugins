@@ -7,7 +7,6 @@ import { Observable, ContentView, File } from '@nativescript/core';
 export declare class CameraPlus extends ContentView {
   /**
    * Video Support (off by default)
-   * defined statically due to necessity to set this very early before constructor
    * users should set this in a component constructor before their view creates the component
    * and can reset it before different using in different views if they want to go back/forth
    * between photo/camera and video/camera
@@ -21,8 +20,8 @@ export declare class CameraPlus extends ContentView {
   public disablePhoto: boolean;
 
   /**
-   * Default camera: must be set early before constructor to default the camera correctly on launch (default to 'rear')
-   * //TODO: add support for this flag to both platforms and expose to plugin
+   * Default camera: (default to 'rear')
+   * Can be set before initialization or after to select which camera the plugin should use currently
    */
   public defaultCamera: 'front' | 'rear';
 
@@ -83,14 +82,14 @@ export declare class CameraPlus extends ContentView {
   ratio: string;
 
   /**
-   *  *ANDROID ONLY*  Camera zoom uses a float 0 - 1.
+   *  *ANDROID ONLY*  Camera zoom uses a float 0 - 1. Currently only getter support
    *  0 being no zoom
    *  1 being max zoom
    */
   zoom: number;
 
   /**
-   *  *ANDROID ONLY* Camera white balance
+   *  *ANDROID ONLY* Camera white balance setting. Currently only getter support
    */
   whiteBalance: WhiteBalance | string;
 
@@ -100,7 +99,7 @@ export declare class CameraPlus extends ContentView {
   pictureSize: string;
 
   /**
-   * TODO: needs to be fixed or removed
+   * NOTE: not currently working
    * @param ratio string
    * @returns returns an array of supported picture sizes supported by the current camera
    */
@@ -108,13 +107,17 @@ export declare class CameraPlus extends ContentView {
 
   /**
    * *ANDROID ONLY*
-   * TODO: needs to be fixed or removed
+   * NOTE: not currently working
    * @returns retuns an array of strings representing the preview sizes supported by the current device.
    */
   getGetSupportedRatios(): string[];
 
+  /*
+   * Logging functions controlled by debug property
+   */
   CLog(...args): void;
   CError(...args): void;
+
   /**
    * If true the default take picture event will present a confirmation dialog. Default is true.
    */
@@ -132,6 +135,7 @@ export declare class CameraPlus extends ContentView {
 
   /**
    * If true the default flash toggle icon/button will show on the Camera Plus layout. Default is true.
+   * Note: if the currently selected camera does not have a flash associated, this will be hidden
    */
   showFlashIcon: boolean;
 
@@ -283,7 +287,18 @@ export declare class CameraPlus extends ContentView {
    * Returns true if the current camera has a flash mode.
    */
   hasFlash(): boolean;
+  /*
+   * Utility to merge an array of video filenames, must all be valid mp4 format video files with same audio encoding
+   */
   mergeVideoFiles(audioFiles: string[], outputPath: string): Promise<File>;
+  /*
+   * Utility to log information on the video format used by the video file at `videoPath`
+   */
+  getVideoCodec(videoPath: string): string;
+  /*
+   * Utility to check video resolution for the video file at `videoPath`
+   */
+  getVideoResolution(videoPath: string): { width: number; height: number };
 }
 
 export interface ICameraOptions {
@@ -327,6 +342,9 @@ export interface ICameraPlusEvents {
   cameraReadyEvent: any;
 }
 
+/**
+ *  *ANDROID ONLY* Camera white balance setting
+ */
 export enum WhiteBalance {
   Auto = 'auto',
   Sunny = 'sunny',

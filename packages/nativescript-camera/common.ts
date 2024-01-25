@@ -3,7 +3,7 @@
   2023, VoiceThread - Angel Dominguez
  **********************************************************************************/
 
-import { ContentView, File } from '@nativescript/core';
+import { ContentView, File, isAndroid } from '@nativescript/core';
 import { CameraPlus as CameraPlusDefinition } from '.';
 
 export type CameraTypes = 'front' | 'rear';
@@ -14,7 +14,6 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
 
   /**
    * Video Support (off by default)
-   * defined statically due to necessity to set this very early before constructor
    * users should set this in a component constructor before their view creates the component
    * and can reset it before different using in different views if they want to go back/forth
    * between photo/camera and video/camera
@@ -22,11 +21,16 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
   @GetSetProperty()
   public enableVideo: boolean = false;
 
+  /*
+   * Disable Photo Support (off by default)
+   * useful if you wish to only use this plugin as a camera preview by also disabling video
+   */
   @GetSetProperty()
   public disablePhoto: boolean = false;
 
   /**
-   * Default camera: must be set early before constructor to default the camera correctly on launch (default to rear)
+   * Default camera: (default to 'rear')
+   * Can be set before initialization or after to select which camera the plugin should use currently
    */
   @GetSetProperty()
   public defaultCamera: CameraTypes = 'rear';
@@ -83,7 +87,7 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
   public ratio: string;
 
   /**
-   *  *ANDROID ONLY*  Camera zoom uses a float 0 - 1.
+   *  *ANDROID ONLY*  Camera zoom uses a float 0 - 1. Currently only getter support
    *  0 being no zoom
    *  1 being max zoom
    */
@@ -91,7 +95,7 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
   public zoom: number = 0;
 
   /**
-   *  *ANDROID ONLY* Camera white balance
+   *  *ANDROID ONLY* Camera white balance, currently only getter support
    */
   @GetSetProperty()
   public whiteBalance: WhiteBalance | string = WhiteBalance.Auto;
@@ -105,6 +109,7 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
   /**
    * @param ratio string
    * @returns returns an array of supported picture sizes supported by the current camera
+   * NOTE: not currently working
    */
   getAvailablePictureSizes(ratio: string): string[] {
     return [];
@@ -112,6 +117,7 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
 
   /**
    * @returns retuns an array of strings representing the preview sizes supported by the current device.
+   * NOTE: not currently working
    */
   getGetSupportedRatios(): string[] {
     return [];
@@ -197,6 +203,7 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
 
   /**
    * If true the default flash toggle icon/button will show on the Camera Plus layout. Default is true.
+   * Note: if the currently selected camera does not have a flash associated, this will be hidden
    */
   @GetSetProperty()
   public showFlashIcon: boolean = true;
@@ -289,9 +296,90 @@ export abstract class CameraPlusBase extends ContentView implements CameraPlusDe
   abstract stop(): void;
 
   /*
-   * Merge an array of video filenames, must all be valid mp4 format video files with same audio encoding
+   * Utility to merge an array of video filenames, must all be valid mp4 format video files with same audio encoding
    */
   abstract mergeVideoFiles(audioFiles: string[], outputPath: string): Promise<File>;
+
+  /*
+   * Utility to log information on the video format used by the video file at `videoPath`
+   */
+  public getVideoCodec(videoPath: string): string {
+    let videoFormat: any = null;
+    if (isAndroid) {
+      let mediadata = new android.media.MediaMetadataRetriever();
+      mediadata.setDataSource(videoPath);
+
+      //find video format and select the video track to read from
+      let videoExtractor: android.media.MediaExtractor = new android.media.MediaExtractor();
+      videoExtractor.setDataSource(videoPath);
+      let videoTracks = videoExtractor.getTrackCount();
+
+      for (let j = 0; j < videoTracks; j++) {
+        let mf = videoExtractor.getTrackFormat(j);
+        let mime = mf.getString(android.media.MediaFormat.KEY_MIME);
+        if (mime.startsWith('video/')) {
+          videoExtractor.selectTrack(j);
+          videoFormat = videoExtractor.getTrackFormat(j);
+          break;
+        }
+      }
+    } else {
+      const filePath = NSURL.fileURLWithPath(videoPath);
+      const avAsset = AVURLAsset.assetWithURL(filePath);
+      const track: AVAssetTrack = avAsset.tracksWithMediaType(AVMediaTypeVideo).firstObject;
+      if (!track) {
+        console.warn('No video track found, cannot extract metadata information!');
+        return null;
+      }
+
+      let mediaSubtypes = track.formatDescriptions;
+      for (let i = 0; i < mediaSubtypes.count; i++) {
+        let type = mediaSubtypes.objectAtIndex(i);
+        let subtype = CMFormatDescriptionGetMediaSubType(type);
+        //extract from byte array
+        let bytes = [(subtype >> 24) & 0xff, (subtype >> 16) & 0xff, (subtype >> 8) & 0xff, subtype & 0xff, 0];
+        let str = bytes
+          .map(byte => {
+            return String.fromCharCode(byte);
+          })
+          .join('');
+        videoFormat = str;
+      }
+    }
+    if (!videoFormat) {
+      console.warn('No video track found, cannot extract metadata information!');
+    }
+    return videoFormat;
+  }
+  /*
+   * Utility to check video resolution for the video file at `videoPath`
+   */
+  public getVideoResolution(videoPath: string): { width: number; height: number } {
+    if (isAndroid) {
+      const metaRetriever = new android.media.MediaMetadataRetriever();
+      metaRetriever.setDataSource(videoPath);
+      return {
+        width: +metaRetriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH),
+        height: +metaRetriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT),
+      };
+    } else {
+      const filePath = NSURL.fileURLWithPath(videoPath);
+      const avAsset = AVURLAsset.assetWithURL(filePath);
+      const track = avAsset.tracksWithMediaType(AVMediaTypeVideo).firstObject;
+      if (!track) {
+        console.warn('No video track found, cannot extract metadata information!');
+        return {
+          width: 0,
+          height: 0,
+        };
+      }
+      const size = track.naturalSize;
+      return {
+        width: size.width,
+        height: size.height,
+      };
+    }
+  }
 
   /**
    * Returns true if the device has at least one camera.
@@ -392,6 +480,9 @@ export interface IVideoOptions {
   androidMaxAudioBitRate?: number;
 }
 
+/**
+ *  *ANDROID ONLY* Camera white balance setting
+ */
 export enum WhiteBalance {
   Auto = 'auto',
   Sunny = 'sunny',

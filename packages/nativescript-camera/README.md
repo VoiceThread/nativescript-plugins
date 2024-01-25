@@ -19,6 +19,8 @@
   - [Methods](#cross-platform-public-methods)  
   - [Events](#events)  
   - [Interfaces](#option-interfaces)  
+  - [Caveats](#caveats)
+  - [Utils](#utils)
   - [Acknowledgements](#acknowledgements)
   - [License](#license)
 ------------------------------
@@ -175,7 +177,7 @@ Add the following to `app/App_Resources/iOS/Info.plist`:
 	<string>This app requires access to your camera to record video and take pictures</string>
 ```
 
-If you want to use the `saveToGallery` flag then you will also need to add the following (look at the example in `apps/demo/src/plugin-demos/nativescript-camera.ts` for a working example). 
+If you want to use the `saveToGallery` flag then you will also need to add the following and request permission from user (look at the example in `apps/demo/src/plugin-demos/nativescript-camera.ts` for a working example). 
 
 ```xml
   <key>NSPhotoLibraryUsageDescription</key>
@@ -192,8 +194,8 @@ If you want to use the `saveToGallery` flag then you will also need to add the f
 | **confirmPhotos**     | boolean | *true*       | If true the default take picture event will present a confirmation dialog before saving.                                   |
 | **confirmRetakeText** | string  | *'Retake'*   | When confirming capture this text will be presented to the user to retake the photo.                                       |
 | **confirmSaveText**   | string  | *'Save'*     | When confirming capture this text will be presented to the user to save the photo.                                         |
-| **saveToGallery**     | boolean | *true*       | If true the default take picture event will save to device gallery.                                                        |
-| **showFlashIcon**     | boolean | *true*       | If true the default flash toggle icon/button will show on the Camera Plus layout.                                          |
+| **saveToGallery**     | boolean | *true*       | If true, photos or videos captured by the plugin will be saved to the device photos gallery.                                                        |
+| **showFlashIcon**     | boolean | *true*       | If true the default flash toggle icon/button will show on the Camera Plus layout. Note: if the current camera does not have a flashlight this will be automatically hidden.                                         |
 | **showToggleIcon**    | boolean | *true*       | If true the default camera toggle (front/back) icon button will show on the Camera Plus layout.                            |
 | **showCaptureIcon**   | boolean | *true*       | If true the default capture (take picture) icon/button will show on the Camera Plus layout.                                |
 | **showGalleryIcon**   | boolean | *true*       | If true the choose from gallery/library icon/button will show on the Camera Plus layout.                                   |
@@ -210,8 +212,8 @@ If you want to use the `saveToGallery` flag then you will also need to add the f
 | **toggleCameraIcon** | string  | Name of app_resource drawable for the toggle camera button.                                 |
 | **takePicIcon**      | string  | Name of app_resource drawable for the take picture (capture) button.                        |
 | **galleryIcon**      | string  | Name of app_resource drawable for the open gallery (image library) button.                  |
-| **autoFocus**        | boolean | If true the camera will use continuous focus when the camera detects changes of the target. |
-| **insetButtons**     | boolean | If true, adjusts the spacing from edge of screen for built-in buttons.                      |
+| **autoFocus**        | boolean | If true (defaults to true) the camera will use continuous focus when the camera detects changes of the target. |
+| **insetButtons**     | boolean | If true (defaults to false), adjusts the spacing from edge of screen for built-in buttons.                      |
 | **insetButtonsPercent**|number | The percentage to inset by, from 0.0 - 1.0                                                  |
 
 ## iOS Only Properties
@@ -256,7 +258,7 @@ Photo taking options
 ```TS
 export interface ICameraOptions {
   confirmPhotos?: boolean;
-  saveToGallery?: boolean;
+  saveToGallery?: boolean; //shared with video options
   quality?: number;
   maxDimension?: number;
   autoSquareCrop?: boolean;
@@ -269,7 +271,7 @@ Video recording options
 ```TS
 export interface IVideoOptions {
   quality?: CameraVideoQuality;  
-  saveToGallery?: boolean;
+  saveToGallery?: boolean; //shared with photo options
   androidMaxVideoBitRate?: number;
   androidMaxFrameRate?: number;
   androidMaxAudioBitRate?: number;
@@ -287,10 +289,32 @@ export enum CameraVideoQuality {
 
 ------------------------------
 
-## Additional Utils
-This plugin also exports a function `mergeVideoFiles` which a dev can use to merge an array of video files produced by the camera plugin. To use it, all input files must be MP4 with the same video and audio codec settings for all video segments. It takes two parameters; the first is an array of file names for the input video files and the second is a path string to save the merged video file to. 
+## Caveats
+
+*Audio Inputs* - On iOS, the plugin will prefer to use available audio inputs in the following order : bluetooth, wired and built-in. On Android, the plugin will only use the built-in device microphone at this time. Support for bluetooth devices will be added later. 
+
+*App Suspension and Resume* - You should add event listeners that will tear down the Camera View and re-initialize it to avoid problems with device camera access. You can see an example in the demo application. 
+
+
+------------------------------
+
+## Utils
+
+This plugin contains a few utility functions which may be useful for developers:
+
+`mergeVideoFiles`: Merge an array of video files produced by the camera plugin. To use it, all input files must be MP4 with the same video and audio codec settings for all video segments. It takes two parameters; the first is an array of file names for the input video files and the second is a path string to save the merged video file to. 
 ``` js
-let outputFile = mergeVideoFiles(videoSegmentsArray, outputPath)
+let outputFile = this.cam.mergeVideoFiles(videoSegmentsArray, outputPath)
+```
+
+`getVideoCodec`: Looks through metadata for information on the video codec/format of a video file from a path.
+``` js
+console.log('codec:', this.cam.getVideoCodec(args.data));
+```
+
+`getVideoResolution`: Looks through metadata for information on the height and width of a video file from a path.
+``` js
+console.log('Height/width:', this.cam.getVideoResolution(args.data));
 ```
 
 ------------------------------ 

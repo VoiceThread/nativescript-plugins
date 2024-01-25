@@ -4,16 +4,13 @@ import { CameraPlus, CameraVideoQuality, ICameraOptions } from '@voicethread/nat
 import { ObservableProperty } from './observable-property';
 import { Result, checkMultiple, check as checkPermission, request } from '@nativescript-community/perms';
 import { Video } from 'nativescript-videoplayer';
-import { executeOnMainThread } from '@nativescript/core/utils';
 
 export function navigatingTo(args: EventData) {
-  // console.log('page navigatingTo()');
   const page = <Page>args.object;
   page.bindingContext = new DemoModel(page);
 }
 
 export function navigatingFrom(args: EventData) {
-  // console.log('page navigatingFrom()');
   const page = <Page>args.object;
   const video: Video = page.getViewById('nativeVideoPlayer') as Video;
   if (video) {
@@ -23,9 +20,7 @@ export function navigatingFrom(args: EventData) {
   } else console.warn('Unable to clear video player when leaving page!');
 }
 
-export async function onLoaded(args) {
-  // console.log('page onLoaded()', args.object);
-}
+export async function onLoaded(args) {}
 
 export class DemoModel extends DemoSharedNativescriptCamera {
   private _counter: number = 0;
@@ -33,18 +28,13 @@ export class DemoModel extends DemoSharedNativescriptCamera {
   public cam: CameraPlus;
   @ObservableProperty()
   public cameraHeight: number;
-
   public videoSegments = [];
 
   constructor(page: Page) {
     super();
-
     this.cam = page.getViewById('camPlus') as unknown as CameraPlus;
 
     //Notes on properties that affect camera instance
-
-    //TODO: update these as properties are fixed or changed
-
     //[ Both Platforms ]
     //this.cam.enableVideo = true;//defaults to false. Enable to true for video mode
     //this.cam.disablePhoto = true;//defaults to false. Set to true and enableVideo to true, and camera button gestures ignored
@@ -72,15 +62,15 @@ export class DemoModel extends DemoSharedNativescriptCamera {
     }
 
     this.cam.on(CameraPlus.errorEvent, args => {
-      console.log('*** CameraPlus errorEvent ***', args.eventName);
+      console.error('errorEvent:', args);
     });
 
     this.cam.on(CameraPlus.toggleCameraEvent, (args: any) => {
-      console.log(`toggleCameraEvent listener on main-view-model.ts  ${args}`);
+      console.log(`toggleCameraEvent: ${args}`);
     });
 
     this.cam.on(CameraPlus.photoCapturedEvent, (args: any) => {
-      console.log(`photoCapturedEvent listener on main-view-model.ts  ${args}`);
+      console.log(`photoCapturedEvent: ${args}`);
       //args.data should be the path of the jpeg file produced by camera library
       if (typeof args.data !== 'string') {
         console.error('returned data is not a file path!');
@@ -94,37 +84,36 @@ export class DemoModel extends DemoSharedNativescriptCamera {
 
     this.cam.on(CameraPlus.videoRecordingReadyEvent, (args: any) => {
       //args.data should be the path of the file created with the video recording
-      console.log(`videoRecordingReadyEvent listener fired`, args.data);
+      console.log(`videoRecordingReadyEvent:`, args.data);
       let videoFile = File.fromPath(args.data);
       console.log('File has length', videoFile.size);
+      //play the video just recorded
       const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
       video.visibility = 'visible';
       video.opacity = 1;
-      console.log('event passed path: ', args.data);
       video.src = args.data;
-      console.log('Resolution of video file', this.getVideoResolution(args.data));
       video.loop = true;
       video.play();
       //add to current array of movie segments
       this.videoSegments.push(videoFile.path);
       this.refreshUI();
-      //dump out some information on recording
-      console.log('Height/width:', this.getVideoResolution(args.data));
-      console.log('codec:', this.getVideoCodec(args.data));
+      //dump out some information on video recording
+      console.log('Height/width:', this.cam.getVideoResolution(args.data));
+      console.log('codec:', this.cam.getVideoCodec(args.data));
     });
 
     this.cam.on(CameraPlus.videoRecordingStartedEvent, (args: any) => {
-      console.log(`videoRecordingStartedEvent listener fired`, args.data);
+      console.log(`videoRecordingStartedEvent:`, args.data);
       const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
       video.visibility = 'hidden';
     });
 
     this.cam.on(CameraPlus.videoRecordingFinishedEvent, (args: any) => {
-      console.log(`videoRecordingFinishedEvent listener fired`);
+      console.log(`videoRecordingFinishedEvent:`, args);
     });
 
     this.cam.on(CameraPlus.cameraReadyEvent, (args: any) => {
-      console.log(`cameraReadyEvent listener fired`);
+      console.log(`cameraReadyEvent:`, args);
       if (this.cam.saveToGallery) {
         console.log('saveToGallery set true, checking permissions');
         this.requestGalleryPermission();
@@ -157,30 +146,23 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       //recheck audio and video permissions
       const result = await checkMultiple({ photo: {}, audio: {}, video: {} });
       if (result['camera'] != 'authorized') {
-        console.log('No camera permission, requesting...');
         await request('camera').then(result => {
-          console.log('Request result', result);
           if (result[0] != 'authorized') canRecord = false;
         });
       }
       if (result['microphone'] != 'authorized') {
-        console.log('No microphone permission, requesting...');
         await request('microphone').then(result => {
-          console.log('Request result', result);
           if (result[0] != 'authorized') canRecord = false;
         });
       }
-      console.log('canRecord?:', canRecord);
       if (!canRecord) {
         console.error('Not enough permissions to record video with audio!');
         alert('Not enough permissions to record video with audio!');
         return;
       }
 
-      console.log(`*** start recording ***`);
       this.cam.videoQuality = CameraVideoQuality.MAX_1080P;
       this.cam.record({
-        // saveToGallery: this.cam.saveToGallery,
         saveToGallery: true,
         videoQuality: CameraVideoQuality.MAX_2160P,
         androidMaxVideoBitRate: 100,
@@ -188,24 +170,21 @@ export class DemoModel extends DemoSharedNativescriptCamera {
         androidMaxAudioBitRate: 100,
       });
     } catch (err) {
-      console.log(err);
+      console.error(err);
     }
   }
 
   // called by custom button on demo page
   public stopRecordingDemoVideo() {
     try {
-      console.log(`*** stop recording ***`);
       this.cam.stop();
-      console.log(`*** after this.cam.stop() ***`);
     } catch (err) {
-      console.log(err);
+      console.error(err);
     }
   }
 
   // called by custom button on demo page
   public async mergeVideos() {
-    console.log('mergeVideos()');
     let tempFileName, outputPath;
     for (let i = 1; i < 999999999; i++) {
       tempFileName = 'videorecording-' + i + '.mp4';
@@ -231,12 +210,11 @@ export class DemoModel extends DemoSharedNativescriptCamera {
 
   // called by custom button on demo page
   public deleteLastSegment() {
-    console.log('deleteLastSegment()');
     console.log('Segments in session:', this.videoSegments);
     if (this.videoSegments.length > 0) {
       this.videoSegments.pop();
     } else console.warn('No video segments in current session!');
-    console.log(' done with function, Segments in session:', this.videoSegments);
+    console.log(' done with removal of last segment, Segments now in session:', this.videoSegments);
     this.refreshUI();
   }
 
@@ -308,7 +286,6 @@ export class DemoModel extends DemoSharedNativescriptCamera {
         await checkPermission('photo').then(async (permres: Result) => {
           await request('photo').then(async result => {
             if (result[0] == 'authorized' && result[1]) {
-              console.log('authorized Photos Gallery permission');
             } else {
               console.warn("No permission for files, can't save to photos gallery!");
               //warn user they need to update app privacy settings before this will work
@@ -326,8 +303,6 @@ export class DemoModel extends DemoSharedNativescriptCamera {
         await checkPermission('storage').then(async permres => {
           if (permres[0] == 'undetermined' || permres[0] != 'authorized') {
             await request('storage').then(async result => {
-              // console.log(result['android.permission.READ_EXTERNAL_STORAGE']);
-              // console.log(result['android.permission.WRITE_EXTERNAL_STORAGE']);
               if (result['android.permission.READ_EXTERNAL_STORAGE'] == 'authorized' && result['android.permission.WRITE_EXTERNAL_STORAGE'] == 'authorized') {
                 console.log('have read/write access to storage for API version ', Device.sdkVersion);
               } else {
@@ -343,98 +318,6 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       }
     } catch (err) {
       console.error(err);
-    }
-  }
-
-  public getVideoCodec(videoPath: string): string {
-    let videoFormat = null;
-    if (isAndroid) {
-      // const metaRetriever = new android.media.MediaMetadataRetriever();
-      // metaRetriever.setDataSource(videoPath);
-      // return {
-      //   width: +metaRetriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH),
-      //   height: +metaRetriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT),
-      // };
-      let mediadata = new android.media.MediaMetadataRetriever();
-      mediadata.setDataSource(videoPath);
-
-      //find video format and select the video track to read from later
-      let videoExtractor: android.media.MediaExtractor = new android.media.MediaExtractor();
-      videoExtractor.setDataSource(videoPath);
-      let videoTracks = videoExtractor.getTrackCount();
-
-      for (let j = 0; j < videoTracks; j++) {
-        let mf = videoExtractor.getTrackFormat(j);
-        let mime = mf.getString(android.media.MediaFormat.KEY_MIME);
-        if (mime.startsWith('video/')) {
-          videoExtractor.selectTrack(j);
-          videoFormat = videoExtractor.getTrackFormat(j);
-          console.log('found a video format', videoFormat);
-          break;
-        }
-      }
-    } else {
-      const filePath = NSURL.fileURLWithPath(videoPath);
-      const avAsset = AVURLAsset.assetWithURL(filePath);
-      const track: AVAssetTrack = avAsset.tracksWithMediaType(AVMediaTypeVideo).firstObject;
-      if (!track) {
-        return '';
-        // return {
-        //   width: 0,
-        //   height: 0,
-        // };
-      }
-
-      let mediaSubtypes = track.formatDescriptions;
-      for (let i = 0; i < mediaSubtypes.count; i++) {
-        let type = mediaSubtypes.objectAtIndex(i);
-        console.log('type:', type);
-        let subtype = CMFormatDescriptionGetMediaSubType(type);
-        // console.log('subtype', subtype);
-        //extract from byte array
-        let bytes = [(subtype >> 24) & 0xff, (subtype >> 16) & 0xff, (subtype >> 8) & 0xff, subtype & 0xff, 0];
-        // console.log('bytes', bytes);
-        let str = bytes
-          .map(byte => {
-            return String.fromCharCode(byte);
-          })
-          .join('');
-        // console.log('str', str);
-        videoFormat = str;
-      }
-      // const size = track.naturalSize;
-      // return {
-      //   width: size.width,
-      //   height: size.height,
-      // };
-      // const format = track.metadataForFormat;
-      return videoFormat;
-    }
-  }
-  //util to check video resolution produced
-  public getVideoResolution(videoPath: string): { width: number; height: number } {
-    if (isAndroid) {
-      const metaRetriever = new android.media.MediaMetadataRetriever();
-      metaRetriever.setDataSource(videoPath);
-      return {
-        width: +metaRetriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH),
-        height: +metaRetriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT),
-      };
-    } else {
-      const filePath = NSURL.fileURLWithPath(videoPath);
-      const avAsset = AVURLAsset.assetWithURL(filePath);
-      const track = avAsset.tracksWithMediaType(AVMediaTypeVideo).firstObject;
-      if (!track) {
-        return {
-          width: 0,
-          height: 0,
-        };
-      }
-      const size = track.naturalSize;
-      return {
-        width: size.width,
-        height: size.height,
-      };
     }
   }
 }
