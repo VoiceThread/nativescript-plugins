@@ -68,6 +68,7 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
       let files = await filePicker(MediaType.VIDEO, false);
       console.log('files', files);
       if (files.length) this.pickedFile = files[0];
+
       console.log('Selected file', this?.pickedFile, this?.pickedFile?.path);
     } else alert('Need permissions to pick files from device storage');
   }
@@ -144,10 +145,12 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
         isAndroid
           ? {
               quality: quality,
+              // force: true,  // set to true if you want to force transocding to the same or higher resolution
             }
           : {
               quality: quality,
               frameRate: frameRate || 30,
+              // force: true,  // set to true if you want to force transocding to the same or higher resolution
             }
       )
       .then(transcodedFile => {
@@ -175,6 +178,7 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
         outputDetailsLabel.color = new Color('#ffffff');
       })
       .catch(error => {
+        console.error('[Error Transcoding]', error);
         outputDetailsLabel.visibility = 'visible';
         outputDetailsLabel.text = `Error: ${error}`;
         outputDetailsLabel.textWrap = true;
