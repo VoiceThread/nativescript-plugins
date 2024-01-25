@@ -4,23 +4,6 @@ declare module io {
   export module github {
     export module triniwiz {
       export module fancycamera {
-        export class BitmapUtils {
-          public static class: java.lang.Class<io.github.triniwiz.fancycamera.BitmapUtils>;
-          public static INSTANCE: io.github.triniwiz.fancycamera.BitmapUtils;
-          public getBitmap(param0: java.nio.ByteBuffer, param1: io.github.triniwiz.fancycamera.FrameMetadata): globalAndroid.graphics.Bitmap;
-          public getBitmapFromContentUri(param0: globalAndroid.content.ContentResolver, param1: globalAndroid.net.Uri): globalAndroid.graphics.Bitmap;
-          public getBitmap(param0: androidNative.Array<number>, param1: io.github.triniwiz.fancycamera.FrameMetadata): globalAndroid.graphics.Bitmap;
-          public getBitmap(param0: androidx.camera.core.ImageProxy): globalAndroid.graphics.Bitmap;
-        }
-      }
-    }
-  }
-}
-
-declare module io {
-  export module github {
-    export module triniwiz {
-      export module fancycamera {
         export class Camera2 extends io.github.triniwiz.fancycamera.CameraBase {
           public static class: java.lang.Class<io.github.triniwiz.fancycamera.Camera2>;
           public getDisplayRatio(): string;

@@ -74,8 +74,7 @@ class FancyCamera : FrameLayout {
         get() {
             return cameraView.pause
         }
-        set(value) {
-            Log.d("org.nativescript.plugindemo", "FamcyCAmera.kt set pause")
+        set(value) {            
             cameraView.pause = value
         }
 
@@ -265,15 +264,11 @@ class FancyCamera : FrameLayout {
         cameraView.stopPreview()
     }
 
-    fun stopRecording() {
-        Log.d("org.nativescript.plugindemo", "FancyCamera.kt: stopRecording()")
-        //        print("FancyCamera.kt: stopRecording()")
+    fun stopRecording() {        
         cameraView.stopRecording()
     }
 
-    fun startRecording() {
-        //        print("FancyCamera.kt: startRecording()")
-        Log.d("org.nativescript.plugindemo", "FancyCamera.kt: startRecording()")
+    fun startRecording() {        
         cameraView.startRecording()
     }
 

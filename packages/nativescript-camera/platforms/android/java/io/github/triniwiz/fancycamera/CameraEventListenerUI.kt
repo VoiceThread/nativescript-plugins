@@ -48,10 +48,7 @@ abstract class CameraEventListenerUI : CameraEventListener {
                                             file = File(eventData.getString(FILE)!!)
                                         }
                                         onCameraVideoUI(file)
-                                    }
-                                    // WHAT_CAMERA_ANALYSIS_EVENT -> {
-                                    //     onCameraAnalysisUI(msg.obj as ImageAnalysis)
-                                    // }
+                                    }                                  
                                     WHAT_CAMERA_CLOSE_EVENT -> onCameraCloseUI()
                                     WHAT_CAMERA_OPEN_EVENT -> onCameraOpenUI()
                                     WHAT_READY_EVENT -> onReadyUI()

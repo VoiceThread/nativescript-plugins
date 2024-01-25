@@ -122,7 +122,6 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
             storedZoomRatio = value
             storedZoom = -1f
             handleZoom()
-            Log.d("org.nativescript.plugindemo", "Camera2.kt: zoomRatio set: " + value)
         }
 
     var storedZoom: Float = -1.0F
@@ -146,8 +145,6 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                     }
             storedZoomRatio = -1f
             handleZoom()
-            Log.d("org.nativescript.plugindemo", "Camera2.kt: zoom set: " + value)
-            Log.d("org.nativescript.plugindemo", "Camera2.kt: storedZoom set: " + storedZoom)
         }
     override var whiteBalance: WhiteBalance = WhiteBalance.Auto
         set(value) {
@@ -214,10 +211,6 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                         ScaleGestureDetector.SimpleOnScaleGestureListener(),
                         GestureDetector.OnGestureListener {
                     override fun onScale(detector: ScaleGestureDetector): Boolean {
-                        Log.d(
-                                "org.nativescript.plugindemo",
-                                "onScale detector.scaleFactor: " + detector.scaleFactor
-                        )
                         camera?.cameraInfo?.zoomState?.value?.let { zoomState ->
                             camera?.cameraControl?.setZoomRatio(
                                     detector.scaleFactor * zoomState.zoomRatio
@@ -235,10 +228,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                         val factory: MeteringPointFactory = previewView.meteringPointFactory
                         val autoFocusPoint = factory.createPoint(event.x, event.y)
                         try {
-                            Log.d(
-                                    "org.nativescript.plugindemo",
-                                    "onSingleTapUp Tap at " + event.x + ",  " + event.y
-                            )
+
                             camera?.cameraControl?.cancelFocusAndMetering()
                             camera?.cameraControl?.startFocusAndMetering(
                                     FocusMeteringAction.Builder(
@@ -262,7 +252,11 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                                     5000
                             )
                         } catch (e: CameraInfoUnavailableException) {
-                            Log.d("org.nativescript.plugindemo", "ERROR! cannot access camera", e)
+                            Log.d(
+                                    "io.github.triniwiz.fancycamera",
+                                    "ERROR! cannot access camera",
+                                    e
+                            )
                         }
                         return true
                     }
@@ -391,7 +385,6 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                 }
         imageCapture?.targetRotation = rotation
         videoCapture?.targetRotation = rotation
-        Log.d("org.nativescript.plugindemo", "orientationUpdated() rotaiton= " + rotation)
     }
 
     private fun getDeviceRotation(): Int {
@@ -403,7 +396,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                     CameraOrientation.LANDSCAPE_RIGHT -> Surface.ROTATION_180
                     else -> -1
                 }
-        Log.d("org.nativescript.plugindemo", "getDeviceRotation() rotation= " + retrot)
+
         return retrot
     }
 
@@ -421,7 +414,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     override var quality: Quality = Quality.MAX_720P
         set(value) {
             if (!isRecording && field != value) {
-                Log.d("org.nativescript.plugindemo", "quality() set to " + value)
+
                 field = value
                 videoCapture?.let {
                     cameraProvider?.let {
@@ -481,7 +474,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                 imageCapture = null
             }
         }
-        Log.d("org.nativescript.plugindemo", "updateImageCapture() pictureSize:" + pictureSize)
+
         val builder =
                 ImageCapture.Builder().apply {
                     if (getDeviceRotation() > -1) {
@@ -630,14 +623,14 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     @SuppressLint("RestrictedApi")
     private fun initVideoCapture() {
         if (pause) {
-            Log.d("org.nativescript.plugindemo", "initVideoCapture() pause set so returning early")
+            Log.d(
+                    "io.github.triniwiz.fancycamera",
+                    "initVideoCapture() pause set so returning early"
+            )
             return
         }
         if (hasCameraPermission() && hasAudioPermission()) {
-            Log.d(
-                    "org.nativescript.plugindemo",
-                    "initVideoCapture() setting quality to: " + quality
-            )
+
             val recorder =
                     Recorder.Builder()
                             .setQualitySelector(
@@ -663,7 +656,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     @SuppressLint("RestrictedApi", "UnsafeOptInUsageError")
     private fun refreshCamera() {
         if (pause) {
-            Log.d("org.nativescript.plugindemo", "refreshCamera() pause set so returning early")
+            Log.d("io.github.triniwiz.fancycamera", "refreshCamera() pause set so returning early")
             return
         }
         cancelAndDisposeFocusTimer()
@@ -724,14 +717,6 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
         isStarted = true
         resetCurrentFrame()
         listener?.onCameraOpen()
-        Log.d(
-                "org.nativescript.plugindemo",
-                "max zoom ratio " + camera?.cameraInfo?.zoomState?.value?.maxZoomRatio
-        )
-        Log.d(
-                "org.nativescript.plugindemo",
-                "min zoom ratio " + camera?.cameraInfo?.zoomState?.value?.minZoomRatio
-        )
     }
 
     override fun startPreview() {
@@ -766,7 +751,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 
     private fun onZoomChange() {
         val currentZoomRatio = camera?.cameraInfo?.zoomState?.value?.zoomRatio ?: 1.0f
-        Log.d("org.nativescript.plugindemo", "onZoomChange currentZoomRatio:" + currentZoomRatio)
+
         if (lastZoomRatio == currentZoomRatio ||
                         lastZoomRatio < 1.0f && currentZoomRatio < 1.0f ||
                         lastZoomRatio >= 1.0f && currentZoomRatio >= 1.0f
@@ -774,17 +759,17 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
             return
         }
         lastZoomRatio = currentZoomRatio
-        Log.d("org.nativescript.plugindemo", "onZoomChange lastZoomRatio:" + lastZoomRatio)
+
         updateImageCapture()
         return
     }
 
     @SuppressLint("RestrictedApi")
     override fun startRecording() {
-        Log.d("org.nativescript.plugindemo", "override fun startRecording()")
+
         if (!hasAudioPermission() || !hasCameraPermission()) {
             Log.d(
-                    "org.nativescript.plugindemo",
+                    "io.github.triniwiz.fancycamera",
                     "ERROR! Need mic and camera to start recording! Returning"
             )
             return
@@ -795,10 +780,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
         val fileName = "VID_" + df.format(today) + ".mp4"
         file =
                 if (saveToGallery && hasStoragePermission()) {
-                    Log.d(
-                            "org.nativescript.plugindemo",
-                            "saveToGallery set and have Storage Permissions"
-                    )
+
                     val externalDir = context.getExternalFilesDir(Environment.DIRECTORY_DCIM)
                     if (externalDir == null) {
                         listener?.onCameraError(
@@ -814,7 +796,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                     }
                 } else {
                     Log.d(
-                            "org.nativescript.plugindemo",
+                            "io.github.triniwiz.fancycamera",
                             "not saving to gallery, either saveToGallery not set or don't have Storage Permissions"
                     )
                     File(context.getExternalFilesDir(null), fileName)
@@ -883,10 +865,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                                 } else {
 
                                     if (saveToGallery) {
-                                        Log.d(
-                                                "org.nativescript.plugindemo",
-                                                "Done recording. saveToGallery set "
-                                        )
+
                                         try {
                                             val values =
                                                     ContentValues().apply {
@@ -961,14 +940,10 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                                                             null
                                                     )
                                                 }
-                                                Log.d(
-                                                        "org.nativescript.plugindemo",
-                                                        "Done saving video to gallery!"
-                                                )
                                             }
                                         } catch (e: Exception) {
                                             Log.e(
-                                                    "org.nativescript.plugindemo",
+                                                    "io.github.triniwiz.fancycamera",
                                                     "Error while saving to Device Photos"
                                             )
                                         }
@@ -1000,25 +975,21 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 
     @SuppressLint("RestrictedApi")
     override fun stopRecording() {
-        Log.d("org.nativescript.plugindemo", "override fun stopRecording()")
+
         if (flashMode == CameraFlashMode.ON) {
             camera?.cameraControl?.enableTorch(false)
         }
         recording?.stop()
-        Log.d("org.nativescript.plugindemo", "override fun stopRecording() issues recording.stop()")
     }
 
     override fun takePhoto() {
-        Log.d("org.nativescript.plugindemo", "takePhoto()")
+
         val df = SimpleDateFormat("yyyyMMddHHmmss", Locale.US)
         val today = Calendar.getInstance().time
         val fileName = "PIC_" + df.format(today) + ".jpg"
         file =
                 if (saveToGallery) { // && hasStoragePermission()
-                    Log.d(
-                            "org.nativescript.plugindemo",
-                            "takePhoto() saveToGallery set, saving to DCIM directory"
-                    )
+
                     val externalDir = context.getExternalFilesDir(Environment.DIRECTORY_DCIM)
                     if (externalDir == null) {
                         listener?.onCameraError(
@@ -1034,7 +1005,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                     }
                 } else {
                     Log.d(
-                            "org.nativescript.plugindemo",
+                            "io.github.triniwiz.fancycamera",
                             "takePhoto() saveToGallery not set, saving to ExternalFilesDir"
                     )
                     File(context.getExternalFilesDir(null), fileName)
@@ -1073,17 +1044,9 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                 }
 
         val useImageProxy = autoSquareCrop || !allowExifRotation
-        Log.d(
-                "org.nativescript.plugindemo",
-                "takePhoto() autoSquareCrop: " +
-                        autoSquareCrop +
-                        " allowExifRotation: " +
-                        allowExifRotation +
-                        " useImageProxy: " +
-                        useImageProxy
-        )
+
         if (useImageProxy) {
-            Log.d("org.nativescript.plugindemo", "takePhoto() useImageProxy set")
+
             imageCapture?.takePicture(
                     imageCaptureExecutor,
                     object : ImageCapture.OnImageCapturedCallback() {
@@ -1097,7 +1060,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                     }
             )
         } else {
-            Log.d("org.nativescript.plugindemo", "takePhoto() useImageProxy not set")
+
             val meta =
                     ImageCapture.Metadata().apply {
                         isReversedHorizontal = position == CameraPosition.FRONT
@@ -1125,7 +1088,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     }
 
     private fun processImageProxy(image: ImageProxy, fileName: String) {
-        Log.d("org.nativescript.plugindemo", "processImageProxy() ")
+
         var isError = false
         var outputStream: FileOutputStream? = null
         try {
@@ -1230,29 +1193,19 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 
             if (!isError) {
                 if (saveToGallery) { // && hasStoragePermission()) {
-                    Log.d(
-                            "org.nativescript.plugindemo",
-                            "processImageProxy() Done taking photo. saveToGallery set "
-                    )
 
                     try {
                         if ((Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) &&
                                         !hasStoragePermission()
                         ) {
-                            Log.d(
-                                    "org.nativescript.plugindemo",
-                                    "processImageProxy() No Storage Permissions, REQUESTING! "
-                            )
+
                             requestStoragePermission()
                         }
                         if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) ||
                                         (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) &&
                                                 hasStoragePermission()
                         ) {
-                            Log.d(
-                                    "org.nativescript.plugindemo",
-                                    "processImageProxy() Have Storage Permissions, saving! "
-                            )
+
                             val values =
                                     ContentValues().apply {
                                         put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
@@ -1304,12 +1257,15 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                             }
                         } else {
                             Log.e(
-                                    "org.nativescript.plugindemo",
+                                    "io.github.triniwiz.fancycamera",
                                     "processImageProxy() saveToGallery set, but no permissions granted! "
                             )
                         }
                     } catch (e: Exception) {
-                        Log.e("org.nativescript.plugindemo", "Error while saving to Device Photos")
+                        Log.e(
+                                "io.github.triniwiz.fancycamera",
+                                "Error while saving to Device Photos"
+                        )
                     }
                     listener?.onCameraPhoto(file)
                 } else {
@@ -1322,10 +1278,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     private fun processImageFile(fileName: String) {
         // Saving image to user gallery
         if (saveToGallery /*&& hasStoragePermission()*/) {
-            Log.d(
-                    "org.nativescript.plugindemo",
-                    "processImageFile() Done taking photo. saveToGallery set "
-            )
+
             val values =
                     ContentValues().apply {
                         put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
@@ -1367,10 +1320,6 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                 }
                 listener?.onCameraPhoto(file)
             }
-            Log.d(
-                    "org.nativescript.plugindemo",
-                    "processImageFile() saveToGallery not set, saving to ExternalFilesDir"
-            )
         } else {
             listener?.onCameraPhoto(file)
         }
@@ -1424,7 +1373,10 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                     it.bindToLifecycle(context as LifecycleOwner, selectorFromPosition(), preview)
                 }
             } catch (_: Exception) {
-                Log.d("org.nativescript.plugindemo", "Camera2.kt: toggleCamera() caught an error!")
+                Log.d(
+                        "io.github.triniwiz.fancycamera",
+                        "Camera2.kt: toggleCamera() caught an error!"
+                )
             }
         }
     }
@@ -1438,26 +1390,18 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     }
 
     override fun stop() {
-        Log.d("org.nativescript.plugindemo", "override fun stop()")
 
         if (isRecording) {
-            Log.d(
-                    "org.nativescript.plugindemo",
-                    "override fun stop() currently recording,  calling stopRecording()"
-            )
 
             stopRecording()
         } else {
-            Log.d(
-                    "org.nativescript.plugindemo",
-                    "override fun stop() Not recording,  calling safeUnbindAll()"
-            )
+
             safeUnbindAll()
         }
     }
 
     override fun release() {
-        Log.d("org.nativescript.plugindemo", "calling release()")
+
         cancelAndDisposeFocusTimer()
 
         if (isRecording) {

@@ -291,13 +291,15 @@ export enum CameraVideoQuality {
 
 ## Caveats
 
-*Audio Inputs* - On iOS, the plugin will prefer to use available audio inputs in the following order : bluetooth, wired and built-in. On Android, the plugin will only use the built-in device microphone at this time. Support for bluetooth devices will be added later. 
+*Audio Inputs* - On iOS, the plugin will prefer to use available audio inputs in the following order : bluetooth, wired and built-in. On Android, the plugin will only use the built-in device microphone at this time. Support for bluetooth devices will be added in the future. 
 
 *App Suspension and Resume* - You should add event listeners that will tear down the Camera View and re-initialize it to avoid problems with device camera access. You can see an example in the demo application. 
 
-*Pinch to Zoom* - for iOS this is currently only supported for rear cameras. 
+*Pinch to Zoom* - for iOS this is currently only supported for rear cameras. Support for front cameras may be added in the future.
 
-*Main Camera Button* - for both platforms, the main camera button supports both tap and long-press gestures when in video recording mode. Tap to start/stop recording, or long-press the button to record until you stop pressing the button. 
+*Main Camera Button* - for both platforms, the main camera button supports both tap and long-press gestures when in video recording mode. Tap to start/stop recording, or long-press the button to record until you stop pressing the button. In photo mode, long-presses are ignored.
+
+*Device Sleep* - Developers should handle disabling device sleep during video recording to avoid having the device/app suspend while using the camera plugin. 
 
 ------------------------------
 
