@@ -20,8 +20,10 @@
           tap="{{ viewAudioRecorder }}" />
         <Button text="🔭 Basic Transcoder"
           tap="{{ viewBasicTranscoder }}" />
-        <Button text="🚀 Advanced Transcoder"
-          tap="{{ viewTranscoder }}" />
+          
+        <!-- Disabling for now until it is feature complete -->
+        <!-- <Button text="🚀 Advanced Transcoder"
+          tap="{{ viewTranscoder }}" /> -->
       </StackLayout>
     </ScrollView>
   </StackLayout>
