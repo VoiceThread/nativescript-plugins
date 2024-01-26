@@ -23,7 +23,9 @@
   - [Utils](#utils)
   - [Acknowledgements](#acknowledgements)
   - [License](#license)
+
 ------------------------------
+
 ## Installation
 ```bash
 npm install @voicethread/nativescript-camera --save
@@ -32,7 +34,9 @@ OR
 ```bash
 ns plugin install @voicethread/nativescript-camera
 ```
+
 ------------------------------
+
 ## Features
 This nativescript camera plugin works on Android (API 26+) and Apple (iOS 12+) devices and has the following features:
 * 📷 Photo and Video capture modes
@@ -48,8 +52,10 @@ This nativescript camera plugin works on Android (API 26+) and Apple (iOS 12+) d
 ## Future Features
 * ⏯️ Customizable video codec and dimensions
 * 🌓 Video Confirmation flag and UI
-* ⚡ Additional properties/functions for more control over Camera and Photo/Video capture
+* ⚡ Additional options for more control over Camera and Photo/Video capture
+
 ------------------------------
+
 ## Usage
 The best way to understand how to use the plugin is to look at the demo app included in this repo.
 The `apps/demo/` folder contains a simple NS TypeScript application that uses this plugin. Look at `apps/demo/src/plugin-demos/nativescript-camera.ts` and `apps/demo/src/plugin-demos/nativescript-camera.xml` for camera plugin usage, and `apps/demo/src/main-view-model.ts` for obtaining permissions before using the camera plugin. 
@@ -130,7 +136,9 @@ this.cam.on(NSCamera.errorEvent, args => {
 ```
 
 4. Use the built-in buttons or control the camera using exposed functions in your app.
+
 ------------------------------
+
 ### Permissions
 Before creating/using a Camera instance, you will need to ensure that permissions for both the Camera an the Microphone have been granted by the user. An example using the community permissions plugin can be seen in `apps/demo/src/main-view-model.ts`.
 
@@ -187,7 +195,9 @@ If you want to use the `saveToGallery` flag then you will also need to add the f
 > **NOTE**: if you do use the perms plugin in a production app, make sure to read their README.md first, as using this plugin in production apps may require you to add all iOS Info.plist permission strings to avoid being rejected by automatic processing since the plugin includes code for all permission types.
 
 ------------------------------
+
 ## Properties
+
 | Name                  | Type    | Default    | Description                                                                                                                  |
 | --------------------- | ------- | -----------|----------------------------------------------------------------------------------------------------------------------------- |
 | **debug**             | boolean | *false*      | If true logs will be output in the console to help debug the Camera plugin.                                           |
@@ -240,6 +250,7 @@ If you want to use the `saveToGallery` flag then you will also need to add the f
 | **getNumberOfCameras()**                                | Returns the number of cameras on the device.                                                                                                        |
 | **hasFlash()**                                          | Returns true if the active camera has a flash mode.                                                                                                 |
 ------------------------------
+
 ## Events
 | Name                            | Description                                                                            |
 | ------------------------------- | -------------------------------------------------------------------------------------- |
@@ -270,11 +281,11 @@ export interface ICameraOptions {
 Video recording options
 ```TS
 export interface IVideoOptions {
-  quality?: CameraVideoQuality;  
+  videoQuality?: CameraVideoQuality;  //defaults to 720p
   saveToGallery?: boolean; //shared with photo options
-  androidMaxVideoBitRate?: number;
-  androidMaxFrameRate?: number;
-  androidMaxAudioBitRate?: number;
+  androidMaxVideoBitRate?: number; //Android-only
+  androidMaxFrameRate?: number; //Android-only
+  androidMaxAudioBitRate?: number; //Android-only
 }
 export enum CameraVideoQuality {
   MAX_480P = '480p',
