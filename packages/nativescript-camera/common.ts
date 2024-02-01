@@ -298,7 +298,7 @@ export abstract class NSCameraBase extends ContentView implements NSCameraDefini
   /*
    * Utility to merge an array of video filenames, must all be valid mp4 format video files with same audio encoding
    */
-  abstract mergeVideoFiles(audioFiles: string[], outputPath: string): Promise<File>;
+  abstract mergeVideoFiles(inputFiles: string[], outputPath: string): Promise<File>;
 
   /*
    * Utility to log information on the video format used by the video file at `videoPath`
@@ -351,6 +351,7 @@ export abstract class NSCameraBase extends ContentView implements NSCameraDefini
     }
     return videoFormat;
   }
+
   /*
    * Utility to check video resolution for the video file at `videoPath`
    */
@@ -379,6 +380,23 @@ export abstract class NSCameraBase extends ContentView implements NSCameraDefini
         height: size.height,
       };
     }
+  }
+
+  /*
+   * Utility to find the duration in milliseconds of the video file at `videoPath`
+   */
+  public getVideoDuration(videoPath: string): number {
+    let totalTime = 0;
+    if (isAndroid) {
+      let mediadata = new android.media.MediaMetadataRetriever();
+      mediadata.setDataSource(videoPath);
+      totalTime = +mediadata.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION);
+    } else {
+      const filePath = NSURL.fileURLWithPath(videoPath);
+      const avAsset = AVURLAsset.assetWithURL(filePath);
+      totalTime = avAsset.duration.value;
+    }
+    return totalTime;
   }
 
   /**

@@ -131,7 +131,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       deleteButton.visibility = 'hidden';
     }
     if (this.videoSegments.length > 1) {
-      console.log('# segments avabilalbe to merge', this.videoSegments.length);
+      console.log('# segments available to merge', this.videoSegments.length);
       //show the ui to merge
       mergeButton.visibility = 'visible';
     } else {

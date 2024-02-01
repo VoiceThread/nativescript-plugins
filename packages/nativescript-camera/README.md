@@ -312,25 +312,32 @@ export enum CameraVideoQuality {
 
 *Device Sleep* - Developers should handle disabling device sleep during video recording to avoid having the device/app suspend while using the camera plugin. 
 
+*Device Orientation Lock* - If your app has it's own orientation management system, use that instead of the plugin flag to ensure consistent behavior, particularly for iOS.  
+
 ------------------------------
 
 ## Utils
 
 This plugin contains a few utility functions which may be useful for developers:
 
-`mergeVideoFiles`: Merge an array of video files produced by the camera plugin. To use it, all input files must be MP4 with the same video and audio codec settings for all video segments. It takes two parameters; the first is an array of file names for the input video files and the second is a path string to save the merged video file to. 
+`mergeVideoFiles(inputFiles: string[], outputPath: string): Promise<File>`: Merge an array of video files produced by the camera plugin. To use it, all input files must be MP4 with the same video and audio codec settings for all video segments. It takes two parameters; the first is an array of file names for the input video files and the second is a path string to save the merged video file to. 
 ``` js
-let outputFile = this.cam.mergeVideoFiles(videoSegmentsArray, outputPath)
+let outputFile = await this.cam.mergeVideoFiles(videoSegmentsArray, outputPath)
 ```
 
-`getVideoCodec`: Looks through metadata for information on the video codec/format of a video file from a path.
+`getVideoCodec(videoPath: string): string`: Looks through metadata for information on the video codec/format of a video file from a path.
 ``` js
 console.log('codec:', this.cam.getVideoCodec(args.data));
 ```
 
-`getVideoResolution`: Looks through metadata for information on the height and width of a video file from a path.
+`getVideoResolution(videoPath: string): { width: number; height: number } `: Looks through metadata for information on the height and width of a video file from a path.
 ``` js
 console.log('Height/width:', this.cam.getVideoResolution(args.data));
+```
+
+`getVideoDuration(videoPath: string): number`: Looks through metadata to find the duration in milliseconds of the video file from a path.
+``` js
+console.log('video duration: ', this.cam.getVideoDuration(args.data));
 ```
 
 ------------------------------ 

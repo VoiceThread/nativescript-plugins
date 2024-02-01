@@ -299,6 +299,10 @@ export declare class NSCamera extends ContentView {
    * Utility to check video resolution for the video file at `videoPath`
    */
   getVideoResolution(videoPath: string): { width: number; height: number };
+  /*
+   * Utility to find the duration in milliseconds of the video file at `videoPath`
+   */
+  getVideoDuration(videoPath: string): number;
 }
 
 export interface ICameraOptions {
