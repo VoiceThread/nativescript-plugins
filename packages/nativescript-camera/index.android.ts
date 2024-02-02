@@ -86,6 +86,7 @@ export class NSCamera extends NSCameraBase {
 
   // @ts-ignore
   get videoQuality() {
+    console.log('get VideoQuality()', this._camera ? this._videoQuality : CameraVideoQuality.MAX_720P);
     return this._camera ? this._videoQuality : CameraVideoQuality.MAX_720P;
   }
 
@@ -93,6 +94,9 @@ export class NSCamera extends NSCameraBase {
     if (this._camera) {
       this._videoQuality = value;
       this.updateQuality();
+      console.log('updated videoQuality to ', value);
+    } else {
+      console.warn('Cannot set video quality, make sure your camera view has been created first!');
     }
   }
 
@@ -114,6 +118,9 @@ export class NSCamera extends NSCameraBase {
 
   set defaultCamera(value: CameraTypes) {
     this._defaultCamera = value;
+    // if (this.cameraId != (value === 'front' ? CAMERA_FACING_FRONT : CAMERA_FACING_BACK)) {
+    //   this.toggleCamera();
+    // }
     this.cameraId = value === 'front' ? CAMERA_FACING_FRONT : CAMERA_FACING_BACK;
   }
 
@@ -241,6 +248,7 @@ export class NSCamera extends NSCameraBase {
   }
 
   initNativeView() {
+    console.log('initNativeView()');
     let that = this;
     super.initNativeView();
     this.on(View.layoutChangedEvent, this._onLayoutChangeListener);
@@ -248,12 +256,17 @@ export class NSCamera extends NSCameraBase {
     const listenerImpl = (<any>io).github.triniwiz.fancycamera.CameraEventListenerUI.extend({
       owner: null,
 
-      onReady(): void {},
+      onReady(): void {
+        console.log('listenerImpl.onReady()');
+        // this.owner.camera.whiteBalance = WhiteBalance.Auto;
+      },
 
-      onCameraCloseUI(): void {},
+      onCameraCloseUI(): void {
+        console.log('listenerImpl.onCameraCloseUI()');
+      },
 
       onCameraError(message: string, ex: java.lang.Exception): void {
-        that.CError('listenerImpl.onCameraError:', message);
+        that.CError('listenerImpl.onCameraError:', message, ex.getMessage());
         const owner: NSCamera = this.owner ? this.owner.get() : null;
         if (owner) {
           if (owner.isRecording) {
@@ -346,6 +359,13 @@ export class NSCamera extends NSCameraBase {
           } else {
             owner.sendEvent(NSCamera.cameraReadyEvent, owner.camera);
             owner.isRecording = false;
+            //set default camera and videoQuality
+            // owner.cameraId = owner.defaultCamera === 'front' ? CAMERA_FACING_FRONT : CAMERA_FACING_BACK;
+            // if (owner.cameraId != (owner.defaultCamera === 'front' ? CAMERA_FACING_FRONT : CAMERA_FACING_BACK)) {
+            //   this.toggleCamera();
+            // }
+
+            // owner.updateQuality();
           }
         }
       },
@@ -379,7 +399,7 @@ export class NSCamera extends NSCameraBase {
   }
 
   disposeNativeView() {
-    // this.CLog('disposeNativeView.');
+    this.CLog('disposeNativeView.');
     this.off(View.layoutChangedEvent, this._onLayoutChangeListener);
     Application.android.off('activityRequestPermissions', this._permissionListener);
     this.releaseCamera();
@@ -391,7 +411,7 @@ export class NSCamera extends NSCameraBase {
   }
 
   set cameraId(id: any) {
-    // this.CLog('set cameraID() id:', id, io.github.triniwiz.fancycamera.CameraPosition.valueOf('BACK'));
+    this.CLog('set cameraID() id:', id, io.github.triniwiz.fancycamera.CameraPosition.valueOf('BACK'));
     if (this._camera) {
       switch (id) {
         case CAMERA_FACING_FRONT:
@@ -403,6 +423,8 @@ export class NSCamera extends NSCameraBase {
           this._cameraId = CAMERA_FACING_BACK;
           break;
       }
+    } else {
+      this.CError('No camera instance yet, cannot set cameraId!');
     }
     this._cameraId = id;
   }
@@ -473,6 +495,11 @@ export class NSCamera extends NSCameraBase {
   }
 
   private updateQuality() {
+    console.log('updateQuality()');
+    if (!this.camera) {
+      console.error('No camera instance! Make sure this is created and initialized before calling updateQuality');
+      return;
+    }
     switch (this.videoQuality) {
       case CameraVideoQuality.HIGHEST:
         this._camera.setQuality(io.github.triniwiz.fancycamera.Quality.valueOf('HIGHEST'));
@@ -501,6 +528,7 @@ export class NSCamera extends NSCameraBase {
     }
   }
   public async record(options?: IVideoOptions) {
+    console.log('record()');
     if (this.isRecording) {
       this.CLog('Currently recording, cannot call record()');
       return;
@@ -517,9 +545,10 @@ export class NSCamera extends NSCameraBase {
       androidMaxFrameRate: options?.androidMaxFrameRate ? options.androidMaxFrameRate : -1,
       androidMaxAudioBitRate: options?.androidMaxAudioBitRate ? options.androidMaxAudioBitRate : -1,
     };
-
+    console.log('record options', options);
     if (options.saveToGallery) this._camera.setSaveToGallery(true);
     else this._camera.setSaveToGallery(false);
+    // this.videoQuality = options.videoQuality;
 
     if (this._camera) {
       this._camera.setSaveToGallery(!!options.saveToGallery);
@@ -560,8 +589,12 @@ export class NSCamera extends NSCameraBase {
 
       const takePicDrawable = CamHelpers.getImageDrawable(this.stopVideoIcon);
       this._takePicBtn.setImageResource(takePicDrawable); // set the icon
+
       this._camera.startRecording();
       this.isRecording = true;
+    } else {
+      console.error('No camera instance! Make sure this is created and initialized before calling updateQuality');
+      return;
     }
   }
 
@@ -699,6 +732,10 @@ export class NSCamera extends NSCameraBase {
   }
 
   private _initFlashButton() {
+    if (!this.enableVideo && this.disablePhoto) {
+      console.warn('Neither photo or video mode enabled, not showing flash button');
+      return;
+    }
     this._flashBtn = CamHelpers.createImageButton();
     // set correct flash icon on button
     this._ensureCorrectFlashIcon();
@@ -782,13 +819,15 @@ export class NSCamera extends NSCameraBase {
       shape.setCornerRadius(96);
       shape.setAlpha(0);
       this._takePicBtn.setBackgroundDrawable(shape);
-    } else {
+    } else if (!this.disablePhoto) {
       //if we're in camera photo mode, show the takePhoto icon
       this._takePicBtn = CamHelpers.createImageButton();
       const takePicDrawable = CamHelpers.getImageDrawable(this.takePicIcon);
       this._takePicBtn.setImageResource(takePicDrawable); // set the icon
       const shape = CamHelpers.createTransparentCircleDrawable();
       this._takePicBtn.setBackgroundDrawable(shape); // set the transparent background
+    } else {
+      console.warn('Neither photo or video mode enabled, not showing button');
     }
 
     const ref = new WeakRef(this);

@@ -310,6 +310,8 @@ export enum CameraVideoQuality {
 
 *Main Camera Button* - for both platforms, the main camera button supports both tap and long-press gestures when in video recording mode. Tap to start/stop recording, or long-press the button to record until you stop pressing the button. In photo mode, long-presses are ignored.
 
+*Camera preview mode* - If enableVideo is false and disablePhoto is true, the camera plugin will only operate in camera preview mode. In this mode, neither the main camera button or the flash buttons will be rendered if those options are enabled. 
+
 *Device Sleep* - Developers should handle disabling device sleep during video recording to avoid having the device/app suspend while using the camera plugin. 
 
 *Device Orientation Lock* - If your app has it's own orientation management system, use that instead of the plugin flag to ensure consistent behavior, particularly for iOS.  

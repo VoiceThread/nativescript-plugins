@@ -140,6 +140,10 @@ export class MySwifty extends SwiftyCamViewController {
     this.cameraDelegate = this._swiftyDelegate;
 
     if (this._owner.get().showCaptureIcon) {
+      if (!this._owner.get().enableVideo && this._owner.get().disablePhoto) {
+        console.warn('Neither photo or video mode enabled, not showing camera button');
+        return;
+      }
       if (this._cameraBtn) this._cameraBtn.removeFromSuperview();
       this._cameraBtn = SwiftyCamButton.alloc().init();
       this._cameraBtn.delegate = this;
@@ -174,6 +178,10 @@ export class MySwifty extends SwiftyCamViewController {
     }
 
     if (this._owner.get().showFlashIcon) {
+      if (!this._owner.get().enableVideo && this._owner.get().disablePhoto) {
+        console.warn('Neither photo or video mode enabled, not showing flash button');
+        return;
+      }
       this._flashBtnHandler();
       this.flashEnabled = this._flashEnabled;
     }
