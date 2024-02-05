@@ -63,7 +63,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     private var pendingAutoFocus = false
     private var lastZoomRatio = 1.0f
     private var autoFocusTimer: Timer? = null
-
+    private var firstTime: Boolean = true
     override var enablePinchZoom: Boolean = true
     override var enableTapToFocus: Boolean = true
 
@@ -357,6 +357,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
     override var position: CameraPosition = CameraPosition.BACK
 
     private fun selectorFromPosition(): CameraSelector {
+        // Log.d("io.github.triniwiz.fancycamera", "selectorFromPosition()")
         return CameraSelector.Builder()
                 .apply {
                     if (position == CameraPosition.FRONT) {
@@ -413,6 +414,8 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 
     override var quality: Quality = Quality.MAX_720P
         set(value) {
+            // Log.d("io.github.triniwiz.fancycamera", "current quality: " + field.value)
+            // Log.d("io.github.triniwiz.fancycamera", "set quality: " + value.value)
             if (!isRecording && field != value) {
 
                 field = value
@@ -622,6 +625,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 
     @SuppressLint("RestrictedApi")
     private fun initVideoCapture() {
+
         if (pause) {
             Log.d(
                     "io.github.triniwiz.fancycamera",
@@ -650,6 +654,11 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                             targetRotation = getDeviceRotation()
                         }
                     }
+        } else {
+            Log.d(
+                    "io.github.triniwiz.fancycamera",
+                    "initVideoCapture() ERROR! missing permissions!"
+            )
         }
     }
 
@@ -766,7 +775,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 
     @SuppressLint("RestrictedApi")
     override fun startRecording() {
-
+        // Log.d("io.github.triniwiz.fancycamera", "startRecording()")
         if (!hasAudioPermission() || !hasCameraPermission()) {
             Log.d(
                     "io.github.triniwiz.fancycamera",
@@ -803,15 +812,34 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                 }
 
         try {
+            // on some cameras, the first time we attempt this it fails due to too many bindings,
+            // although subsequent attempst work.
+            // the following sections do fix this, but introduces a slight delay while
+            // camera/preview is refreshed
+            // and rebound.
+            if (firstTime) {
+                safeUnbindAll()
+                initPreview()
+                firstTime = false
+            }
+
             if (videoCapture == null) {
                 initVideoCapture()
             }
+
             cameraProvider?.let {
                 if (it.isBound(imageCapture!!)) {
                     it.unbind(imageCapture!!)
                 }
 
                 if (!it.isBound(videoCapture!!)) {
+                    it.bindToLifecycle(
+                            context as LifecycleOwner,
+                            selectorFromPosition(),
+                            videoCapture!!
+                    )
+                } else {
+                    it.unbind(videoCapture!!)
                     it.bindToLifecycle(
                             context as LifecycleOwner,
                             selectorFromPosition(),
@@ -853,15 +881,14 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                                                 Exception()
                                             }
                                     listener?.onCameraError("${event.error}", e)
-
+                                    Log.d(
+                                            "io.github.triniwiz.fancycamera",
+                                            "ERROR in startRecording() ",
+                                            e
+                                    )
                                     ContextCompat.getMainExecutor(context).execute {
                                         safeUnbindAll()
                                     }
-
-                                    // synchronized(mLock) {
-
-                                    // }
-
                                 } else {
 
                                     if (saveToGallery) {
@@ -970,16 +997,21 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
             }
             // isForceStopping = false
             listener?.onCameraError("Failed to record video.", e)
+            Log.d("io.github.triniwiz.fancycamera", "ERROR in startRecording() ", e)
         }
     }
 
     @SuppressLint("RestrictedApi")
     override fun stopRecording() {
+        try {
 
-        if (flashMode == CameraFlashMode.ON) {
-            camera?.cameraControl?.enableTorch(false)
+            if (flashMode == CameraFlashMode.ON) {
+                camera?.cameraControl?.enableTorch(false)
+            }
+            recording?.stop()
+        } catch (e: Exception) {
+            Log.d("io.github.triniwiz.fancycamera", "ERROR in stopRecording() ", e)
         }
-        recording?.stop()
     }
 
     override fun takePhoto() {
@@ -1004,10 +1036,6 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                         File(externalDir, fileName)
                     }
                 } else {
-                    Log.d(
-                            "io.github.triniwiz.fancycamera",
-                            "takePhoto() saveToGallery not set, saving to ExternalFilesDir"
-                    )
                     File(context.getExternalFilesDir(null), fileName)
                 }
 
@@ -1369,8 +1397,13 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                                 videoCapture!!
                         )
                     }
-
-                    it.bindToLifecycle(context as LifecycleOwner, selectorFromPosition(), preview)
+                    if (!it.isBound(preview!!)) {
+                        it.bindToLifecycle(
+                                context as LifecycleOwner,
+                                selectorFromPosition(),
+                                preview
+                        )
+                    }
                 }
             } catch (_: Exception) {
                 Log.d(
