@@ -310,11 +310,13 @@ export enum CameraVideoQuality {
 
 *Main Camera Button* - for both platforms, the main camera button supports both tap and long-press gestures when in video recording mode. Tap to start/stop recording, or long-press the button to record until you stop pressing the button. In photo mode, long-presses are ignored.
 
-*Camera preview mode* - If enableVideo is false and disablePhoto is true, the camera plugin will only operate in camera preview mode. In this mode, neither the main camera button or the flash buttons will be rendered if those options are enabled. 
+*Camera preview mode* - If enableVideo is false and disablePhoto is true, the camera plugin will only operate in camera preview mode. In this mode, neither the main camera button or the flash buttons will be rendered even if those options are enabled. 
 
 *Device Sleep* - Developers should handle disabling device sleep during video recording to avoid having the device/app suspend while using the camera plugin. 
 
 *Device Orientation Lock* - If your app has it's own orientation management system, use that instead of the plugin flag to ensure consistent behavior, particularly for iOS.  
+
+*High Resolution and Camera Switching during Recording* - Not all cameras support the same range of resolutions on the same device, so you will experience distortion in recordings made when starting with a high-res camera, and switching to a camera that only supports a lower resolution.
 
 ------------------------------
 
@@ -322,7 +324,7 @@ export enum CameraVideoQuality {
 
 This plugin contains a few utility functions which may be useful for developers:
 
-`mergeVideoFiles(inputFiles: string[], outputPath: string): Promise<File>`: Merge an array of video files produced by the camera plugin. To use it, all input files must be MP4 with the same video and audio codec settings for all video segments. It takes two parameters; the first is an array of file names for the input video files and the second is a path string to save the merged video file to. 
+`mergeVideoFiles(inputFiles: string[], outputPath: string): Promise<File>`: Merge an array of video files produced by the camera plugin. To use it, all input video files must be MP4s with the same video/audio codec and resolution. The function takes two parameters; the first is an array of file names for the input video files and the second is a path string to save the merged video file to. 
 ``` js
 let outputFile = await this.cam.mergeVideoFiles(videoSegmentsArray, outputPath)
 ```

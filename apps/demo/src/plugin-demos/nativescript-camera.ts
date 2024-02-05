@@ -113,7 +113,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
     });
 
     this.cam.on(NSCamera.cameraReadyEvent, (args: any) => {
-      console.log(`cameraReadyEvent:`, args);
+      console.log(`cameraReadyEvent`);
       if (this.cam.saveToGallery) {
         console.log('saveToGallery set true, checking permissions');
         this.requestGalleryPermission();

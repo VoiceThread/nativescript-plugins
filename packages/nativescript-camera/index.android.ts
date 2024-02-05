@@ -86,17 +86,19 @@ export class NSCamera extends NSCameraBase {
 
   // @ts-ignore
   get videoQuality() {
-    console.log('get VideoQuality()', this._camera ? this._videoQuality : CameraVideoQuality.MAX_720P);
-    return this._camera ? this._videoQuality : CameraVideoQuality.MAX_720P;
+    // this.CLog('get current VideoQuality()', this._videoQuality);
+    return this._videoQuality;
   }
 
   set videoQuality(value: CameraVideoQuality) {
+    this._videoQuality = value;
     if (this._camera) {
-      this._videoQuality = value;
+      //check if camera is ready yet, and update quality if so
       this.updateQuality();
-      console.log('updated videoQuality to ', value);
+      this.CLog('updated camera videoQuality to ', value);
     } else {
-      console.warn('Cannot set video quality, make sure your camera view has been created first!');
+      //if camera is not ready yet, save preference in local class property for use later when recording video
+      console.warn('Video quality preference saved, will be used once recording starts. ');
     }
   }
 
@@ -424,7 +426,7 @@ export class NSCamera extends NSCameraBase {
           break;
       }
     } else {
-      this.CError('No camera instance yet, cannot set cameraId!');
+      this.CLog('No camera instance yet, preference saved for when camera is ready');
     }
     this._cameraId = id;
   }
@@ -494,6 +496,32 @@ export class NSCamera extends NSCameraBase {
     }
   }
 
+  //convenience function to get the current Android camera2 video quality
+  private getVideoQuality(): CameraVideoQuality {
+    if (!this.camera) {
+      console.error('No camera instance! Make sure this is created and initialized before calling updateQuality');
+      return CameraVideoQuality.MAX_720P;
+    }
+    switch (this._camera.getQuality()) {
+      case io.github.triniwiz.fancycamera.Quality.valueOf('HIGHEST'):
+        return CameraVideoQuality.HIGHEST;
+      case io.github.triniwiz.fancycamera.Quality.valueOf('LOWEST'):
+        return CameraVideoQuality.LOWEST;
+      case io.github.triniwiz.fancycamera.Quality.valueOf('MAX_2160P'):
+        return CameraVideoQuality.MAX_2160P;
+      case io.github.triniwiz.fancycamera.Quality.valueOf('MAX_1080P'):
+        return CameraVideoQuality.MAX_1080P;
+      case io.github.triniwiz.fancycamera.Quality.valueOf('MAX_720P'):
+        return CameraVideoQuality.MAX_720P;
+      case io.github.triniwiz.fancycamera.Quality.valueOf('MAX_480P'):
+        return CameraVideoQuality.MAX_480P;
+      case io.github.triniwiz.fancycamera.Quality.valueOf('QVGA'):
+        return CameraVideoQuality.QVGA;
+      default:
+        return CameraVideoQuality.MAX_720P;
+    }
+  }
+
   private updateQuality() {
     console.log('updateQuality()');
     if (!this.camera) {
@@ -527,8 +555,8 @@ export class NSCamera extends NSCameraBase {
         break;
     }
   }
+
   public async record(options?: IVideoOptions) {
-    console.log('record()');
     if (this.isRecording) {
       this.CLog('Currently recording, cannot call record()');
       return;
@@ -545,10 +573,9 @@ export class NSCamera extends NSCameraBase {
       androidMaxFrameRate: options?.androidMaxFrameRate ? options.androidMaxFrameRate : -1,
       androidMaxAudioBitRate: options?.androidMaxAudioBitRate ? options.androidMaxAudioBitRate : -1,
     };
-    console.log('record options', options);
+    this.CLog('record options', options);
     if (options.saveToGallery) this._camera.setSaveToGallery(true);
     else this._camera.setSaveToGallery(false);
-    // this.videoQuality = options.videoQuality;
 
     if (this._camera) {
       this._camera.setSaveToGallery(!!options.saveToGallery);
