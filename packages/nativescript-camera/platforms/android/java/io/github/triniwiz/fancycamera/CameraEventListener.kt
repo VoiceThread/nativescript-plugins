@@ -18,4 +18,5 @@ interface CameraEventListener {
     fun onCameraVideo(file: File?)
     fun onCameraError(message: String, ex: Exception)
     fun onCameraVideoStart()
+    fun onCameraVideoStop()
 }

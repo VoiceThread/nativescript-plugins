@@ -244,12 +244,14 @@ declare module io {
             onCameraVideo(param0: java.io.File): void;
             onCameraError(param0: string, param1: java.lang.Exception): void;
             onCameraVideoStart(): void;
+            onCameraVideoStop(): void;
           });
           public constructor();
           public onCameraOpen(): void;
           public onCameraClose(): void;
           public onCameraVideo(param0: java.io.File): void;
           public onCameraVideoStart(): void;
+          public onCameraVideoStop(): void;
           public onReady(): void;
           public onCameraError(param0: string, param1: java.lang.Exception): void;
           public onCameraPhoto(param0: java.io.File): void;
@@ -272,11 +274,13 @@ declare module io {
           public onCameraErrorUI(param0: string, param1: java.lang.Exception): void;
           public onCameraPhoto(param0: java.io.File): void;
           public onCameraVideoStartUI(): void;
+          public onCameraVideoStopUI(): void;
           public onReadyUI(): void;
           public onCameraOpen(): void;
           public onCameraVideo(param0: java.io.File): void;
           public constructor();
           public onCameraVideoStart(): void;
+          public onCameraVideoStop(): void;
           public onCameraCloseUI(): void;
           public onReady(): void;
           public onCameraPhotoUI(param0: java.io.File): void;

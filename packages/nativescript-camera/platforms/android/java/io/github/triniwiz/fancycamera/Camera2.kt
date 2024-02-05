@@ -1009,6 +1009,7 @@ constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
                 camera?.cameraControl?.enableTorch(false)
             }
             recording?.stop()
+            listener?.onCameraVideoStop()
         } catch (e: Exception) {
             Log.d("io.github.triniwiz.fancycamera", "ERROR in stopRecording() ", e)
         }

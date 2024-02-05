@@ -377,7 +377,16 @@ export class NSCamera extends NSCameraBase {
           owner.isRecording = true;
           owner.sendEvent(NSCamera.videoRecordingStartedEvent, owner.camera);
         } else {
-          that.CError('!!! No owner reference found when handling onCameraVideoUI event');
+          that.CError('!!! No owner reference found when handling onCameraVideoStartUI event');
+        }
+      },
+      onCameraVideoStopUI(): void {
+        const owner: NSCamera = this.owner ? this.owner.get() : null;
+        if (owner) {
+          owner.isRecording = true;
+          owner.sendEvent(NSCamera.videoRecordingFinishedEvent, owner.camera);
+        } else {
+          that.CError('!!! No owner reference found when handling onCameraVideoStopUI event');
         }
       },
       onCameraVideoUI(event?: java.io.File): void {

@@ -48,11 +48,12 @@ abstract class CameraEventListenerUI : CameraEventListener {
                                             file = File(eventData.getString(FILE)!!)
                                         }
                                         onCameraVideoUI(file)
-                                    }                                  
+                                    }
                                     WHAT_CAMERA_CLOSE_EVENT -> onCameraCloseUI()
                                     WHAT_CAMERA_OPEN_EVENT -> onCameraOpenUI()
                                     WHAT_READY_EVENT -> onReadyUI()
                                     WHAT_CAMERA_VIDEO_START_EVENT -> onCameraVideoStartUI()
+                                    WHAT_CAMERA_VIDEO_STOP_EVENT -> onCameraVideoStopUI()
                                     WHAT_CAMERA_ERROR_EVENT -> {
                                         onCameraErrorUI(message!!, msg.obj as Exception)
                                     }
@@ -147,6 +148,19 @@ abstract class CameraEventListenerUI : CameraEventListener {
         handler!!.sendMessage(message)
     }
 
+    override fun onCameraVideoStop() {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            onCameraVideoStopUI()
+            return
+        }
+        ensureHandler()
+        val message = handler!!.obtainMessage()
+        message.what = WHAT_CAMERA_VIDEO_STOP_EVENT
+        val bundle = Bundle()
+        message.data = bundle
+        handler!!.sendMessage(message)
+    }
+
     override fun onCameraError(message: String, ex: Exception) {
         if (Looper.myLooper() == Looper.getMainLooper()) {
             onCameraErrorUI(message, ex)
@@ -174,7 +188,7 @@ abstract class CameraEventListenerUI : CameraEventListener {
 
     abstract fun onCameraVideoStartUI()
 
-    // abstract fun onCameraAnalysisUI(analysis: ImageAnalysis)
+    abstract fun onCameraVideoStopUI()
 
     abstract fun onCameraErrorUI(message: String, ex: Exception)
 
@@ -187,6 +201,7 @@ abstract class CameraEventListenerUI : CameraEventListener {
         private val WHAT_CAMERA_ERROR_EVENT = 0x06
         private val WHAT_CAMERA_VIDEO_START_EVENT = 0x07
         private val WHAT_READY_EVENT = 0x08
+        private val WHAT_CAMERA_VIDEO_STOP_EVENT = 0x09
         private val MESSAGE = "message"
         private val TYPE = "type"
         private val FILE = "file"
