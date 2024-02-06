@@ -67,7 +67,7 @@ export class SwiftyDelegate extends NSObject implements SwiftyCamViewControllerD
 
   swiftyCamDidFocusAtPoint(swiftyCam: SwiftyCamViewController, point: CGPoint) {}
 
-  swiftyCamDidSwitchCameras(swiftyCam: SwiftyCamViewController, camera: CameraSelection) {
+  swiftyCamDidSwitchCurrentCamera(swiftyCam: SwiftyCamViewController, camera: CameraSelection) {
     this._owner.get().didSwitchCamera(camera);
   }
 
@@ -358,6 +358,7 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   public didStartRecording(camera: CameraSelection) {
+    // console.log('videoRecordingStarted()');
     this._owner.get().sendEvent(NSCamera.videoRecordingStartedEvent, camera);
   }
 
@@ -372,6 +373,7 @@ export class MySwifty extends SwiftyCamViewController {
   }
 
   public didFinishRecording(camera: CameraSelection) {
+    // console.log('didFinishRecording()');
     this._owner.get().sendEvent(NSCamera.videoRecordingFinishedEvent, camera);
   }
 
@@ -385,6 +387,11 @@ export class MySwifty extends SwiftyCamViewController {
   public switchCam() {
     this.switchCamera();
     if (this._owner.get().showFlashIcon) this._flashBtnHandler();
+  }
+
+  public didSwitchCamera(camera: CameraSelection) {
+    // console.log('didSwitchCamera()');
+    this._owner.get().sendEvent(NSCamera.toggleCameraEvent, camera);
   }
 
   public toggleFlash() {
@@ -504,10 +511,6 @@ export class MySwifty extends SwiftyCamViewController {
     } else {
       this._owner.get().sendEvent(NSCamera.errorEvent, 'ERROR savePhoto() failed, no image to save!');
     }
-  }
-
-  public didSwitchCamera(camera: CameraSelection) {
-    this._owner.get().sendEvent(NSCamera.toggleCameraEvent, camera);
   }
 
   public isCameraAvailable() {

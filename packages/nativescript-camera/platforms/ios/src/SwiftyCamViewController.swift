@@ -564,6 +564,9 @@ import UIKit
 
       self.shouldStartWritingSession = true
       self.willStartWritingSession = false
+      DispatchQueue.main.async {
+        self.cameraDelegate?.swiftyCam(self, didBeginRecordingVideo: self.currentCamera)
+      }
     }
   }
 
@@ -618,6 +621,9 @@ import UIKit
       guard let assetWriter = self.assetWriter else {
         NSLog("stopVideoRecording() Error! Unable to get reference to assetWriter")
         return
+      }
+      DispatchQueue.main.async {
+        self.cameraDelegate?.swiftyCam(self, didFinishRecordingVideo: self.currentCamera)
       }
       self.shouldStartWritingSession = false
       self.didStartWritingSession = false
@@ -689,7 +695,7 @@ import UIKit
 
   /**
      Switch between front and rear camera
-     SwiftyCamViewControllerDelegate function SwiftyCamDidSwitchCameras(camera:  will be return the current camera selection
+     SwiftyCamViewControllerDelegate function SwiftyCamDidSwitchCurrentCamera(camera:  will be return the current camera selection
   */
   @objc public func switchCamera() {
     switch currentCamera {
@@ -703,8 +709,11 @@ import UIKit
     self.isSwitchingCameras = true
     let zoomScale = lastZoomScale
 
-    executeSync { [weak self] in
+    self.executeSync { [weak self] in
       guard let self = self else { return }
+      DispatchQueue.main.async {
+        self.cameraDelegate?.swiftyCam(self, didSwitchCurrentCamera: self.currentCamera)
+      }
       self.lastZoomScale = self.videoDevice?.videoZoomFactor ?? 1.0
 
       self.cameraLocation = self.cameraLocation.opposite()
@@ -734,7 +743,9 @@ import UIKit
       }
 
       self.isSwitchingCameras = false
+
     }
+
   }
 
   // MARK: Private Functions

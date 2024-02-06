@@ -63,7 +63,7 @@ import UIKit
      */
   func swiftyCam(
     _ swiftyCam: SwiftyCamViewController,
-    didSwitchCameras camera: SwiftyCamViewController.CameraSelection)
+    didSwitchCurrentCamera camera: SwiftyCamViewController.CameraSelection)
 
   /**
      SwiftyCamViewControllerDelegate function called when SwiftyCamViewController view is tapped and begins focusing at that point.
@@ -109,7 +109,7 @@ extension SwiftyCamViewControllerDelegate {
 
   public func swiftyCam(
     _ swiftyCam: SwiftyCamViewController,
-    didSwitchCameras camera: SwiftyCamViewController.CameraSelection
+    didSwitchCurrentCamera camera: SwiftyCamViewController.CameraSelection
   ) {
     // Optional
   }

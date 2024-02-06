@@ -315,7 +315,7 @@ interface SwiftyCamViewControllerDelegate {
 
   swiftyCamDidFocusAtPoint(swiftyCam: SwiftyCamViewController, point: CGPoint): void;
 
-  swiftyCamDidSwitchCameras(swiftyCam: SwiftyCamViewController, camera: CameraSelection): void;
+  swiftyCamDidSwitchCurrentCamera(swiftyCam: SwiftyCamViewController, camera: CameraSelection): void;
 
   swiftyCamDidTake(swiftyCam: SwiftyCamViewController, photo: UIImage): void;
 }
