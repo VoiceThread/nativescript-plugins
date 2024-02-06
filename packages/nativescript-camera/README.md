@@ -172,7 +172,7 @@ Ensure your AndroidMAnifest.xml has the following declarations.
   </application>
 </manifest>
 ```
-And in your application, make sure you request these permissions if you want to use the `saveToGallery` flag. You can see an example in `apps/demo/src/plugin-demos/nativescript-camera.ts`. 
+And in your application, make sure you request these permissions if you want to use the `saveToGallery` flag. You can see an example in `apps/demo/src/plugin-demos/nativescript-camera.ts`. If this flag is set and no permission has been granted, a copy will not be saved to the Device Photos.
 
 
 ### iOS Permissions
@@ -185,7 +185,7 @@ Add the following to `app/App_Resources/iOS/Info.plist`:
 	<string>This app requires access to your camera to record video and take pictures</string>
 ```
 
-If you want to use the `saveToGallery` flag then you will also need to add the following and request permission from user (look at the example in `apps/demo/src/plugin-demos/nativescript-camera.ts` for a working example). 
+If you want to use the `saveToGallery` flag then you will also need to add the following and request permission from user (look at the example in `apps/demo/src/plugin-demos/nativescript-camera.ts` for a working example). If this flag is set and no permission has been granted, a copy will not be saved to the Photos Gallery.
 
 ```xml
   <key>NSPhotoLibraryUsageDescription</key>
