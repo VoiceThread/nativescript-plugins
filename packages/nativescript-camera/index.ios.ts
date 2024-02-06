@@ -340,16 +340,16 @@ export class MySwifty extends SwiftyCamViewController {
           break;
       }
 
-      const status = PHPhotoLibrary.authorizationStatus();
-      if (status === PHAuthorizationStatus.NotDetermined) {
-        PHPhotoLibrary.requestAuthorization(status => {
-          this._cameraBtn.changeToSquare();
-          this.startVideoRecording();
-        });
-      } else {
-        this._cameraBtn.changeToSquare();
-        this.startVideoRecording();
-      }
+      // const status = PHPhotoLibrary.authorizationStatus();
+      // if (status === PHAuthorizationStatus.NotDetermined) {
+      //   PHPhotoLibrary.requestAuthorization(status => {
+      //     this._cameraBtn.changeToSquare();
+      //     this.startVideoRecording();
+      //   });
+      // } else {
+      this._cameraBtn.changeToSquare();
+      this.startVideoRecording();
+      // }
 
       if (this._owner.get().shouldLockRotation) {
         this.disableRotation();
