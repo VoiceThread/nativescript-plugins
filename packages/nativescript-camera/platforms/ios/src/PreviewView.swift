@@ -20,6 +20,11 @@ import UIKit
   @objc override init(frame: CGRect) {
     super.init(frame: frame)
     self.backgroundColor = UIColor.black
+    //NOTE: defaults to resizeAspect, which will leave empty bars in landscape orientation
+    //  instead, we use resizeAspectFill which may cause a bit of zoom in what user sees in preview compared
+    //  to what is actually recorded but looks nicer
+    //TODO: expose this as a plugin property
+    self.videoPreviewLayer.videoGravity = .resizeAspectFill
   }
 
   required public init?(coder aDecoder: NSCoder) {
