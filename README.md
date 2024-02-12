@@ -5,6 +5,10 @@
 - [@voicethread/nativescript-downloader](packages/nativescript-downloader/README.md)
 - [@voicethread/nativescript-filepicker](packages/nativescript-filepicker/README.md)
 
+# Setup
+
+After cloning this repo, run `npm run setup` to configure the NX devdeps otherwise you will get errors!
+
 # How to use?
 
 This workspace manages the suite of plugins listed above.
