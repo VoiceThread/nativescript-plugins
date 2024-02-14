@@ -1,3 +1,4 @@
+/* eslint-disable prefer-const */
 import { MediaType } from './index.common';
 import { AndroidApplication, AndroidActivityResultEventData, Application, Device, File, Utils } from '@nativescript/core';
 import { TempFile } from './files';
