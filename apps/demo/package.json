@@ -12,10 +12,12 @@
     "@voicethread/nativescript-downloader": "file:../../packages/nativescript-downloader",
     "@voicethread/nativescript-filepicker": "file:../../packages/nativescript-filepicker",
     "@voicethread/nativescript-audio-player": "file:../../packages/nativescript-audio-player",
-    "@voicethread/nativescript-audio-recorder": "file:../../packages/nativescript-audio-recorder"
+    "@voicethread/nativescript-audio-recorder": "file:../../packages/nativescript-audio-recorder",
+    "@voicethread/nativescript-camera": "file:../../packages/nativescript-camera",
+    "nativescript-videoplayer": "^5.0.1"
   },
   "devDependencies": {
-    "@nativescript/android": "~8.4.0",
-    "@nativescript/ios": "~8.4.0"
+    "@nativescript/android": "8.6.2",
+    "@nativescript/ios": "8.6.3"
   }
 }

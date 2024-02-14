@@ -9,6 +9,7 @@ const routes: Routes = [
   { path: 'home', component: HomeComponent },
   { path: 'nativescript-audio-player', loadChildren: () => import('./plugin-demos/nativescript-audio-player.module').then(m => m.NativescriptAudioPlayerModule) },
   { path: 'nativescript-audio-recorder', loadChildren: () => import('./plugin-demos/nativescript-audio-recorder.module').then(m => m.NativescriptAudioRecorderModule) },
+  { path: 'nativescript-camera', loadChildren: () => import('./plugin-demos/nativescript-camera.module').then(m => m.NativescriptCameraModule) },
   { path: 'nativescript-custom-rotors', loadChildren: () => import('./plugin-demos/nativescript-custom-rotors.module').then(m => m.NativescriptCustomRotorsModule) },
   { path: 'nativescript-downloader', loadChildren: () => import('./plugin-demos/nativescript-downloader.module').then(m => m.NativescriptDownloaderModule) },
   { path: 'nativescript-filepicker', loadChildren: () => import('./plugin-demos/nativescript-filepicker.module').then(m => m.NativescriptFilepickerModule) },
