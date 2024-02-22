@@ -207,6 +207,10 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
 }
 ```
 
+Tested and working on Android API 25-33.
+Tested and working on iOS 12.x-16.x. 
+
+
 ## Acknowledgements
 
 This plugin is based on https://github.com/nstudio/nativescript-audio

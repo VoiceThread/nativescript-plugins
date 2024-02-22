@@ -1,7 +1,7 @@
-import { EventData, Page, File, Frame, StackLayout, GridLayout, Color, Label, Image, alert, isAndroid, Device } from '@nativescript/core';
+/* eslint-disable @nrwl/nx/enforce-module-boundaries */
+import { EventData, Page, File, Frame, StackLayout, Color, Label, Image, alert, isAndroid, Device } from '@nativescript/core';
 import { DemoSharedNativescriptFilepicker } from '@demo/shared';
 import { filePicker, galleryPicker, MediaType, getFreeMBs } from '@voicethread/nativescript-filepicker';
-import { CheckBox } from '@nstudio/nativescript-checkbox';
 import { TempFile } from '@voicethread/nativescript-filepicker/files';
 import { checkMultiple, check as checkPermission, request, request as requestPermission } from '@nativescript-community/perms';
 
@@ -9,14 +9,141 @@ export function navigatingTo(args: EventData) {
   const page = <Page>args.object;
   page.bindingContext = new DemoModel();
 }
-
 export class DemoModel extends DemoSharedNativescriptFilepicker {
-  async pickDocs() {
+  async pickAllOne() {
     let pickedFiles: File[];
-    const checkBox: CheckBox = Frame.topmost().getViewById('demoCheckbox');
 
     try {
-      pickedFiles = await filePicker(MediaType.DOCUMENT, checkBox.checked);
+      let canPick = true;
+      //API33+ needs new perms
+      if (isAndroid && +Device.sdkVersion > 32) {
+        const result = await checkMultiple({ photo: {}, audio: {}, video: {} });
+        if (result['photo'] != 'authorized') {
+          console.log('No photo permission, requesting...');
+          await request('photo').then(result => {
+            console.log('Request result', result);
+            if (result[0] != 'authorized') canPick = false;
+          });
+        }
+        if (result['video'] != 'authorized') {
+          console.log('No video permission, requesting...');
+          await request('video').then(result => {
+            console.log('Request result', result);
+            if (result[0] != 'authorized') canPick = false;
+          });
+        }
+        if (result['audio'] != 'authorized') {
+          console.log('No audio permission, requesting...');
+          await request('audio').then(result => {
+            console.log('Request result', result);
+            if (result[0] != 'authorized') canPick = false;
+          });
+        }
+        console.log('canPick?:', canPick);
+      } else if (isAndroid && +Device.sdkVersion < 26) {
+        //request external_storage perms for API <26 devices when targeting API34+
+        const result = await checkPermission('storage');
+        if (result['storage'] != 'authorized') console.log('No storage permission, requesting...');
+        await request('storage').then(result => {
+          console.log('Request result', result);
+          if (result['android.permission.READ_EXTERNAL_STORAGE'] != 'authorized') canPick = false;
+        });
+      }
+      if (canPick) pickedFiles = await filePicker(MediaType.ALL, false);
+      else return alert('Need permissions before picking! Try again or update in app privacy settings first');
+    } catch (err) {
+      if (err) alert(err?.message);
+    } finally {
+      this.handleFiles(pickedFiles);
+    }
+  }
+
+  async pickAll() {
+    let pickedFiles: File[];
+
+    try {
+      let canPick = true;
+      //API33+ needs new perms
+      if (isAndroid && +Device.sdkVersion > 32) {
+        const result = await checkMultiple({ photo: {}, audio: {}, video: {} });
+        if (result['photo'] != 'authorized') {
+          console.log('No photo permission, requesting...');
+          await request('photo').then(result => {
+            console.log('Request result', result);
+            if (result[0] != 'authorized') canPick = false;
+          });
+        }
+        if (result['video'] != 'authorized') {
+          console.log('No video permission, requesting...');
+          await request('video').then(result => {
+            console.log('Request result', result);
+            if (result[0] != 'authorized') canPick = false;
+          });
+        }
+        if (result['audio'] != 'authorized') {
+          console.log('No audio permission, requesting...');
+          await request('audio').then(result => {
+            console.log('Request result', result);
+            if (result[0] != 'authorized') canPick = false;
+          });
+        }
+        console.log('canPick?:', canPick);
+      } else if (isAndroid && +Device.sdkVersion < 26) {
+        //request external_storage perms for API <26 devices when targeting API34+
+        const result = await checkPermission('storage');
+        if (result['storage'] != 'authorized') console.log('No storage permission, requesting...');
+        await request('storage').then(result => {
+          console.log('Request result', result);
+          if (result['android.permission.READ_EXTERNAL_STORAGE'] != 'authorized') canPick = false;
+        });
+      }
+      if (canPick) pickedFiles = await filePicker(MediaType.ALL, true);
+      else return alert('Need permissions before picking! Try again or update in app privacy settings first');
+    } catch (err) {
+      if (err) alert(err?.message);
+    } finally {
+      this.handleFiles(pickedFiles);
+    }
+  }
+  async pickImageVideo() {
+    let pickedFiles: File[];
+
+    //on Android, this will not trigger a perm request so we can just request it to avoid an if isAndroid
+    //on iOS, this will ask user only the first time. Once denied, user has to change in settings, so you should handle this in your app
+    checkPermission('photo').then(async permres => {
+      if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
+        await requestPermission('photo').then(async result => {
+          if (result[0] == 'authorized') {
+            try {
+              pickedFiles = await galleryPicker(MediaType.IMAGE + MediaType.VIDEO, true);
+            } catch (err) {
+              if (err) alert(err?.message);
+            } finally {
+              this.handleFiles(pickedFiles);
+            }
+          } else alert("No permission for files, can't open picker");
+        });
+      } else alert("No permission for files, can't open picker. Grant this permission in app settings first and then try again");
+    });
+  }
+
+  //The following examples may require permissions depending on the platform, OS version and build target,
+  //   check the Readme for more information or look at the examples above.
+  async pickDoc() {
+    let pickedFiles: File[];
+    try {
+      pickedFiles = await filePicker(MediaType.DOCUMENT, false);
+    } catch (err) {
+      if (err) alert(err?.message);
+    } finally {
+      this.handleFiles(pickedFiles);
+    }
+  }
+
+  async pickImage() {
+    let pickedFiles: File[];
+    try {
+      pickedFiles = await filePicker(MediaType.IMAGE, false);
     } catch (err) {
       if (err) alert(err?.message);
     } finally {
@@ -26,28 +153,27 @@ export class DemoModel extends DemoSharedNativescriptFilepicker {
 
   async pickImages() {
     let pickedFiles: File[];
-    const checkBox: CheckBox = Frame.topmost().getViewById('demoCheckbox');
-
     try {
-      pickedFiles = await filePicker(MediaType.IMAGE, checkBox.checked);
+      pickedFiles = await filePicker(MediaType.IMAGE, true);
     } catch (err) {
       if (err) alert(err?.message);
     } finally {
       this.handleFiles(pickedFiles);
     }
   }
-  async pickVideos() {
+
+  async pickVideo() {
     let pickedFiles: File[];
-    const checkBox: CheckBox = Frame.topmost().getViewById('demoCheckbox');
+
     try {
-      let tempPath = TempFile.getPath('tempfile', 'tmp');
-      let freeSpace = getFreeMBs(tempPath);
+      const tempPath = TempFile.getPath('tempfile', 'tmp');
+      const freeSpace = getFreeMBs(tempPath);
 
       console.log('free MBs on file picker temp directory', freeSpace);
       console.log('temp directory path: ', tempPath);
       if (freeSpace > 400) {
         //check before allowing picker to create temp copy of selected files
-        pickedFiles = await filePicker(MediaType.VIDEO, checkBox.checked);
+        pickedFiles = await filePicker(MediaType.VIDEO, false);
       } else alert('Low free space on device, picking not allowed');
     } catch (err) {
       if (err) alert(err?.message);
@@ -58,9 +184,9 @@ export class DemoModel extends DemoSharedNativescriptFilepicker {
 
   async pickAudio() {
     let pickedFiles: File[];
-    const checkBox: CheckBox = Frame.topmost().getViewById('demoCheckbox');
+
     try {
-      pickedFiles = await filePicker(MediaType.AUDIO, checkBox.checked);
+      pickedFiles = await filePicker(MediaType.AUDIO, false);
     } catch (err) {
       if (err) alert(err?.message);
     } finally {
@@ -68,86 +194,16 @@ export class DemoModel extends DemoSharedNativescriptFilepicker {
     }
   }
 
-  async pickArchives() {
+  async pickArchive() {
     let pickedFiles: File[];
-    const checkBox: CheckBox = Frame.topmost().getViewById('demoCheckbox');
+
     try {
-      pickedFiles = await filePicker(MediaType.ARCHIVE, checkBox.checked);
+      pickedFiles = await filePicker(MediaType.ARCHIVE, false);
     } catch (err) {
       if (err) alert(err?.message);
     } finally {
       this.handleFiles(pickedFiles);
     }
-  }
-
-  async pickAll() {
-    let pickedFiles: File[];
-    const checkBox: CheckBox = Frame.topmost().getViewById('demoCheckbox');
-    try {
-      let canPick = true;
-      //API33+ needs new perms
-      if (isAndroid && +Device.sdkVersion > 32) {
-        const result = await checkMultiple({ photo: {}, audio: {}, video: {} });
-        if (result['photo'] != 'authorized') {
-          console.log('No photo permission, requesting...');
-          await request('photo').then((result) => {
-            console.log('Request result', result);
-            if (result[0] != 'authorized') canPick = false;
-          });
-        }
-        if (result['video'] != 'authorized') {
-          console.log('No video permission, requesting...');
-          await request('video').then((result) => {
-            console.log('Request result', result);
-            if (result[0] != 'authorized') canPick = false;
-          });
-        }
-        if (result['audio'] != 'authorized') {
-          console.log('No audio permission, requesting...');
-          await request('audio').then((result) => {
-            console.log('Request result', result);
-            if (result[0] != 'authorized') canPick = false;
-          });
-        }
-        console.log('canPick?:', canPick);
-      } else if (isAndroid) {
-        //just request external_storage perms otherwise
-        const result = await checkPermission('storage');
-        if (result['storage'] != 'authorized') console.log('No storage permission, requesting...');
-        await request('storage').then((result) => {
-          console.log('Request result', result);
-          if (result['android.permission.READ_EXTERNAL_STORAGE'] != 'authorized') canPick = false;
-        });
-      }
-      if (canPick) pickedFiles = await filePicker(MediaType.ALL, checkBox.checked);
-      else return alert('Need permissions before picking! Try again or update in app privacy settings first');
-    } catch (err) {
-      if (err) alert(err?.message);
-    } finally {
-      this.handleFiles(pickedFiles);
-    }
-  }
-
-  async pickImageVideo() {
-    let pickedFiles: File[];
-    const checkBox: CheckBox = Frame.topmost().getViewById('demoCheckbox');
-    //on Android, this will not trigger a perm request so we can just request it to avoid an if isAndroid
-    //on iOS, this will ask user only the first time. Once denied, user has to change in settings, so you should handle this in your app
-    checkPermission('photo').then(async (permres) => {
-      if (permres[0] == 'undetermined' || permres[0] == 'authorized') {
-        await requestPermission('photo').then(async (result) => {
-          if (result[0] == 'authorized') {
-            try {
-              pickedFiles = await galleryPicker(MediaType.IMAGE + MediaType.VIDEO, checkBox.checked);
-            } catch (err) {
-              if (err) alert(err?.message);
-            } finally {
-              this.handleFiles(pickedFiles);
-            }
-          } else alert("No permission for files, can't open picker");
-        });
-      } else alert("No permission for files, can't open picker. Grant this permission in app settings first and then try again");
-    });
   }
 
   handleFiles(results: File[]): void {

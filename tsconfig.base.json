@@ -46,6 +46,9 @@
       ],
       "@voicethread/nativescript-transcoder": [
         "packages/nativescript-transcoder/index.d.ts"
+      ],
+      "@voicethread/nativescript-camera": [
+        "packages/nativescript-camera/index.d.ts"
       ]
     }
   },

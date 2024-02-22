@@ -69,9 +69,9 @@ try {
 
 ### Android Permissions
 
-To request permissions in the demo app, we use the @nativescript-community [perms plugin](https://github.com/nativescript-community/perms). While this is not required for all OS versions and their system pickers, just to be safe you should request it so user is aware.
+To request permissions in the demo app, we use the @nativescript-community [perms plugin](https://github.com/nativescript-community/perms). What's actually required to be granted by the user depends on the target API version and the device API version. 
 
-Be sure to have permissions add the following lines in AndroidManifest.xml if targeting API 26+.
+If targeting API 25-33, be sure to have the legacy storage permission declared in your app by adding the following lines in AndroidManifest.xml.
 
 ```xml
 <manifest ... >
@@ -83,7 +83,14 @@ Be sure to have permissions add the following lines in AndroidManifest.xml if ta
 </manifest>
 ```
 
-For API 33+, you'll also need to add the following to the Android Manifest as well as request additional permissions:
+*NOTE*: When targeting API 34+, the legacy permission has been deprecated on devices running API 26-32, but still requires the user to grant for API <26 devices.
+
+To request the legacy permission, use the following before opening the picker:
+```javascript
+request('storage');
+```
+
+To support API 33+ devices, you'll also need to add the following to the Android Manifest and request the new permissions:
 
 ```xml
 <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
@@ -91,7 +98,7 @@ For API 33+, you'll also need to add the following to the Android Manifest as we
 <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
 ```
 
-Before launching the picker on API 33+, you'll need to request the following permissions to allow picker access to all file types:
+Before launching the picker on API 33+ devices, you'll need to request the following permissions to allow picker access to all file types:
 
 ```javascript
 request('photo');
@@ -99,7 +106,7 @@ request('video');
 request('audio');
 ```
 
-For an example, look at the `pickAll` function inside the `filepicker.ts` file in the dmeo app.
+For a working permissions example, look at the `pickAll` function inside the `filepicker.ts` file in the demo app. 
 
 ### iOS Permissions
 
@@ -131,9 +138,13 @@ Each platform natively supports a different set of file/mime types, you can see 
 
 The Android stock file picker also supports selecting files from Google Photos and Google Drive if you have an account signed in on the Android device. Other document provider apps installed on your device may also offer additional services.
 
+Tested and working on Android API 25-34.
+
 ## iOS
 
 The iOS pickers also support selecting files from an associated iCloud account if the user has signed in on the device. Note that for a production application, you'll need to add the iCloud capability to your iOS application, and register that entitlement via the Apple Developer site for that package id. After that, update the relevant keys as shown in the demo application's `Info.plist`.
+
+Tested and working on iOS 12.0-17.2
 
 ## Additional Utils
 

@@ -24,6 +24,8 @@
         <!-- Disabling for now until it is feature complete -->
         <!-- <Button text="🚀 Advanced Transcoder"
           tap="{{ viewTranscoder }}" /> -->
+        <Button text="📷 Camera"
+          tap="{{ viewCamera }}" />
       </StackLayout>
     </ScrollView>
   </StackLayout>
