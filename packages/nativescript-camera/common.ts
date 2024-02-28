@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-empty-function */
 /**********************************************************************************
   2017, nStudio, LLC & LiveShopper, LLC
   2023, VoiceThread - Angel Dominguez
@@ -10,7 +11,7 @@ export type CameraTypes = 'front' | 'rear';
 
 export abstract class NSCameraBase extends ContentView implements NSCameraDefinition {
   @GetSetProperty()
-  public debug: boolean = false;
+  public debug = false;
 
   /**
    * Video Support (off by default)
@@ -19,14 +20,14 @@ export abstract class NSCameraBase extends ContentView implements NSCameraDefini
    * between photo/camera and video/camera
    */
   @GetSetProperty()
-  public enableVideo: boolean = false;
+  public enableVideo = false;
 
   /*
    * Disable Photo Support (off by default)
    * useful if you wish to only use this plugin as a camera preview by also disabling video
    */
   @GetSetProperty()
-  public disablePhoto: boolean = false;
+  public disablePhoto = false;
 
   /**
    * Default camera: (default to 'rear')
@@ -92,7 +93,7 @@ export abstract class NSCameraBase extends ContentView implements NSCameraDefini
    *  1 being max zoom
    */
   @GetSetProperty()
-  public zoom: number = 0;
+  public zoom = 0;
 
   /**
    *  *ANDROID ONLY* Camera white balance, currently only getter support
@@ -104,7 +105,7 @@ export abstract class NSCameraBase extends ContentView implements NSCameraDefini
    *  *ANDROID ONLY* A string representing the size of picture {@link takePicture} will output. Available sizes can be fetched using {@link getAvailablePictureSizes}
    */
   @GetSetProperty()
-  public pictureSize: string = '768x1024';
+  public pictureSize = '768x1024';
 
   /**
    * @param ratio string
@@ -127,7 +128,7 @@ export abstract class NSCameraBase extends ContentView implements NSCameraDefini
    * If true the default take picture event will present a confirmation dialog. Default is false.
    */
   @GetSetProperty()
-  public confirmPhotos: boolean = false;
+  public confirmPhotos = false;
 
   /**
    * When confirming capture this text will be presented to the user to retake the photo. Default is 'Retake'
@@ -179,86 +180,86 @@ export abstract class NSCameraBase extends ContentView implements NSCameraDefini
    * If true locks device UI orientation while recording video. Default is true
    */
   @GetSetProperty()
-  public shouldLockRotation: boolean = true;
+  public shouldLockRotation = true;
 
   /**
    * If true the default take picture event will save to device gallery. Default is true.
    */
   @GetSetProperty()
-  public saveToGallery: boolean = true;
+  public saveToGallery = true;
 
   /**
    * Quality is a number between 1-100 that is used when saving the image as a JPEG before the File reference is returned by plugin
    * NOTE: this only applies to photos, videos not supported yet
    */
   @GetSetProperty()
-  public quality: number = 95;
+  public quality = 95;
 
   /**
    * Maximum dimension among width/height to use for the saved photo image. Default is 1200 max dimension
    * NOTE: this only applies to photos, videos not supported yet
    */
   @GetSetProperty()
-  public maxDimension: number = 1200;
+  public maxDimension = 1200;
 
   /**
    * If true the default flash toggle icon/button will show on the NSCamera layout. Default is true.
    * Note: if the currently selected camera does not have a flash associated, this will be hidden
    */
   @GetSetProperty()
-  public showFlashIcon: boolean = true;
+  public showFlashIcon = true;
 
   /**
    * If true the default camera toggle (front/back) icon/button will show on the NSCamera layout. Default is true.
    */
   @GetSetProperty()
-  public showToggleIcon: boolean = true;
+  public showToggleIcon = true;
 
   /**
    * If true the default capture (take picture) icon/button will show on the NSCamera layout. Default is true.
    */
   @GetSetProperty()
-  public showCaptureIcon: boolean = true;
+  public showCaptureIcon = true;
 
   /**
    * *ANDROID ONLY* - allows setting a custom app_resource drawable icon for the Toggle Flash button icon when flash is on (enabled).
    */
   @GetSetProperty()
-  public flashOnIcon: string = '';
+  public flashOnIcon = '';
 
   /**
    * *ANDROID ONLY* - allows setting a custom app_resource drawable icon for the Toggle Flash button icon when flash is off (disabled).
    */
   @GetSetProperty()
-  public flashOffIcon: string = '';
+  public flashOffIcon = '';
 
   /**
    * *ANDROID ONLY* - allows setting a custom app_resource drawable icon for the Toggle Flash button icon when flash is off (disabled).
    */
   @GetSetProperty()
-  public toggleCameraIcon: string = '';
+  public toggleCameraIcon = '';
 
   /**
    * *ANDROID ONLY* - allows setting a custom app_resource drawable icon for the Capture button icon.
    */
   @GetSetProperty()
-  public takePicIcon: string = '';
+  public takePicIcon = '';
 
   /**
    * *ANDROID ONLY* - If true the camera will auto focus to capture the image. Default is true.
    */
   @GetSetProperty()
-  public autoFocus: boolean = true;
+  public autoFocus = true;
 
   /**
    * *iOS ONLY* - Enable/disable double tap gesture to switch camera. (enabled)
    */
   @GetSetProperty()
-  public doubleTapCameraSwitch: boolean = true;
+  public doubleTapCameraSwitch = true;
 
   /** If true it will crop the picture to the center square **/
   @GetSetProperty()
-  public autoSquareCrop: boolean = false;
+  public autoSquareCrop = false;
 
   /**
    * Toggles the device camera (front/back).
@@ -306,17 +307,17 @@ export abstract class NSCameraBase extends ContentView implements NSCameraDefini
   public getVideoCodec(videoPath: string): string {
     let videoFormat: any = null;
     if (isAndroid) {
-      let mediadata = new android.media.MediaMetadataRetriever();
+      const mediadata = new android.media.MediaMetadataRetriever();
       mediadata.setDataSource(videoPath);
 
       //find video format and select the video track to read from
-      let videoExtractor: android.media.MediaExtractor = new android.media.MediaExtractor();
+      const videoExtractor: android.media.MediaExtractor = new android.media.MediaExtractor();
       videoExtractor.setDataSource(videoPath);
-      let videoTracks = videoExtractor.getTrackCount();
+      const videoTracks = videoExtractor.getTrackCount();
 
       for (let j = 0; j < videoTracks; j++) {
-        let mf = videoExtractor.getTrackFormat(j);
-        let mime = mf.getString(android.media.MediaFormat.KEY_MIME);
+        const mf = videoExtractor.getTrackFormat(j);
+        const mime = mf.getString(android.media.MediaFormat.KEY_MIME);
         if (mime.startsWith('video/')) {
           videoExtractor.selectTrack(j);
           videoFormat = videoExtractor.getTrackFormat(j);
@@ -332,13 +333,13 @@ export abstract class NSCameraBase extends ContentView implements NSCameraDefini
         return null;
       }
 
-      let mediaSubtypes = track.formatDescriptions;
+      const mediaSubtypes = track.formatDescriptions;
       for (let i = 0; i < mediaSubtypes.count; i++) {
-        let type = mediaSubtypes.objectAtIndex(i);
-        let subtype = CMFormatDescriptionGetMediaSubType(type);
+        const type = mediaSubtypes.objectAtIndex(i);
+        const subtype = CMFormatDescriptionGetMediaSubType(type);
         //extract from byte array
-        let bytes = [(subtype >> 24) & 0xff, (subtype >> 16) & 0xff, (subtype >> 8) & 0xff, subtype & 0xff, 0];
-        let str = bytes
+        const bytes = [(subtype >> 24) & 0xff, (subtype >> 16) & 0xff, (subtype >> 8) & 0xff, subtype & 0xff, 0];
+        const str = bytes
           .map(byte => {
             return String.fromCharCode(byte);
           })
@@ -388,7 +389,7 @@ export abstract class NSCameraBase extends ContentView implements NSCameraDefini
   public getVideoDuration(videoPath: string): number {
     let totalTime = 0;
     if (isAndroid) {
-      let mediadata = new android.media.MediaMetadataRetriever();
+      const mediadata = new android.media.MediaMetadataRetriever();
       mediadata.setDataSource(videoPath);
       totalTime = +mediadata.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION);
     } else {

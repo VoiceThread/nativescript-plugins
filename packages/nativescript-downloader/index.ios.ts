@@ -1,3 +1,4 @@
+/* eslint-disable prefer-const */
 import { DownloaderCommon, DownloadOptions } from './common';
 import { File, path, knownFolders, Application, Device } from '@nativescript/core';
 import { iOSNativeHelper } from '@nativescript/core/utils';

@@ -1,3 +1,4 @@
+/* eslint-disable prefer-const */
 /* eslint-disable no-inner-declarations */
 import { DownloaderCommon, DownloadOptions } from './common';
 import { Application, File, path, Utils, AndroidApplication, AndroidActivityResultEventData, Device } from '@nativescript/core';

@@ -1,3 +1,4 @@
+/* eslint-disable no-var */
 import { MediaType } from './index.common';
 import { Application, File, ImageAsset, ImageSource } from '@nativescript/core';
 import { iOSNativeHelper } from '@nativescript/core/utils';
@@ -47,7 +48,7 @@ function PHPicker(type: MediaType, multiple: boolean): Promise<[File]> {
 function ImgPicker(type: MediaType): Promise<[File]> {
   return new Promise((resolve, reject) => {
     _iosGalleryPickerController = UIImagePickerController.new();
-    let mediaTypes = iOSNativeHelper.collections.jsArrayToNSArray(getMediaTypes(type));
+    const mediaTypes = iOSNativeHelper.collections.jsArrayToNSArray(getMediaTypes(type));
     _iosGalleryPickerController.mediaTypes = mediaTypes;
     //image/video editing not allowed for now as we would need to process changes manually before returning media
     _iosGalleryPickerController.allowsEditing = false;
@@ -62,7 +63,7 @@ function ImgPicker(type: MediaType): Promise<[File]> {
 
 export function filePicker(type: MediaType, multiple: boolean): Promise<[File]> {
   return new Promise((resolve, reject) => {
-    let mediaTypes = iOSNativeHelper.collections.jsArrayToNSArray(getMediaTypes(type));
+    const mediaTypes = iOSNativeHelper.collections.jsArrayToNSArray(getMediaTypes(type));
     _iosDocumentPickerController = UIDocumentPickerViewController.alloc().initWithDocumentTypesInMode(
       mediaTypes,
       UIDocumentPickerMode.Import
@@ -120,10 +121,10 @@ class UIDocumentPickerDelegateImpl extends NSObject implements UIDocumentPickerD
 
   // if only single selection is allowed? sometimes, usually the next one handles all returns
   documentPickerDidPickDocumentAtURL(controller: UIDocumentPickerViewController, url: NSURL): void {
-    let access = url.startAccessingSecurityScopedResource();
-    let tmppath = TempFile.getPath('asset', '.tmp');
+    const access = url.startAccessingSecurityScopedResource();
+    const tmppath = TempFile.getPath('asset', '.tmp');
     File.fromPath(tmppath).removeSync();
-    let success = NSFileManager.defaultManager.copyItemAtPathToPathError(url.path, tmppath);
+    const success = NSFileManager.defaultManager.copyItemAtPathToPathError(url.path, tmppath);
     const file = File.fromPath(tmppath);
     // persist original file name and extension in tmp file
     const originalFilename = url.lastPathComponent;
@@ -149,12 +150,12 @@ class UIDocumentPickerDelegateImpl extends NSObject implements UIDocumentPickerD
     //    but picker shows a small spinner on the "Open" button while processing
     //Process picker results
     for (let i = 0; i < urls.count; i++) {
-      let url = urls.objectAtIndex(i); //urls[0];
-      let access = url.startAccessingSecurityScopedResource();
+      const url = urls.objectAtIndex(i); //urls[0];
+      const access = url.startAccessingSecurityScopedResource();
       //can't access directly, need to copy first to local app directory
-      let tmppath = TempFile.getPath('asset', '.tmp');
+      const tmppath = TempFile.getPath('asset', '.tmp');
       File.fromPath(tmppath).removeSync();
-      let suc = NSFileManager.defaultManager.copyItemAtPathToPathError(url.path, tmppath);
+      const suc = NSFileManager.defaultManager.copyItemAtPathToPathError(url.path, tmppath);
       const file = File.fromPath(tmppath);
       // persist original file name and extension in tmp file
       const originalFilename = url.lastPathComponent;
@@ -221,7 +222,7 @@ class UIImagePickerControllerDelegateImpl extends NSObject implements UIImagePic
     if (info) {
       //This view can't display an UIActivityIndicatorView inside it using the usual ios spinner approach,
       //    but picker shows a progress indicator when preparing video media, and images return almost instantly
-      let asset = info.valueForKey(UIImagePickerControllerPHAsset);
+      const asset = info.valueForKey(UIImagePickerControllerPHAsset);
       const downloader = new AssetDownloader(asset);
       downloader.download().then(res => {
         this._resolve([res]); //returns a NS file object although filename will be of form assset???.tmp, but has originalFilename attached
@@ -283,18 +284,18 @@ class PHPickerViewControllerDelegateImpl extends NSObject implements PHPickerVie
 
   //returns media items picked from gallery
   pickerDidFinishPicking(picker: PHPickerViewController, results: NSArray<PHPickerResult>): void {
-    let files: File[] = [];
+    const files: File[] = [];
     let waitCount = results.count;
     let errorCount = 0;
 
     if (results) {
       //show activity indicator while processing selections
-      let currentView = picker.view;
-      let loaderView = UIView.alloc().initWithFrame(CGRectMake(0, 0, 90, 90));
+      const currentView = picker.view;
+      const loaderView = UIView.alloc().initWithFrame(CGRectMake(0, 0, 90, 90));
       loaderView.center = currentView.center;
       loaderView.layer.cornerRadius = 4;
       loaderView.backgroundColor = UIColor.lightGrayColor;
-      let indicator = UIActivityIndicatorView.alloc().initWithActivityIndicatorStyle(UIActivityIndicatorViewStyle.WhiteLarge);
+      const indicator = UIActivityIndicatorView.alloc().initWithActivityIndicatorStyle(UIActivityIndicatorViewStyle.WhiteLarge);
       indicator.center = CGPointMake(45, 45);
       loaderView.addSubview(indicator);
       currentView.addSubview(loaderView);
@@ -302,8 +303,8 @@ class PHPickerViewControllerDelegateImpl extends NSObject implements PHPickerVie
 
       //process picker results, but warn user if a livePhoto is selected as those are not yet supported
       for (let i = 0; i < results.count; i++) {
-        let pickerresult: PHPickerResult = results.objectAtIndex(i);
-        let typeIdentifier = pickerresult.itemProvider.registeredTypeIdentifiers.firstObject;
+        const pickerresult: PHPickerResult = results.objectAtIndex(i);
+        const typeIdentifier = pickerresult.itemProvider.registeredTypeIdentifiers.firstObject;
         //special handling for Live Photo Bundles of an heic and a mov file (if user selects loop in their Gallery app, then these will become animated gifs)
         if (typeIdentifier == 'com.apple.live-photo-bundle') {
           pickerresult.itemProvider.loadObjectOfClassCompletionHandler(PHLivePhoto.class(), (livePhoto, err) => {
@@ -312,10 +313,10 @@ class PHPickerViewControllerDelegateImpl extends NSObject implements PHPickerVie
               errorCount++;
               waitCount--;
             } else {
-              let resources = PHAssetResource.assetResourcesForLivePhoto(livePhoto as PHLivePhoto);
-              let photo = resources.firstObject;
-              let originalFilename = photo.originalFilename;
-              let imageData = NSMutableData.alloc().init();
+              const resources = PHAssetResource.assetResourcesForLivePhoto(livePhoto as PHLivePhoto);
+              const photo = resources.firstObject;
+              const originalFilename = photo.originalFilename;
+              const imageData = NSMutableData.alloc().init();
               const options = PHAssetResourceRequestOptions.alloc().init();
               PHAssetResourceManager.defaultManager().requestDataForAssetResourceOptionsDataReceivedHandlerCompletionHandler(
                 photo,
@@ -329,9 +330,9 @@ class PHPickerViewControllerDelegateImpl extends NSObject implements PHPickerVie
                     waitCount--;
                     errorCount++;
                   } else {
-                    let image = new UIImage({ data: imageData, scale: 1 });
-                    let imageAsset: ImageAsset = new ImageAsset(image);
-                    let tmppath = TempFile.getPath('asset', '.tmp');
+                    const image = new UIImage({ data: imageData, scale: 1 });
+                    const imageAsset: ImageAsset = new ImageAsset(image);
+                    const tmppath = TempFile.getPath('asset', '.tmp');
                     File.fromPath(tmppath).removeSync();
                     ImageSource.fromAsset(imageAsset).then(source => {
                       source.saveToFile(tmppath, 'jpeg', 0.95);
@@ -353,9 +354,9 @@ class PHPickerViewControllerDelegateImpl extends NSObject implements PHPickerVie
           pickerresult.itemProvider.loadFileRepresentationForTypeIdentifierCompletionHandler(typeIdentifier, (result: NSURL, err: NSError) => {
             if (result) {
               //copy this to somewhere app has access to
-              let tmppath = TempFile.getPath('asset', '.tmp');
+              const tmppath = TempFile.getPath('asset', '.tmp');
               File.fromPath(tmppath).removeSync();
-              let suc = NSFileManager.defaultManager.copyItemAtPathToPathError(result.path, tmppath);
+              const suc = NSFileManager.defaultManager.copyItemAtPathToPathError(result.path, tmppath);
               const file = File.fromPath(tmppath);
               // persist original file name and extension in tmp file
               const originalFilename = result.lastPathComponent;

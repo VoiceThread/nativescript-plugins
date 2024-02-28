@@ -1,3 +1,4 @@
+/* eslint-disable @nrwl/nx/enforce-module-boundaries */
 import { EventData, Page, File, Frame, StackLayout, Color, Label, Image, alert, isAndroid, Device, isIOS } from '@nativescript/core';
 import { DemoSharedNativescriptDownloader } from '@demo/shared';
 import { Downloader, DownloadOptions, MessageData } from '@voicethread/nativescript-downloader';
@@ -138,7 +139,7 @@ export class DemoModel extends DemoSharedNativescriptDownloader {
   }
 
   downloadFile(dlopts: DownloadOptions): void {
-    let options: OptionsCommon = {
+    const options: OptionsCommon = {
       message: 'Downloading...',
       progress: 0.0,
       margin: 40,
@@ -153,7 +154,7 @@ export class DemoModel extends DemoSharedNativescriptDownloader {
       },
       ios: {},
     };
-    var indicator;
+    let indicator;
     //indicator plugin doesn't work on iOS 12
     if (isAndroid || (isIOS && iOSNativeHelper.MajorVersion > 12)) indicator = new LoadingIndicator();
 

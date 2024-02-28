@@ -5,7 +5,7 @@ import { AudioRecorderOptions } from './options';
 
 export class AudioRecorder extends Observable implements IAudioRecorder {
   private _recorder: android.media.MediaRecorder;
-  private _isRecording: boolean = false;
+  private _isRecording = false;
   public _recorderOptions: AudioRecorderOptions;
 
   get android() {
@@ -39,10 +39,10 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
           this._recorder.setAudioChannels(options.channels);
         }
 
-        let sampleRate = options.sampleRate ? options.sampleRate : 44100;
+        const sampleRate = options.sampleRate ? options.sampleRate : 44100;
         this._recorder.setAudioSamplingRate(sampleRate);
 
-        let bitRate = options.bitRate ? options.bitRate : 128000;
+        const bitRate = options.bitRate ? options.bitRate : 128000;
         this._recorder.setAudioEncodingBitRate(bitRate);
 
         if (options.maxDuration) {
@@ -135,7 +135,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
         });
       }
       if (audioFiles.length == 1) {
-        let fileData = File.fromPath(audioFiles[0]).readSync();
+        const fileData = File.fromPath(audioFiles[0]).readSync();
         File.fromPath(outputPath).writeSync(fileData);
         return resolve(File.fromPath(outputPath));
       }
@@ -144,15 +144,15 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
       const muxer = new android.media.MediaMuxer(outputPath, android.media.MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
       const MAX_SAMPLE_SIZE = 256 * 1024;
       const APPEND_DELAY = 200; //we add a little delay between segments to make segmentation a little more obvious
-      var totalDuration = 0;
-      var audioFormat: android.media.MediaFormat = null;
-      var audioTrackIndex = -1;
+      let totalDuration = 0;
+      let audioFormat: android.media.MediaFormat = null;
+      let audioTrackIndex = -1;
       try {
-        let muxerStarted: Boolean = false;
+        let muxerStarted = false;
         for (let i = 0; i < audioFiles.length; i++) {
           let mediadata = new android.media.MediaMetadataRetriever();
           mediadata.setDataSource(audioFiles[i]);
-          var trackDuration = 0;
+          let trackDuration = 0;
           try {
             trackDuration = +mediadata.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION);
             // console.log('trackDuration ', trackDuration); //returned in milliseconds
@@ -161,11 +161,11 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
           }
           let audioExtractor: android.media.MediaExtractor = new android.media.MediaExtractor();
           audioExtractor.setDataSource(audioFiles[i]);
-          let tracks = audioExtractor.getTrackCount();
+          const tracks = audioExtractor.getTrackCount();
           if (!audioFormat)
             for (let j = 0; j < audioExtractor.getTrackCount(); j++) {
-              let mf = audioExtractor.getTrackFormat(j);
-              let mime = mf.getString(android.media.MediaFormat.KEY_MIME);
+              const mf = audioExtractor.getTrackFormat(j);
+              const mime = mf.getString(android.media.MediaFormat.KEY_MIME);
               if (mime.startsWith('audio/')) {
                 audioExtractor.selectTrack(j);
                 audioFormat = audioExtractor.getTrackFormat(j);
@@ -175,11 +175,11 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
           if (audioTrackIndex == -1) {
             audioTrackIndex = muxer.addTrack(audioFormat);
           }
-          var sawAudioEOS = false;
-          var bufferSize = MAX_SAMPLE_SIZE;
-          let audioBuf = java.nio.ByteBuffer.allocate(bufferSize);
-          var offset = 0;
-          var bufferInfo: android.media.MediaCodec.BufferInfo = new android.media.MediaCodec.BufferInfo();
+          let sawAudioEOS = false;
+          const bufferSize = MAX_SAMPLE_SIZE;
+          const audioBuf = java.nio.ByteBuffer.allocate(bufferSize);
+          const offset = 0;
+          const bufferInfo: android.media.MediaCodec.BufferInfo = new android.media.MediaCodec.BufferInfo();
 
           // start muxer if not started yet
           if (!muxerStarted) {

@@ -95,7 +95,7 @@ export function getOptimalPreviewSize(sizes: java.util.List<android.hardware.Cam
  * @param height
  */
 export function getOptimalPictureSize(sizes: java.util.List<android.hardware.Camera.Size>, width: number, height: number): android.hardware.Camera.Size {
-  let sizeSet: boolean = false;
+  let sizeSet = false;
 
   if (sizes === null) return null;
 

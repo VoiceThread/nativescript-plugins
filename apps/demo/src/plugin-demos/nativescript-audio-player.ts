@@ -1,3 +1,4 @@
+/* eslint-disable @nrwl/nx/enforce-module-boundaries */
 import { EventData, Page, File, Frame, StackLayout, GridLayout, Color, Label, Button, Folder, knownFolders } from '@nativescript/core';
 import { DemoSharedNativescriptAudioPlayer } from '@demo/shared';
 import { AudioPlayer, AudioPlayerOptions } from '@voicethread/nativescript-audio-player';
@@ -133,7 +134,7 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
     textContainer['row'] = 0;
     textContainer['col'] = 2;
     const fileLabel = new Label();
-    let fileParts = result.path.split('/');
+    const fileParts = result.path.split('/');
     fileLabel.text = fileParts[fileParts.length - 1];
     fileLabel.textWrap = true;
     fileLabel.color = new Color('black');
