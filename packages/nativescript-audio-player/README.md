@@ -204,7 +204,7 @@ export interface AudioPlayer {
   public static pausedEvent = 'pausedEvent';
   public static startedEvent = 'startedEvent';
   public static completeEvent = 'completeEvent';
-  public static errorEvent = 'errorEvent';
+  public static errorEvent = 'errorEvent'; //will pass the error object
 }
 ```
 

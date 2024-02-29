@@ -433,5 +433,5 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
   public static pausedEvent = 'pausedEvent';
   public static startedEvent = 'startedEvent';
   public static completeEvent = 'completeEvent';
-  public static errorEvent = 'errorEvent';
+  public static errorEvent = 'errorEvent'; //will pass the error object
 }
