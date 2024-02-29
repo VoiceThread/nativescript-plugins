@@ -581,3 +581,14 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
   public static completeEvent = 'completeEvent';
   public static errorEvent = 'errorEvent'; //will pass the error object
 }
+
+/*
+ * Utility to find the duration in milliseconds of the mp4 file at `mp4Path`
+ */
+export function getDuration(mp4Path: string): number {
+  let totalTime = 0;
+  const mediadata = new android.media.MediaMetadataRetriever();
+  mediadata.setDataSource(mp4Path);
+  totalTime = +mediadata.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION);
+  return totalTime;
+}

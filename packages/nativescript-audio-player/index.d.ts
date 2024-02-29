@@ -246,3 +246,5 @@ export class AudioFocusManager extends Observable {
   constructor(options?: AudioFocusManagerOptions);
   on(event: 'audioFocusChange', callback: (data: AudioFocusChangeEventData) => void, thisArg?: any);
 }
+
+export function getDuration(mp4Path: string): number;

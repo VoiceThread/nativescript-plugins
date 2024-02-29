@@ -208,6 +208,14 @@ export interface AudioPlayer {
 }
 ```
 
+## Helper Utils
+``` javascript
+  /*
+  * Utility to find the duration in milliseconds of the mp4 file at `mp4Path`
+  */
+  export function getDuration(mp4Path: string): number;
+```
+
 Tested and working on Android API 25-34.
 Tested and working on iOS 12.x-17.x. 
 

@@ -1,7 +1,7 @@
 /* eslint-disable @nrwl/nx/enforce-module-boundaries */
 import { EventData, Page, File, Frame, StackLayout, GridLayout, Color, Label, Image, alert, Button, isAndroid, path, knownFolders } from '@nativescript/core';
 import { DemoSharedNativescriptAudioRecorder } from '@demo/shared';
-import { AudioRecorder, AudioRecorderOptions } from '@voicethread/nativescript-audio-recorder';
+import { AudioRecorder, AudioRecorderOptions, getDuration } from '@voicethread/nativescript-audio-recorder';
 import { check as checkPermission, request as requestPermission } from '@nativescript-community/perms';
 import { AudioPlayer, AudioPlayerOptions } from '@voicethread/nativescript-audio-player';
 
@@ -22,6 +22,7 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
     });
     this.recorder.on(AudioRecorder.completeEvent, (event: AudioRecorderEventData) => {
       console.log('audio recording completed, file: ', event.data);
+      console.log('recording has duration (ms): ', getDuration(event.data.path));
     });
     this.recorder.on(AudioRecorder.startedEvent, () => {
       console.log('audio recording started');

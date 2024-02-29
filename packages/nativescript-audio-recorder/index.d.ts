@@ -98,3 +98,5 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   public static completeEvent = 'completeEvent'; //will pass the recording filename
   public static errorEvent = 'errorEvent'; //will pass the error object
 }
+
+export function getDuration(mp4Path: string): number;

@@ -297,3 +297,14 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   public static completeEvent = 'completeEvent'; //will pass the recording filename
   public static errorEvent = 'errorEvent'; //will pass the error object
 }
+
+/*
+ * Utility to find the duration in milliseconds of the mp4 file at `mp4Path`
+ */
+export function getDuration(mp4Path: string): number {
+  let totalTime = 0;
+  const filePath = NSURL.fileURLWithPath(mp4Path);
+  const avAsset = AVURLAsset.assetWithURL(filePath);
+  totalTime = CMTimeGetSeconds(avAsset.duration) * 1000;
+  return totalTime;
+}
