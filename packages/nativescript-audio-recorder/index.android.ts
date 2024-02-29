@@ -71,9 +71,11 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
 
         this._recorder.prepare();
         this._recorder.start();
+        this._sendEvent(AudioRecorder.startedEvent);
         this._isRecording = true;
         resolve(null);
       } catch (ex) {
+        this._sendEvent(AudioRecorder.errorEvent, ex);
         reject(ex);
       }
     });
@@ -89,10 +91,14 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
       try {
         if (this._recorder) {
           this._recorder.stop();
+          this._sendEvent(AudioRecorder.stoppedEvent);
           this._isRecording = false;
-          resolve(File.fromPath(this._recorderOptions.filename));
+          const audiorecording = File.fromPath(this._recorderOptions.filename);
+          this._sendEvent(AudioRecorder.completeEvent, audiorecording);
+          resolve(audiorecording);
         } else return reject('No native recorder instance, was this cleared by mistake!?');
       } catch (ex) {
+        this._sendEvent(AudioRecorder.errorEvent, ex);
         reject(ex);
       }
     });
@@ -112,6 +118,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
         this._recorder = undefined;
         resolve(null);
       } catch (ex) {
+        this._sendEvent(AudioRecorder.errorEvent, ex);
         reject(ex);
       }
     });
@@ -212,8 +219,27 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
         return resolve(File.fromPath(outputPath));
       } catch (err) {
         console.error(err, err.message);
+        this._sendEvent(AudioRecorder.errorEvent, err);
         return reject('Error during merge: ' + err.message);
       }
     });
   }
+
+  /**
+   * Notify events by name and optionally pass data
+   */
+  private _sendEvent(eventName: string, data?: any) {
+    this.notify(<any>{
+      eventName,
+      object: this,
+      data: data,
+    });
+  }
+  /**
+   * Events
+   */
+  public static startedEvent = 'startedEvent';
+  public static stoppedEvent = 'stoppedEvent';
+  public static completeEvent = 'completeEvent'; //will pass the recording filename
+  public static errorEvent = 'errorEvent'; //will pass the error object
 }

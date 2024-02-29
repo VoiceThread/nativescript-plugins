@@ -8,6 +8,8 @@ export function navigatingTo(args: EventData) {
   page.bindingContext = new DemoModel();
 }
 
+type AudioPlayerEventData = EventData & { data: any };
+
 export class DemoModel extends DemoSharedNativescriptAudioPlayer {
   constructor() {
     super();
@@ -24,8 +26,8 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
     this.player.on(AudioPlayer.pausedEvent, () => {
       console.log('playback paused');
     });
-    this.player.on(AudioPlayer.errorEvent, err => {
-      console.error('Error!', err);
+    this.player.on(AudioPlayer.errorEvent, (event: AudioPlayerEventData) => {
+      console.error('Error!', event.data);
     });
   }
 

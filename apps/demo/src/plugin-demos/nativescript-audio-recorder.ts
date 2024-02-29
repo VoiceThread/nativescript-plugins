@@ -10,16 +10,24 @@ export function navigatingTo(args: EventData) {
   page.bindingContext = new DemoModel();
 }
 
+type AudioRecorderEventData = EventData & { data: any };
+
 export class DemoModel extends DemoSharedNativescriptAudioRecorder {
   constructor() {
     super();
     this.recorder = new AudioRecorder();
-    //you can tie these events to update control states as well
-    this.recorder.on('RecorderFinished', () => {
-      console.log('RecorderFinished');
+    //you can tie into events for updating control states
+    this.recorder.on(AudioRecorder.stoppedEvent, () => {
+      console.log('audio recording stopped');
     });
-    this.recorder.on('RecorderFinishedSuccessfully', () => {
-      console.log('RecorderFinishedSuccessfully');
+    this.recorder.on(AudioRecorder.completeEvent, (event: AudioRecorderEventData) => {
+      console.log('audio recording completed, file: ', event.data);
+    });
+    this.recorder.on(AudioRecorder.startedEvent, () => {
+      console.log('audio recording started');
+    });
+    this.recorder.on(AudioRecorder.errorEvent, (event: AudioRecorderEventData) => {
+      console.log('audio recording error!', event.data);
     });
     this.player = new AudioPlayer();
   }

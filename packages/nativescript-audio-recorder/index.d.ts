@@ -90,4 +90,11 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
    * Note: this only supports MP4 audio files
    */
   mergeAudioFiles(audioFiles: string[], outputPath: string): Promise<File>;
+  /**
+   * Events
+   */
+  public static startedEvent = 'startedEvent';
+  public static stoppedEvent = 'stoppedEvent';
+  public static completeEvent = 'completeEvent'; //will pass the recording filename
+  public static errorEvent = 'errorEvent'; //will pass the error object
 }

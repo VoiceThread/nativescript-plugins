@@ -1,5 +1,5 @@
 // import { AudioRecorderCommon } from './common';
-import { Observable, File } from '@nativescript/core';
+import { Observable, File, EventData } from '@nativescript/core';
 import { IAudioRecorder } from './common';
 import { AudioRecorderOptions } from './options';
 
@@ -19,23 +19,21 @@ class TNSRecorderDelegate extends NSObject implements AVAudioRecorderDelegate {
     return delegate;
   }
 
+  //this means an error happened and we don't have a recording
   audioRecorderDidFinishRecording(recorder: any, success: boolean) {
     const owner = this._owner.get();
     if (owner) {
-      owner.notify({
-        eventName: 'RecorderFinished',
-      });
+      owner._sendEvent(AudioRecorder.errorEvent, 'Failed to record audio file!');
     }
     this._reject('Failed to record audio file!');
   }
 
+  //recording completed successfully and we have an audio file
   async audioRecorderDidFinishRecordingSuccessfully(recorder: AVAudioRecorder, flag) {
     const owner = this._owner.get();
     const file = File.fromPath(owner._recorderOptions.filename);
     if (owner) {
-      owner.notify({
-        eventName: 'RecorderFinishedSuccessfully',
-      });
+      owner._sendEvent(AudioRecorder.completeEvent, file);
     }
     return this._resolve(file);
   }
@@ -156,11 +154,13 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
                 this._recorder.record();
                 console.log('recorder', this._recorder);
               }
+              this._sendEvent(AudioRecorder.startedEvent);
               resolve(null);
             }
           }
         });
       } catch (ex) {
+        this._sendEvent(AudioRecorder.errorEvent, ex);
         reject(ex);
       }
     });
@@ -173,6 +173,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
           this._delegate._resolve = resolve;
           this._delegate._reject = reject;
           this._recorder.stop();
+          this._sendEvent(AudioRecorder.stoppedEvent);
         } else {
           console.error('No native recorder instance, was this cleared by mistake!?');
           return reject('No native recorder instance, was this cleared by mistake!?');
@@ -182,6 +183,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
         this._recorder.meteringEnabled = false;
       } catch (ex) {
         reject(ex);
+        this._sendEvent(AudioRecorder.errorEvent, ex);
       }
     });
   }
@@ -198,6 +200,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
         } else return reject('No native recorder instance, was this cleared by mistake!?');
         resolve(null);
       } catch (ex) {
+        this._sendEvent(AudioRecorder.errorEvent, ex);
         reject(ex);
       }
     });
@@ -275,4 +278,22 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
       });
     });
   }
+
+  /**
+   * Notify events by name and optionally pass data
+   */
+  public _sendEvent(eventName: string, data?: any) {
+    this.notify(<any>{
+      eventName,
+      object: this,
+      data: data,
+    });
+  }
+  /**
+   * Events
+   */
+  public static startedEvent = 'startedEvent';
+  public static stoppedEvent = 'stoppedEvent';
+  public static completeEvent = 'completeEvent'; //will pass the recording filename
+  public static errorEvent = 'errorEvent'; //will pass the error object
 }
