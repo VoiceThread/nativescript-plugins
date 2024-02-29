@@ -15,7 +15,7 @@ export interface AudioRecorderOptions {
   source?: any;
 
   /**
-   * The max duration of the audio recording.
+   * The max duration of the audio recording in ms.
    */
   maxDuration?: number;
 
