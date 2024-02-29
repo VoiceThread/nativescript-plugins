@@ -1,4 +1,4 @@
-import { EventData, Page, alert, Frame, Screen, Image, File, isIOS, isAndroid, Button, path, knownFolders, Device } from '@nativescript/core';
+import { EventData, Page, alert, Frame, Screen, Image, File, isIOS, isAndroid, Button, path, knownFolders, Device, Color, GridLayout, Animation } from '@nativescript/core';
 import { DemoSharedNativescriptCamera } from '@demo/shared';
 import { NSCamera, CameraVideoQuality, ICameraOptions } from '@voicethread/nativescript-camera';
 import { ObservableProperty } from './observable-property';
@@ -29,10 +29,18 @@ export class DemoModel extends DemoSharedNativescriptCamera {
   @ObservableProperty()
   public cameraHeight: number;
   public videoSegments = [];
+  captureMode: 'photo' | 'video' = 'photo';
+  isRecording = false;
 
   constructor(page: Page) {
     super();
     this.cam = page.getViewById('nscamera') as unknown as NSCamera;
+
+    const rotateCameraImage = page.getViewById('rotateCameraImage') as Image;
+    rotateCameraImage.src = knownFolders.currentApp().path + '/icons/sync.png';
+
+    const flashImage = page.getViewById('flashImage') as Image;
+    flashImage.src = knownFolders.currentApp().path + '/icons/flash-off.png';
 
     //Notes on properties that affect camera instance
     //[ Both Platforms ]
@@ -87,25 +95,26 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       console.log(`videoRecordingReadyEvent:`, args.data);
       let videoFile = File.fromPath(args.data);
       console.log('File has length', videoFile.size);
+      // WIP - reenable this once the buttons are added
       //play the video just recorded
-      const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
-      video.visibility = 'visible';
-      video.opacity = 1;
-      video.src = args.data;
-      video.loop = true;
-      video.play();
-      //add to current array of movie segments
-      this.videoSegments.push(videoFile.path);
-      this.refreshUI();
-      //dump out some information on video recording
-      console.log('Height/width:', this.cam.getVideoResolution(args.data));
-      console.log('codec:', this.cam.getVideoCodec(args.data));
+      // const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
+      // video.visibility = 'visible';
+      // video.opacity = 1;
+      // video.src = args.data;
+      // video.loop = true;
+      // video.play();
+      // //add to current array of movie segments
+      // this.videoSegments.push(videoFile.path);
+      // this.refreshUI();
+      // //dump out some information on video recording
+      // console.log('Height/width:', this.cam.getVideoResolution(args.data));
+      // console.log('codec:', this.cam.getVideoCodec(args.data));
     });
 
     this.cam.on(NSCamera.videoRecordingStartedEvent, (args: any) => {
       console.log(`videoRecordingStartedEvent:`, args.data);
-      const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
-      video.visibility = 'hidden';
+      // const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
+      // video.visibility = 'hidden';
     });
 
     this.cam.on(NSCamera.videoRecordingFinishedEvent, (args: any) => {
@@ -122,22 +131,23 @@ export class DemoModel extends DemoSharedNativescriptCamera {
     this._counter = 1;
   }
 
-  public refreshUI() {
-    const mergeButton = Frame.topmost().getViewById('mergeButton') as Button;
-    const deleteButton = Frame.topmost().getViewById('deleteButton') as Button;
-    if (this.videoSegments.length > 0) {
-      deleteButton.visibility = 'visible';
-    } else {
-      deleteButton.visibility = 'hidden';
-    }
-    if (this.videoSegments.length > 1) {
-      console.log('# segments available to merge', this.videoSegments.length);
-      //show the ui to merge
-      mergeButton.visibility = 'visible';
-    } else {
-      mergeButton.visibility = 'hidden';
-    }
-  }
+  // WIP - reenable this once the buttons are added
+  // public refreshUI() {
+  //   const mergeButton = Frame.topmost().getViewById('mergeButton') as Button;
+  //   const deleteButton = Frame.topmost().getViewById('deleteButton') as Button;
+  //   if (this.videoSegments.length > 0) {
+  //     deleteButton.visibility = 'visible';
+  //   } else {
+  //     deleteButton.visibility = 'hidden';
+  //   }
+  //   if (this.videoSegments.length > 1) {
+  //     console.log('# segments available to merge', this.videoSegments.length);
+  //     //show the ui to merge
+  //     mergeButton.visibility = 'visible';
+  //   } else {
+  //     mergeButton.visibility = 'hidden';
+  //   }
+  // }
 
   // called by custom button on demo page
   public async recordDemoVideo() {
@@ -169,7 +179,9 @@ export class DemoModel extends DemoSharedNativescriptCamera {
         androidMaxFrameRate: 30,
         androidMaxAudioBitRate: 100,
       });
+      this.isRecording = true;
     } catch (err) {
+      this.isRecording = false;
       console.error(err);
     }
   }
@@ -178,8 +190,10 @@ export class DemoModel extends DemoSharedNativescriptCamera {
   public stopRecordingDemoVideo() {
     try {
       this.cam.stop();
+      this.isRecording = false;
     } catch (err) {
       console.error(err);
+      this.isRecording = false;
     }
   }
 
@@ -215,13 +229,70 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       this.videoSegments.pop();
     } else console.warn('No video segments in current session!');
     console.log(' done with removal of last segment, Segments now in session:', this.videoSegments);
-    this.refreshUI();
+    // WIP - reenable this once the buttons are added
+    // this.refreshUI();
   }
 
   // called by custom button on demo page
   public toggleFlashOnCam() {
     console.log('toggleFlashOnCam()');
     this.cam.toggleFlash();
+    const flashImage = Frame.topmost().getViewById('flashImage') as Image;
+    if (flashImage) {
+      if (this.cam.getFlashMode() === 'on') {
+        flashImage.src = knownFolders.currentApp().path + '/icons/flash.png';
+      } else {
+        flashImage.src = knownFolders.currentApp().path + '/icons/flash-off.png';
+      }
+    }
+  }
+
+  public capture() {
+    if (this.captureMode === 'photo') {
+      this.takePicFromCam();
+    } else {
+      if (this.isRecording) {
+        this.stopRecordingDemoVideo();
+
+        const captureInner = Frame.topmost().getViewById('captureInner') as GridLayout;
+        const captureInnerStop = Frame.topmost().getViewById('captureInnerStop') as GridLayout;
+        const animation = new Animation([
+          {
+            target: captureInner,
+            opacity: 1,
+            duration: 300,
+          },
+          {
+            target: captureInnerStop,
+            opacity: 0,
+            duration: 300,
+          },
+        ]);
+        animation.play().then(() => {
+          captureInnerStop.visibility = 'hidden';
+        });
+      } else {
+        this.recordDemoVideo();
+
+        const captureInner = Frame.topmost().getViewById('captureInner') as GridLayout;
+        const captureInnerStop = Frame.topmost().getViewById('captureInnerStop') as GridLayout;
+        captureInnerStop.opacity = 0;
+        captureInnerStop.visibility = 'visible';
+        const animation = new Animation([
+          {
+            target: captureInner,
+            opacity: 0,
+            duration: 300,
+          },
+          {
+            target: captureInnerStop,
+            opacity: 1,
+            duration: 300,
+          },
+        ]);
+        animation.play();
+      }
+    }
   }
 
   // called by custom button on demo page
@@ -234,6 +305,35 @@ export class DemoModel extends DemoSharedNativescriptCamera {
   public toggleTheCamera() {
     console.log('toggleTheCamera()');
     this.cam.toggleCamera();
+  }
+
+  public togglePhotoMode() {
+    if (this.isRecording) {
+      return;
+    }
+    this.captureMode = 'photo';
+    const photoModeButton = Frame.topmost().getViewById('photoModeButton') as Button;
+    photoModeButton.color = new Color('#1e293c');
+    photoModeButton.backgroundColor = new Color('#fff');
+
+    const videoModeButton = Frame.topmost().getViewById('videoModeButton') as Button;
+    videoModeButton.color = new Color('#fff');
+    videoModeButton.backgroundColor = new Color('#1e293c');
+  }
+
+  public toggleVideoMode() {
+    if (this.isRecording) {
+      return;
+    }
+    this.captureMode = 'video';
+
+    const photoModeButton = Frame.topmost().getViewById('photoModeButton') as Button;
+    photoModeButton.color = new Color('#fff');
+    photoModeButton.backgroundColor = new Color('#1e293c');
+
+    const videoModeButton = Frame.topmost().getViewById('videoModeButton') as Button;
+    videoModeButton.color = new Color('#1e293c');
+    videoModeButton.backgroundColor = new Color('#fff');
   }
 
   // called by custom button on demo page

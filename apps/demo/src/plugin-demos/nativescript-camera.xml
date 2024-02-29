@@ -5,29 +5,52 @@
   loaded="onLoaded"
   xmlns:Cam="@voicethread/nativescript-camera">
   <Page.actionBar>
-    <ActionBar title="nativescript-camera"
-      icon=""
-      class="action-bar">
+    <ActionBar title="Camera"
+      icon="">
     </ActionBar>
   </Page.actionBar>
-  <StackLayout class="p-20">
-    <ScrollView class="h-full"
-      id="CamScrollView">
-      <StackLayout >
-        <StackLayout class="p-10">
-          <Label text="You can include the camera as part of a page or let the camera take up the entire page layout. You can also add layout containers inside the NSCamera to overlay view elements over the camera preview."
-            textWrap="true" />
-        </StackLayout>
+  <GridLayout rows="80, *, 90" columns="80, *, 80" iosOverflowSafeAreaEnabled="false">
+    <GridLayout height="30" width="30" row="0" col="0" tap="{{ toggleFlashOnCam }}" marginLeft="15" horizontalAlignment="left">
+      <Image id="flashImage" height="30" width="30" stretch="aspectFit"/>
+    </GridLayout>
 
+    <GridLayout row="0" col="1" colSpan="2" rows="*" columns="*, auto, auto" paddingRight="15">
+      <Button
+        id="photoModeButton"
+        text="Photo"
+        padding="0"
+        height="40"
+        width="80"
+        borderRadius="10 0 0 10"
+        backgroundColor="#fff"
+        color="#1e293c"
+        tap="{{ togglePhotoMode }}"
+        row="0"
+        col="1"
+          />
+      <Button
+        id="videoModeButton"
+        text="Video"
+        padding="0"
+        height="40"
+        width="80"
+        borderRadius="0 10 10 0"
+        tap="{{ toggleVideoMode }}"
+        row="0"
+        col="2"
+          />
+    </GridLayout>
+    
+    <StackLayout row="1" col="0" colSpan="3">
         <Cam:NSCamera height="{{ cameraHeight }}"
           id="nscamera"
           debug="true"
           enableVideo="true"
           defaultCamera="front"
           disablePhoto="false"
-          showCaptureIcon="true"
-          showToggleIcon="true"
-          showFlashIcon="true"
+          showCaptureIcon="false"
+          showToggleIcon="false"
+          showFlashIcon="false"
           insetButtons="true"
           insetButtonsPercent="0.02"
           shouldLockRotation="false"
@@ -43,9 +66,45 @@
               iOS only properties: doubleTapCameraSwitch='true'  
           -->
         </Cam:NSCamera>
+      </StackLayout>
+
+      <!-- captured image -->
+      <GridLayout row="2" col="0" verticalAlignment="center" height="60" width="60" borderRadius="10" backgroundColor="#1e293c" marginLeft="15">
+        <Image height="60" width="60" borderRadius="10"
+          id="photoCaptureResult"
+          stretch="aspectFit" />
+      </GridLayout>
+
+      
+      <GridLayout row="2" col="1" horizontalAlignment="center" verticalAlignment="center" height="60" width="60" borderRadius="30" borderWidth="2" borderColor="#fff" tap="{{ capture }}">
+        <GridLayout id="captureInner" horizontalAlignment="center" verticalAlignment="center" height="50" width="50" borderRadius="25" backgroundColor="#fff">
+        </GridLayout>
+        <GridLayout id="captureInnerStop" horizontalAlignment="center" verticalAlignment="center" height="30" width="30" borderRadius="5" backgroundColor="#FF5F57" visibility="hidden">
+        </GridLayout>
+      </GridLayout>
+
+      <!-- rotate camera -->
+      <GridLayout row="2" col="2" verticalAlignment="center" height="50" width="50" borderRadius="30" backgroundColor="#1e293c" marginRight="15">
+        <Image height="30" width="30"
+          id="rotateCameraImage"
+          stretch="aspectFit" />
+      </GridLayout>
+
+  </GridLayout>
+</Page>
 
 
+  <!-- WIP this is not moved completely yet
+  
+  <ScrollView class="h-full"
+      id="CamScrollView">
+      <StackLayout >
         <StackLayout class="p-10">
+          <Label text="You can include the camera as part of a page or let the camera take up the entire page layout. You can also add layout containers inside the NSCamera to overlay view elements over the camera preview."
+            textWrap="true" />
+        </StackLayout> 
+        
+         <StackLayout class="p-10">
           <Label text="The buttons below are using the public methods for the NSCamera."
             textWrap="true" />
         </StackLayout>
@@ -56,44 +115,38 @@
             tap="{{ recordDemoVideo }}"
             row="0"
             col="0"
-            class="btn btn-primary" />
+             />
           <Button text="Stop Recording"
             tap="{{ stopRecordingDemoVideo }}"
             row="0"
             col="1"
-            class="btn btn-primary" />
+             />
           <Button text="Delete last segment"
             tap="{{ deleteLastSegment }}"
             row="1"
             col="0"
             id="deleteButton"
-            visibility="hidden"
-            class="btn btn-primary" />
+            visibility="hidden"/>
           <Button text="Merge Videos"
             tap="{{ mergeVideos }}"
             row="1"
             col="1"
             id="mergeButton"
-            visibility="hidden"
-            class="btn btn-primary" />
+            visibility="hidden"/>
           <Button text="Toggle Flash"
             tap="{{ toggleFlashOnCam }}"
             row="2"
             col="1"
-            class="btn btn-primary" />
+             />
           <Button text="Toggle Camera"
             tap="{{ toggleTheCamera }}"
             row="2"
-            col="0"
-            class="btn btn-primary" />
+            col="0"/>
           <Button text="Take Pic"
             tap="{{ takePicFromCam }}"
             row="3"
-            col="0"
-            class="btn btn-primary" />
-        </GridLayout>
-
-        <VideoPlayer:Video id="nativeVideoPlayer"
+            col="0"/>
+        </GridLayout>  <VideoPlayer:Video id="nativeVideoPlayer"
           controls="true"
           loop="false"
           autoplay="false"
@@ -105,9 +158,5 @@
         <Image height="200"
           id="photoCaptureResult"
           src="{{ testImage }}"
-          stretch="aspectFit" />
-
-      </StackLayout>
-    </ScrollView>
-  </StackLayout>
-</Page>
+          stretch="aspectFit" />  </StackLayout>
+    </ScrollView> -->

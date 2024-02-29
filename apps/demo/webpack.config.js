@@ -21,6 +21,11 @@ module.exports = env => {
     to: 'audio',
     context: webpack.Utils.project.getProjectFilePath('node_modules'),
   });
+  webpack.Utils.addCopyRule({
+    from: '../../../tools/assets/icons',
+    to: 'icons',
+    context: webpack.Utils.project.getProjectFilePath('node_modules'),
+  });
 
   return webpack.resolveConfig();
 };
