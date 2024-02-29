@@ -33,9 +33,3 @@ export interface AudioPlayerOptions {
    */
   infoCallback?: Function;
 }
-
-export const AudioPlayerEvents = {
-  seek: 'seek',
-  paused: 'paused',
-  started: 'started',
-};

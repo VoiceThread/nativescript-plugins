@@ -18,6 +18,7 @@ class TNSPlayerDelegate extends NSObject implements AVAudioPlayerDelegate {
   audioPlayerDidFinishPlayingSuccessfully(player?: any, flag?: boolean) {
     const owner = this._owner.get();
     if (owner) {
+      owner._sendEvent(AudioPlayer.completeEvent);
       if (flag && owner.completeCallback) {
         owner.completeCallback({ player, flag });
       } else if (!flag && owner.errorCallback) {
@@ -29,6 +30,7 @@ class TNSPlayerDelegate extends NSObject implements AVAudioPlayerDelegate {
   audioPlayerDecodeErrorDidOccurError(player: any, error: NSError) {
     const owner = this._owner.get();
     if (owner) {
+      owner._sendEvent(AudioPlayer.errorEvent, error);
       if (owner.errorCallback) {
         owner.errorCallback({ player, error });
       }
@@ -270,10 +272,12 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
       try {
         if (this._player && this._player.playing) {
           this._player.pause();
+          this._sendEvent(AudioPlayer.pausedEvent);
         }
         resolve(true);
       } catch (ex) {
         if (this.errorCallback) {
+          this._sendEvent(AudioPlayer.errorEvent, ex);
           this.errorCallback({ ex });
         }
         reject(ex);
@@ -290,9 +294,11 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
         }
         if (!this.isAudioPlaying()) {
           this._player.play();
+          this._sendEvent(AudioPlayer.startedEvent);
         }
         resolve(true);
       } catch (ex) {
+        this._sendEvent(AudioPlayer.errorEvent, ex);
         if (this.errorCallback) {
           this.errorCallback({ ex });
         }
@@ -304,6 +310,7 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
   public resume(): void {
     if (this._player) {
       this._player.play();
+      this._sendEvent(AudioPlayer.startedEvent);
     }
   }
 
@@ -314,6 +321,7 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
   public playAtTime(time: number): void {
     if (this._player) {
       this._player.playAtTime(time / 1000);
+      this._sendEvent(AudioPlayer.startedEvent);
     }
   }
 
@@ -327,6 +335,7 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
       try {
         if (this._player) {
           this._player.currentTime = time / 1000;
+          this._sendEvent(AudioPlayer.seekEvent);
         }
         resolve(true);
       } catch (ex) {
@@ -405,4 +414,24 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
       this._task = undefined;
     }
   }
+
+  /**
+   * Events
+   */
+
+  /**
+   * Notify events by name and optionally pass data
+   */
+  public _sendEvent(eventName: string, data?: any) {
+    this.notify(<any>{
+      eventName,
+      object: this,
+      data: data,
+    });
+  }
+  public static seekEvent = 'seekEvent';
+  public static pausedEvent = 'pausedEvent';
+  public static startedEvent = 'startedEvent';
+  public static completeEvent = 'completeEvent';
+  public static errorEvent = 'errorEvent';
 }

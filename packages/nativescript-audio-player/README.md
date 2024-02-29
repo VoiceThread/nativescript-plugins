@@ -36,9 +36,13 @@ ns plugin add @voicethread/nativescript-audio-player
 The best way to understand how to use the plugin is to study the demo app included in this repo. You can see how the plugin is used in a TypeScript application by looking at `apps/demo/src/plugin-demos/nativescript-audio-player.ts`.
 
 
-1. Import the plugin.
+1. Import the plugin and create a player instance.
 ```javascript
 import { AudioPlayer, AudioPlayerOptions } from '@voicethread/nativescript-audio-player';
+this.player = new AudioPlayer();
+this.player.on(AudioPlayer.completeEvent, () => {
+        console.log('playback complete');
+    });
 ```
 
 2. Play an audio file.
@@ -193,11 +197,19 @@ export interface AudioPlayer {
    * @param time [number] - The time to start playing the audio track at.
    */
   playAtTime(time: number);
+  /**
+   * Events
+   */
+  public static seekEvent = 'seekEvent';
+  public static pausedEvent = 'pausedEvent';
+  public static startedEvent = 'startedEvent';
+  public static completeEvent = 'completeEvent';
+  public static errorEvent = 'errorEvent';
 }
 ```
 
-Tested and working on Android API 25-33.
-Tested and working on iOS 12.x-16.x. 
+Tested and working on Android API 25-34.
+Tested and working on iOS 12.x-17.x. 
 
 ## Acknowledgements
 

@@ -103,7 +103,7 @@ export interface IAudioPlayer {
   playAtTime(time: number);
 }
 
-export declare class AudioPlayer {
+export declare class AudioPlayer extends Observable {
   static ObjCProtocols: any[];
   readonly ios: any;
   readonly android: any;
@@ -188,15 +188,16 @@ export declare class AudioPlayer {
   changePlayerSpeed(speed: number): void;
 
   audioPlayerDidFinishPlayingSuccessfully(player?: any, flag?: boolean): void;
-}
 
-export interface IAudioPlayerEvents {
-  seek: 'seek';
-  paused: 'paused';
-  started: 'started';
+  /**
+   * Events
+   */
+  public static seekEvent = 'seekEvent';
+  public static pausedEvent = 'pausedEvent';
+  public static startedEvent = 'startedEvent';
+  public static completeEvent = 'completeEvent';
+  public static errorEvent = 'errorEvent';
 }
-
-export const AudioPlayerEvents: IAudioPlayerEvents = {};
 
 export enum AudioFocusDurationHint {
   /**

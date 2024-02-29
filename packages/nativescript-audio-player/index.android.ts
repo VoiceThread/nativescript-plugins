@@ -1,6 +1,6 @@
 import { Application, EventData, Observable, Utils } from '@nativescript/core';
 import { resolveAudioFilePath, IAudioPlayer } from './common';
-import { AudioPlayerEvents, AudioPlayerOptions } from './options';
+import { AudioPlayerOptions } from './options';
 
 export enum AudioFocusDurationHint {
   AUDIOFOCUS_GAIN = android.media.AudioManager.AUDIOFOCUS_GAIN,
@@ -156,16 +156,16 @@ function getGlobalMixingManager(): AudioFocusManager {
   return globalMixingManager;
 }
 
-export class AudioPlayer implements IAudioPlayer {
+export class AudioPlayer extends Observable implements IAudioPlayer {
   private _mediaPlayer: android.media.MediaPlayer;
   private _lastPlayerVolume; // ref to the last volume setting so we can reset after ducking
   private _wasPlaying = false;
-  private _events: Observable;
   private _options: AudioPlayerOptions;
   private _audioFocusManager: AudioFocusManager | null;
   private _readyToPlay = false;
 
   constructor(durationHint: AudioFocusDurationHint | AudioFocusManager = AudioFocusDurationHint.AUDIOFOCUS_GAIN) {
+    super();
     if (!(durationHint instanceof AudioFocusManager)) {
       this.setAudioFocusManager(
         new AudioFocusManager({
@@ -175,13 +175,6 @@ export class AudioPlayer implements IAudioPlayer {
     } else {
       this.setAudioFocusManager(durationHint);
     }
-  }
-
-  public get events() {
-    if (!this._events) {
-      this._events = new Observable();
-    }
-    return this._events;
   }
 
   get android(): any {
@@ -305,7 +298,7 @@ export class AudioPlayer implements IAudioPlayer {
           // We abandon the audio focus but we still preserve
           // the MediaPlayer so we can resume it in the future
           this._abandonAudioFocus(true);
-          this._sendEvent(AudioPlayerEvents.paused);
+          this._sendEvent(AudioPlayer.pausedEvent);
         }
 
         resolve(true);
@@ -335,7 +328,7 @@ export class AudioPlayer implements IAudioPlayer {
             throw new Error('Could not request audio focus');
           }
 
-          this._sendEvent(AudioPlayerEvents.started);
+          this._sendEvent(AudioPlayer.startedEvent);
           // set volume controls
           // https://developer.android.com/reference/android/app/Activity.html#setVolumeControlStream(int)
           Application.android.foregroundActivity.setVolumeControlStream(android.media.AudioManager.STREAM_MUSIC);
@@ -364,7 +357,7 @@ export class AudioPlayer implements IAudioPlayer {
     if (this._player) {
       // We call play so it can request audio focus
       this.play();
-      this._sendEvent(AudioPlayerEvents.started);
+      this._sendEvent(AudioPlayer.startedEvent);
     }
   }
 
@@ -377,7 +370,7 @@ export class AudioPlayer implements IAudioPlayer {
         if (this._player) {
           // time = time * 1000;
           this._player.seekTo(time);
-          this._sendEvent(AudioPlayerEvents.seek);
+          this._sendEvent(AudioPlayer.seekEvent);
         }
         resolve(true);
       } catch (ex) {
@@ -456,13 +449,11 @@ export class AudioPlayer implements IAudioPlayer {
    * Notify events by name and optionally pass data
    */
   private _sendEvent(eventName: string, data?: any) {
-    if (this.events) {
-      this.events.notify(<any>{
-        eventName,
-        object: this,
-        data: data,
-      });
-    }
+    this.notify(<any>{
+      eventName,
+      object: this,
+      data: data,
+    });
   }
 
   /**
@@ -511,6 +502,7 @@ export class AudioPlayer implements IAudioPlayer {
       this._mediaPlayer.setOnCompletionListener(
         new android.media.MediaPlayer.OnCompletionListener({
           onCompletion: mp => {
+            this._sendEvent(AudioPlayer.completeEvent);
             if (this._options && this._options.completeCallback) {
               if (this._options.loop === true) {
                 mp.seekTo(5);
@@ -530,6 +522,7 @@ export class AudioPlayer implements IAudioPlayer {
       this._mediaPlayer.setOnErrorListener(
         new android.media.MediaPlayer.OnErrorListener({
           onError: (player: any, error: number, extra: number) => {
+            this._sendEvent(AudioPlayer.errorEvent, error);
             if (this._options && this._options.errorCallback) {
               this._options.errorCallback({ player, error, extra });
             }
@@ -578,4 +571,13 @@ export class AudioPlayer implements IAudioPlayer {
         break;
     }
   }
+
+  /**
+   * Events
+   */
+  public static seekEvent = 'seekEvent';
+  public static pausedEvent = 'pausedEvent';
+  public static startedEvent = 'startedEvent';
+  public static completeEvent = 'completeEvent';
+  public static errorEvent = 'errorEvent';
 }
