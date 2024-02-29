@@ -128,9 +128,16 @@ export interface AudioPlayer {
   readonly android?: any;
 
   /**
-   * Volume getter/setter
+   * Volume supports values ranging from 0.0 for silence to 1.0 for full volume
    */
   volume: any;
+
+  /**
+   * Duration getter in milliseconds
+   *    Returns 0 if there is no audio file loaded
+   *    Returns -1 if there is an issue getting duration (Android)
+   */
+  duration: number;
 
   /**
    * Prepare Audio player by preloading an audio file from file oath or URL
@@ -150,7 +157,7 @@ export interface AudioPlayer {
   pause(): Promise<boolean>;
 
   /**
-   * Seeks to specific time.
+   * Seeks to specific time in ms
    */
   seekTo(time: number): Promise<boolean>;
 
@@ -165,14 +172,27 @@ export interface AudioPlayer {
   isAudioPlaying(): boolean;
 
   /**
-   * Get the duration of the audio file playing.
+   * Get the duration of the audio file playing, in ms (Promise version of duration property getter)
    */
-  getAudioTrackDuration(): Promise<string>;
+  getAudioTrackDuration(): Promise<number>;
 
   /**
-   * current time
+   * Get the current time position of the audio file playing in ms
    */
   readonly currentTime: number;
+
+   /**
+   * Sets the player playback speed rate. On Android this only works on API 23+.
+   * @param speed [number] - The speed of the playback.
+   * speed should be a float from 0.0 - X.X, and is a scale factor
+   */
+  changePlayerSpeed(speed: number): void;
+
+  /**
+   * ** iOS ONLY ** - Begins playback at a certain delay, relative to the current playback time.
+   * @param time [number] - The time to start playing the audio track at.
+   */
+  playAtTime(time: number);
 }
 ```
 
