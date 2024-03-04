@@ -1,3 +1,4 @@
+/* eslint-disable @nrwl/nx/enforce-module-boundaries */
 import { EventData, Page, File, Frame, knownFolders, Button, Label, Color, isAndroid, Device, Progress, isIOS } from '@nativescript/core';
 import { DemoSharedNativescriptTranscoder } from '@demo/shared';
 import { filePicker, galleryPicker, MediaType } from '@voicethread/nativescript-filepicker';
@@ -65,7 +66,7 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
     }
 
     if (canPick) {
-      let files = await filePicker(MediaType.VIDEO, false);
+      const files = await filePicker(MediaType.VIDEO, false);
       console.log('files', files);
       if (files.length) this.pickedFile = files[0];
 
@@ -115,10 +116,10 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
       return;
     }
     // android doesn't support 480p
-    if (isAndroid && quality === '480p') {
-      console.error('Android does not support 480p!');
-      return;
-    }
+    // if (isAndroid && quality === '480p') {
+    //   console.error('Android does not support 480p!');
+    //   return;
+    // }
     const tempPath = knownFolders.documents().getFile(`video-copy-${this.count}.mp4`).path;
     this.count += 1;
     if (File.exists(tempPath)) {

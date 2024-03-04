@@ -1,0 +1,11 @@
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+dependencies {
+     api("com.otaliastudios.opengl:egloo:0.6.1")
+    api("androidx.annotation:annotation:1.2.0")
+}

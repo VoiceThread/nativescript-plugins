@@ -83,8 +83,8 @@ export class NativescriptTranscoderCommon extends Observable {
 export type LogLevel = 'none' | 'verbose';
 
 export interface VideoConfig {
-  quality?: '480p' | '720p' | '1080p'; // 480p is iOS only
-  frameRate?: number; // iOS only
+  quality?: '480p' | '720p' | '1080p';
+  frameRate?: number;
   audioChannels?: number; // iOS only
   audioSampleRate?: number; // iOS only
   audioBitRate?: number; // iOS only
