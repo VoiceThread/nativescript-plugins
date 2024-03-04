@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-types */
 import { ViewBase } from '@nativescript/core';
 import { CustomRotorsCommon } from './common';
 

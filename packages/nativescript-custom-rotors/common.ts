@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 import { Observable } from '@nativescript/core';
 
 export class CustomRotorsCommon extends Observable {}
@@ -93,7 +94,7 @@ export function initializeCustomRotors(): void {
    * @param index number - (Optional) index for insertion
    * @returns true if item is inserted
    */
-  function insertRotorItem(item: ViewBase, index: number = 0): boolean {
+  function insertRotorItem(item: ViewBase, index = 0): boolean {
     if (!this.rotorGroups || !this.rotorGroups[item.rotorGroup]) return false;
     const group = this.rotorGroups[item.rotorGroup] as Array<ViewBase>;
     if (group.indexOf(item) > -1) return false;
@@ -109,7 +110,7 @@ export function initializeCustomRotors(): void {
   function addRotorGroup(name: string, items?: Array<ViewBase>): void {
     if (!this.rotorGroups) this.rotorGroups = {};
     this.rotorGroups[name] = this.rotorGroups[name]?.concat(items) || items || [];
-    this.rotorGroups[name].forEach((v) => v.once('unloaded', this.removeRotorItem.bind(this, v)));
+    this.rotorGroups[name].forEach(v => v.once('unloaded', this.removeRotorItem.bind(this, v)));
     const iosView = this.nativeViewProtected as UIView;
     const rotors: NSMutableArray<UIAccessibilityCustomRotor> = <NSMutableArray<UIAccessibilityCustomRotor>>iosView.accessibilityCustomRotors || NSMutableArray.new();
     const rotor = UIAccessibilityCustomRotor.alloc().initWithNameItemSearchBlock(name, (predicate: UIAccessibilityCustomRotorSearchPredicate): UIAccessibilityCustomRotorItemResult => {
@@ -117,11 +118,11 @@ export function initializeCustomRotors(): void {
       const rotorItems = (<Array<View>>this.rotorGroups[name])
         .filter((item: View) => item.visibility === 'visible')
         .filter((item: View) => item.isEnabled)
-        .map((item) => item.nativeViewProtected);
+        .map(item => item.nativeViewProtected);
       const forward = predicate.searchDirection == UIAccessibilityCustomRotorDirection.Next;
       let target: UIView;
-      let oldIndex: number = -1;
-      let newIndex: number = -1;
+      let oldIndex = -1;
+      let newIndex = -1;
       let newView: View = null;
       if (rotorItems.length > 0) {
         const iosOldView = predicate.currentItem.targetElement as UIView;
@@ -129,9 +130,9 @@ export function initializeCustomRotors(): void {
         newIndex = forward ? oldIndex + 1 : oldIndex - 1;
         if (newIndex > rotorItems.length || newIndex < 0) target = null;
         else target = rotorItems[newIndex];
-        newView = target ? (<Array<View>>this.rotorGroups[name]).find((v) => v.nativeViewProtected === target) : null;
+        newView = target ? (<Array<View>>this.rotorGroups[name]).find(v => v.nativeViewProtected === target) : null;
       }
-      if (!!callback) callback({ newView, newIndex, oldIndex, forward });
+      if (callback) callback({ newView, newIndex, oldIndex, forward });
       return UIAccessibilityCustomRotorItemResult.alloc().initWithTargetElementTargetRange(target, null);
     });
     rotors.addObject(rotor);
@@ -210,7 +211,7 @@ function setupRotorGroups(container: RotorContainerView): void {
   sortRotorGroups(rotorGroups);
   container.rotorGroups = rotorGroups;
   //console.log(Object.keys(rotorGroups));
-  Object.keys(rotorGroups).forEach((key) => {
+  Object.keys(rotorGroups).forEach(key => {
     container.addRotorGroup(key, rotorGroups[key]);
   });
 }
@@ -224,7 +225,7 @@ function recurseChildrenForRotorGroups(vb: ViewBase, rotorGroups: any): boolean 
     if (rotorGroups[vb.rotorGroup] == undefined) rotorGroups[vb.rotorGroup] = [];
     rotorGroups[vb.rotorGroup].push(vb);
   }
-  if (vb instanceof LayoutBase) vb.eachChild((child) => recurseChildrenForRotorGroups(child, rotorGroups));
+  if (vb instanceof LayoutBase) vb.eachChild(child => recurseChildrenForRotorGroups(child, rotorGroups));
   else if (vb instanceof ContentView) {
     recurseChildrenForRotorGroups(vb.content, rotorGroups);
   }
@@ -245,7 +246,7 @@ function recurseParentsForPrevious(vb: ViewBase, rotorGroups: any): boolean {
  * @function sortRotorGroups
  */
 function sortRotorGroups(rotorGroups: any): void {
-  Object.keys(rotorGroups).forEach((key) => {
+  Object.keys(rotorGroups).forEach(key => {
     const group = rotorGroups[key] as Array<ViewBase>;
     group.sort((v1, v2) => {
       if (v1.rotorOrder > v2.rotorOrder) return 1;

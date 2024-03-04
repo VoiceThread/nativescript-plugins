@@ -1,3 +1,4 @@
+/* eslint-disable @nrwl/nx/enforce-module-boundaries */
 import { EventData, Page } from '@nativescript/core';
 import { DemoSharedNativescriptCustomRotors } from '@demo/shared';
 import {} from '@voicethread/nativescript-custom-rotors';
