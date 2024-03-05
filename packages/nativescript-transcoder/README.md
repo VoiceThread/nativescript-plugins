@@ -4,7 +4,7 @@
 
 [![npm](https://img.shields.io/npm/v/@voicethread/nativescript-audio-recorder?style=flat-square)](https://www.npmjs.com/package/@voicethread/nativescript-transcoder)
 
-This plugin provides video transcoding functionality for Android and iOS that supports modifying the video's resolution, frame rate (iOS only) and other utilities such as stitching and layering multiple videos (coming soon).
+This plugin provides video transcoding functionality for Android and iOS and supports modifying the video's resolution, frame rate (iOS only). Other utilities such as stitching and layering multiple videos may be added in the future.
 
 ## Installation
 
@@ -28,7 +28,7 @@ The best way to understand how to use the plugin is to study the demo app includ
 import { NativescriptTranscoder } from '@voicethread/nativescript-transcoder';
 ```
 
-2. Transcode a video to 720p or 1080p (the example below uses a filepicker, but you can use results from the camera as well)
+2. Transcode a video to 480p, 720p or 1080p (the example below uses a filepicker, but you can use a video recoding from the camera or another source)
 
 ```typescript
 
@@ -49,10 +49,10 @@ selectAndTranscodeVideo(): void {
         inputFile.path,
         outputPath,
           {
-              quality: '720p'  // or '1080p'
+              quality: '720p'  // or '1080p' or '480p'
           }
       ).then(transcodedFile => {
-        // do something with the transcodedFile
+        // do something with the transcoded file
       })
 
 }
@@ -65,8 +65,8 @@ The following events are emitted during the transcoding process:
 - `TRANSCODING_STARTED` - emitted at the beginning of the transcoding process
 - `TRANSCODING_PROGRESS` - emitted over time with the percentage (0 to 1) completed
 - `TRANSCODING_COMPLETE` - emitted after a successful transcoding process (the `transcode` function will return the transcoded file)
-- `TRANSCODING_ERROR` - emitted when the transcoding process runs into an error (the `transcode` function will return a rejected promise at this point)
-- `TRANSCODING_CANCELLED` - emitted when the transcoding process is cancelled (the `transcode` function will return a rejected promise at this point)
+- `TRANSCODING_ERROR` - emitted when the transcoding process emits an error (the `transcode` function will return a rejected promise at this point)
+- `TRANSCODING_CANCELLED` - emitted when the transcoding process is cancelled (the `transcode` function will return a rejected promise at this point) (iOS only(
 
 You can listen to these events by attaching the `on` listener to the `transcoder`
 
@@ -80,6 +80,17 @@ You can listen to these events by attaching the `on` listener to the `transcoder
     });
 ```
 
+## Options 
+```typescript
+export interface VideoConfig {
+  quality?: '480p' | '720p' | '1080p'; 
+  frameRate?: number; // iOS only
+  audioChannels?: number; // iOS only
+  audioSampleRate?: number; // iOS only
+  audioBitRate?: number; // iOS only
+  force?: boolean; // force transcoding to allow transcoding to the same or higher quality
+}
+```
 
 ## Utilities
 
@@ -103,10 +114,12 @@ startTranscoding(): void {
   transcoder.transcode(...);
 }
 ```
+
+Note: not all video/audio codecs/formats are supported, so the transcode may fail. This is particularly true on Android, where the device and OS version dictate what is actually supported. 
   
 ## Acknowledgements
 
-This plugin is based on [react-native-transcode](https://github.com/selsamman/react-native-transcode)
+This plugin is based on [react-native-transcode](https://github.com/selsamman/react-native-transcode) for iOS. For Android, this uses the AndroidX [Media3 Transformer](https://developer.android.com/media/media3/transformer) libraries
 
 
 ## License

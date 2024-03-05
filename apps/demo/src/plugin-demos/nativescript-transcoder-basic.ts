@@ -112,7 +112,13 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
 
   processVideo(quality: '480p' | '720p' | '1080p', frameRate?: number) {
     if (!this.pickedFile) {
+      const outputDetailsLabel: Label = Frame.topmost().getViewById('outputDetails');
       console.error('No file selected to process');
+      outputDetailsLabel.visibility = 'visible';
+      outputDetailsLabel.text = `Error: No file selected to process!`;
+      outputDetailsLabel.textWrap = true;
+      outputDetailsLabel.fontSize = 16;
+      outputDetailsLabel.color = new Color('#C70300');
       return;
     }
     const tempPath = knownFolders.documents().getFile(`video-copy-${this.count}.mp4`).path;
