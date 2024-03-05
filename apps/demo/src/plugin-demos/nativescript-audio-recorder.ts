@@ -1,3 +1,4 @@
+/* eslint-disable @nrwl/nx/enforce-module-boundaries */
 import { EventData, Page, File, Frame, StackLayout, GridLayout, Color, Label, Image, alert, Button, isAndroid, path, knownFolders } from '@nativescript/core';
 import { DemoSharedNativescriptAudioRecorder } from '@demo/shared';
 import { AudioRecorder, AudioRecorderOptions } from '@voicethread/nativescript-audio-recorder';
@@ -110,7 +111,7 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
               pauseBtn.visibility = 'visible';
               stopBtn.visibility = 'visible';
 
-              let tempOptions = Object.assign({}, this._recordOptions);
+              const tempOptions = Object.assign({}, this._recordOptions);
               this.lastRecorded = tempOptions.filename = outputPath;
               console.log('recording with options', tempOptions);
               this.recorder
@@ -140,7 +141,7 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
     const pauseBtn: Button = Frame.topmost().getViewById('pauseBtn');
     pauseBtn.visibility = 'collapsed';
     if (this.recorder.isRecording()) {
-      let lastSegment: File = await this.recorder.stop();
+      const lastSegment: File = await this.recorder.stop();
       console.log('segment just recorded', lastSegment, lastSegment.path, lastSegment.size);
       if (!this.audioFiles) {
         this.audioFiles = [lastSegment.path];
@@ -153,7 +154,7 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
 
     console.log('stopRecording(): preparing final file', this._recordOptions.filename);
     try {
-      let finalfile = await this.recorder.mergeAudioFiles(this.audioFiles, this._recordOptions.filename);
+      const finalfile = await this.recorder.mergeAudioFiles(this.audioFiles, this._recordOptions.filename);
       console.log('merge func returned', finalfile, finalfile.size);
       if (finalfile.size) {
         console.log('audio file merged, deleting temporary files');
@@ -194,7 +195,7 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
     const pauseBtn: Button = Frame.topmost().getViewById('pauseBtn');
     pauseBtn.visibility = 'collapsed';
     console.log('pausing recording for session', this._recordOptions.filename);
-    let lastSegment: File = await this.recorder.stop();
+    const lastSegment: File = await this.recorder.stop();
     console.log('Segment last recorded:', lastSegment.path);
     if (!this.audioFiles) this.audioFiles = [lastSegment.path];
     else this.audioFiles.push(lastSegment.path);
@@ -207,7 +208,7 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
     this._playOptions.audioFile = lastSegment.path;
 
     //prepare a preview of all segments so far
-    let previewfile = await this.recorder.mergeAudioFiles(this.audioFiles, this.sessionPreview);
+    const previewfile = await this.recorder.mergeAudioFiles(this.audioFiles, this.sessionPreview);
     if (previewfile.size) {
       console.log('audio preview files merged');
       const playBtn: Button = Frame.topmost().getViewById('playBtn');
@@ -249,7 +250,7 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
     const playBtn: Button = Frame.topmost().getViewById('playBtn');
     if (this.audioFiles.length) {
       //generate new preview files
-      let previewfile = await this.recorder.mergeAudioFiles(this.audioFiles, this.sessionPreview);
+      const previewfile = await this.recorder.mergeAudioFiles(this.audioFiles, this.sessionPreview);
       if (previewfile.size) {
         console.log('audio preview files merged');
         playBtn.visibility = 'visible';
@@ -288,7 +289,7 @@ export class DemoModel extends DemoSharedNativescriptAudioRecorder {
     textContainer['row'] = 0;
     textContainer['col'] = 2;
     const fileLabel = new Label();
-    let fileParts = result?.path?.split('/');
+    const fileParts = result?.path?.split('/');
     fileLabel.text = fileParts[fileParts.length - 1];
     fileLabel.textWrap = true;
     fileLabel.color = new Color('white');

@@ -88,7 +88,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
         this._recordingSession.requestRecordPermission((allowed: boolean) => {
           if (allowed) {
             const recordSetting = NSMutableDictionary.alloc().init();
-            let format = kAudioFormatMPEG4AAC;
+            const format = kAudioFormatMPEG4AAC;
             recordSetting.setValueForKey(NSNumber.numberWithInt(format), 'AVFormatIDKey');
 
             let avAudioQualityValue = AVAudioQuality.Medium;
@@ -110,7 +110,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
             if (options.sampleRate) sampleRate = parseFloat(parseInt(options.sampleRate).toFixed(1));
             recordSetting.setValueForKey(NSNumber.numberWithFloat(sampleRate), 'AVSampleRateKey');
 
-            let channels = options.channels ? options.channels : 1;
+            const channels = options.channels ? options.channels : 1;
             recordSetting.setValueForKey(NSNumber.numberWithInt(channels), 'AVNumberOfChannelsKey');
 
             AVAudioSession.sharedInstance().setCategoryWithOptionsError(
@@ -120,7 +120,7 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
                 AVAudioSessionCategoryOptions.AllowAirPlay |
                 AVAudioSessionCategoryOptions.DefaultToSpeaker
             );
-            let inputs = AVAudioSession.sharedInstance().availableInputs;
+            const inputs = AVAudioSession.sharedInstance().availableInputs;
             if (inputs.count > 1) {
               let bluetooth = null,
                 headset = null,
@@ -230,23 +230,23 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
         });
       }
       if (audioFiles.length == 1) {
-        let suc = NSFileManager.defaultManager.copyItemAtPathToPathError(audioFiles[0], outputPath);
+        const suc = NSFileManager.defaultManager.copyItemAtPathToPathError(audioFiles[0], outputPath);
         if (!suc) {
           console.error('Unable to copy file!');
           return reject('Unable to copy file!');
         }
         return resolve(File.fromPath(outputPath));
       }
-      let composition = AVMutableComposition.new();
+      const composition = AVMutableComposition.new();
       for (let i = 0; i < audioFiles.length; i++) {
-        let compositionAudioTrack: AVMutableCompositionTrack = composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeAudio, 0);
-        let asset = AVURLAsset.assetWithURL(NSURL.fileURLWithPath(audioFiles[i]));
-        let track = asset.tracksWithMediaType(AVMediaTypeAudio)[0];
-        let timeRange = CMTimeRangeMake(CMTimeMake(0, 600), track.timeRange.duration);
+        const compositionAudioTrack: AVMutableCompositionTrack = composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeAudio, 0);
+        const asset = AVURLAsset.assetWithURL(NSURL.fileURLWithPath(audioFiles[i]));
+        const track = asset.tracksWithMediaType(AVMediaTypeAudio)[0];
+        const timeRange = CMTimeRangeMake(CMTimeMake(0, 600), track.timeRange.duration);
         compositionAudioTrack.insertTimeRangeOfTrackAtTimeError(timeRange, track, composition.duration);
       }
-      let mergeAudioUrl = NSURL.fileURLWithPath(outputPath);
-      let assetExport = new AVAssetExportSession({ asset: composition, presetName: AVAssetExportPresetAppleM4A });
+      const mergeAudioUrl = NSURL.fileURLWithPath(outputPath);
+      const assetExport = new AVAssetExportSession({ asset: composition, presetName: AVAssetExportPresetAppleM4A });
       assetExport.outputFileType = AVFileTypeAppleM4A;
       assetExport.outputURL = mergeAudioUrl;
       assetExport.exportAsynchronouslyWithCompletionHandler(() => {

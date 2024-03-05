@@ -1,3 +1,4 @@
+/* eslint-disable @nrwl/nx/enforce-module-boundaries */
 import { EventData, Page, alert, Frame, Screen, Image, File, isIOS, isAndroid, Button, path, knownFolders, Device } from '@nativescript/core';
 import { DemoSharedNativescriptCamera } from '@demo/shared';
 import { NSCamera, CameraVideoQuality, ICameraOptions } from '@voicethread/nativescript-camera';
@@ -20,10 +21,12 @@ export function navigatingFrom(args: EventData) {
   } else console.warn('Unable to clear video player when leaving page!');
 }
 
-export async function onLoaded(args) {}
+export async function onLoaded(args) {
+  //add custom onloaded code here
+}
 
 export class DemoModel extends DemoSharedNativescriptCamera {
-  private _counter: number = 0;
+  private _counter = 0;
   @ObservableProperty()
   public cam: NSCamera;
   @ObservableProperty()
@@ -76,7 +79,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
         console.error('returned data is not a file path!');
         return;
       }
-      let photoFile = File.fromPath(args.data);
+      const photoFile = File.fromPath(args.data);
       console.log('File ', args.data, 'has length', photoFile.size);
       const testImg = Frame.topmost().getViewById('photoCaptureResult') as Image;
       testImg.src = args.data;
@@ -85,7 +88,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
     this.cam.on(NSCamera.videoRecordingReadyEvent, (args: any) => {
       //args.data should be the path of the file created with the video recording
       console.log(`videoRecordingReadyEvent:`, args.data);
-      let videoFile = File.fromPath(args.data);
+      const videoFile = File.fromPath(args.data);
       console.log('File has length', videoFile.size);
       //play the video just recorded
       const video = Frame.topmost().currentPage.getViewById('nativeVideoPlayer') as Video;
@@ -192,7 +195,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
       if (!File.exists(outputPath)) break;
     }
     console.log('starting merge for final recording at:', outputPath);
-    let previewfile = await this.cam.mergeVideoFiles(this.videoSegments, outputPath);
+    const previewfile = await this.cam.mergeVideoFiles(this.videoSegments, outputPath);
     if (previewfile.size) {
       console.log('video preview files merged');
       console.log('File has length', previewfile.size);
@@ -262,7 +265,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
             this.cam.takePicture(currentOptions);
             */
             //Or use custom options instead:
-            let customOptions: ICameraOptions = {
+            const customOptions: ICameraOptions = {
               confirmPhotos: true,
               saveToGallery: true,
               maxDimension: 1000,
@@ -286,6 +289,7 @@ export class DemoModel extends DemoSharedNativescriptCamera {
         await checkPermission('photo').then(async (permres: Result) => {
           await request('photo').then(async result => {
             if (result[0] == 'authorized' && result[1]) {
+              //authorized
             } else {
               console.warn("No permission for files, can't save to photos gallery!");
               //warn user they need to update app privacy settings before this will work

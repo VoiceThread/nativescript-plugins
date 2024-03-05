@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-this-alias */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 /**********************************************************************************
   2017, nStudio, LLC & LiveShopper, LLC
   2023, VoiceThread - Angel Dominguez
@@ -26,23 +28,23 @@ export class NSCamera extends NSCameraBase {
   private _cameraId;
 
   @GetSetProperty()
-  public flashOnIcon: string = 'ic_flash_on_white';
+  public flashOnIcon = 'ic_flash_on_white';
   @GetSetProperty()
-  public flashOffIcon: string = 'ic_flash_off_white';
+  public flashOffIcon = 'ic_flash_off_white';
   @GetSetProperty()
-  public toggleCameraIcon: string = 'ic_switch_camera_white';
+  public toggleCameraIcon = 'ic_switch_camera_white';
   @GetSetProperty()
-  public takePicIcon: string = 'ic_camera_white';
+  public takePicIcon = 'ic_camera_white';
   @GetSetProperty()
-  public takeVideoIcon: string = 'ic_video_white';
+  public takeVideoIcon = 'ic_video_white';
   @GetSetProperty()
-  public stopVideoIcon: string = 'ic_video_red';
+  public stopVideoIcon = 'ic_video_red';
   @GetSetProperty()
-  public insetButtons: boolean = false;
+  public insetButtons = false;
   @GetSetProperty()
-  public insetButtonsPercent: number = 0.1;
+  public insetButtonsPercent = 0.1;
 
-  private isRecording: boolean = false;
+  private isRecording = false;
   private _videoQuality: CameraVideoQuality = CameraVideoQuality.MAX_720P;
   private _nativeView;
   private _flashBtn: android.widget.ImageButton = null; // reference to native flash button
@@ -251,7 +253,7 @@ export class NSCamera extends NSCameraBase {
 
   initNativeView() {
     console.log('initNativeView()');
-    let that = this;
+    const that = this;
     super.initNativeView();
     this.on(View.layoutChangedEvent, this._onLayoutChangeListener);
 
@@ -978,7 +980,7 @@ export class NSCamera extends NSCameraBase {
   /**
    * @function disableRotation
    */
-  private disableRotationAndroid(disallowPlayerOverride: boolean = false): void {
+  private disableRotationAndroid(disallowPlayerOverride = false): void {
     if (!Application.android || !Application.android.foregroundActivity) {
       setTimeout(this.disableRotationAndroid, 100);
       return;
@@ -1009,7 +1011,7 @@ export class NSCamera extends NSCameraBase {
         });
       }
       if (inputFiles.length == 1) {
-        let fileData = File.fromPath(inputFiles[0]).readSync();
+        const fileData = File.fromPath(inputFiles[0]).readSync();
         File.fromPath(outputPath).writeSync(fileData);
         return resolve(File.fromPath(outputPath));
       }
@@ -1018,22 +1020,22 @@ export class NSCamera extends NSCameraBase {
       const muxer = new android.media.MediaMuxer(outputPath, android.media.MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
       const MAX_SAMPLE_SIZE = 1024 * 1024;
       const APPEND_DELAY = 200; //we add a little delay between segments to make segmentation a little more obvious
-      var totalDuration = 0;
-      var audioFormat: android.media.MediaFormat = null;
-      var videoFormat: android.media.MediaFormat = null;
-      var audioTrackIndex = -1;
-      var videoTrackIndex = -1;
-      var outRotation = 0;
+      let totalDuration = 0;
+      let audioFormat: android.media.MediaFormat = null;
+      let videoFormat: android.media.MediaFormat = null;
+      let audioTrackIndex = -1;
+      let videoTrackIndex = -1;
+      let outRotation = 0;
       try {
-        let muxerStarted: Boolean = false;
+        let muxerStarted = false;
         for (let i = 0; i < inputFiles.length; i++) {
           let mediadata = new android.media.MediaMetadataRetriever();
           mediadata.setDataSource(inputFiles[i]);
-          var trackDuration = 0;
+          let trackDuration = 0;
           try {
             trackDuration = +mediadata.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION);
             // this.CLog('trackDuration ', trackDuration); //returned in milliseconds
-            let orientation = mediadata.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION);
+            const orientation = mediadata.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION);
             outRotation = +orientation;
           } catch (err) {
             this.CError('Unable to extract trackDuration from metadata!');
@@ -1042,11 +1044,11 @@ export class NSCamera extends NSCameraBase {
           //find video format and select the video track to read from later
           let videoExtractor: android.media.MediaExtractor = new android.media.MediaExtractor();
           videoExtractor.setDataSource(inputFiles[i]);
-          let videoTracks = videoExtractor.getTrackCount();
+          const videoTracks = videoExtractor.getTrackCount();
 
           for (let j = 0; j < videoTracks; j++) {
-            let mf = videoExtractor.getTrackFormat(j);
-            let mime = mf.getString(android.media.MediaFormat.KEY_MIME);
+            const mf = videoExtractor.getTrackFormat(j);
+            const mime = mf.getString(android.media.MediaFormat.KEY_MIME);
             if (mime.startsWith('video/')) {
               videoExtractor.selectTrack(j);
               if (!videoFormat) {
@@ -1060,11 +1062,11 @@ export class NSCamera extends NSCameraBase {
           //find audio format and select the audio track to read from later
           let audioExtractor: android.media.MediaExtractor = new android.media.MediaExtractor();
           audioExtractor.setDataSource(inputFiles[i]);
-          let audioTracks = audioExtractor.getTrackCount();
+          const audioTracks = audioExtractor.getTrackCount();
 
           for (let j = 0; j < audioTracks; j++) {
-            let mf = audioExtractor.getTrackFormat(j);
-            let mime = mf.getString(android.media.MediaFormat.KEY_MIME);
+            const mf = audioExtractor.getTrackFormat(j);
+            const mime = mf.getString(android.media.MediaFormat.KEY_MIME);
             if (mime.startsWith('audio/')) {
               audioExtractor.selectTrack(j);
               if (!audioFormat) {
@@ -1085,10 +1087,10 @@ export class NSCamera extends NSCameraBase {
 
           let sawEOS = false;
           let sawAudioEOS = false;
-          let bufferSize = MAX_SAMPLE_SIZE;
+          const bufferSize = MAX_SAMPLE_SIZE;
           let audioBuf = java.nio.ByteBuffer.allocate(bufferSize);
           let videoBuf = java.nio.ByteBuffer.allocate(bufferSize);
-          let offset = 100;
+          const offset = 100;
           let videoBufferInfo: android.media.MediaCodec.BufferInfo = new android.media.MediaCodec.BufferInfo();
           let audioBufferInfo: android.media.MediaCodec.BufferInfo = new android.media.MediaCodec.BufferInfo();
 
@@ -1101,7 +1103,7 @@ export class NSCamera extends NSCameraBase {
           //add file data
           //write video
           while (!sawEOS) {
-            let videoSize = videoExtractor.readSampleData(videoBuf, offset);
+            const videoSize = videoExtractor.readSampleData(videoBuf, offset);
             if (videoSize < 0) {
               sawEOS = true;
             } else {
@@ -1114,7 +1116,7 @@ export class NSCamera extends NSCameraBase {
 
           //write audio
           while (!sawAudioEOS) {
-            let audioSize = audioExtractor.readSampleData(audioBuf, offset);
+            const audioSize = audioExtractor.readSampleData(audioBuf, offset);
             if (audioSize < 0) {
               sawAudioEOS = true;
             } else {

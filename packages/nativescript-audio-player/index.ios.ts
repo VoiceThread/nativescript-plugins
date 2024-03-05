@@ -198,7 +198,7 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
                   console.error('Failed to write data: ' + e.toString());
                   reject('Failed to write data: ' + e.toString());
                 });
-                let cacheFile = File.fromPath(cachefilename);
+                const cacheFile = File.fromPath(cachefilename);
                 if (cacheFile.size < 100) {
                   console.error('Downloaded file too small, failed?', cacheFile.size);
                   reject('Remote url file invalid! ' + audioPath);

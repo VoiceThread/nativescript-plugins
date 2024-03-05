@@ -1,3 +1,8 @@
+/* eslint-disable @typescript-eslint/no-empty-function */
+/* eslint-disable no-case-declarations */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable no-prototype-builtins */
+/* eslint-disable @typescript-eslint/no-this-alias */
 /**********************************************************************************
   2017, nStudio, LLC & LiveShopper, LLC
   2023, VoiceThread - Angel Dominguez
@@ -13,7 +18,7 @@ export { CameraVideoQuality, WhiteBalance } from './common';
 export class DefaultMap<T> extends Map {
   constructor(obj: { [key: string]: T } = {}) {
     super();
-    for (let [key, value] of Object.entries(obj)) {
+    for (const [key, value] of Object.entries(obj)) {
       if (key === 'defaultValue') this.defaultValue = value;
       else this.set(key, value);
     }
@@ -97,11 +102,11 @@ export class MySwifty extends SwiftyCamViewController {
   private _videoOptions: IVideoOptions;
   private _photoToSave: any;
   private _imageConfirmBg: UIView;
-  private _flashEnabled: boolean = false;
+  private _flashEnabled = false;
   private _flashBtn: UIButton;
   private _switchBtn: UIButton;
   public _cameraBtn: SwiftyCamButton;
-  private _maxDuration: number = 3600;
+  private _maxDuration = 3600;
   public _swiftyDelegate: SwiftyDelegate;
   private _resized: boolean;
 
@@ -148,15 +153,15 @@ export class MySwifty extends SwiftyCamViewController {
       this._cameraBtn = SwiftyCamButton.alloc().init();
       this._cameraBtn.delegate = this;
       this._cameraBtn.translatesAutoresizingMaskIntoConstraints = false;
-      let heightRule = this._cameraBtn.heightAnchor.constraintEqualToConstant(40);
+      const heightRule = this._cameraBtn.heightAnchor.constraintEqualToConstant(40);
       heightRule.active = true;
-      let widthRule = this._cameraBtn.widthAnchor.constraintEqualToConstant(40);
+      const widthRule = this._cameraBtn.widthAnchor.constraintEqualToConstant(40);
       widthRule.active = true;
       this.view.addSubview(this._cameraBtn);
       this.view.bringSubviewToFront(this._cameraBtn);
-      let centerRule = this._cameraBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor);
+      const centerRule = this._cameraBtn.centerXAnchor.constraintEqualToAnchor(this.view.centerXAnchor);
       centerRule.active = true;
-      let bottomRule = this._cameraBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.safeAreaLayoutGuide.bottomAnchor, -40);
+      const bottomRule = this._cameraBtn.bottomAnchor.constraintEqualToAnchorConstant(this.view.safeAreaLayoutGuide.bottomAnchor, -40);
       bottomRule.active = true;
     }
 
@@ -164,16 +169,16 @@ export class MySwifty extends SwiftyCamViewController {
       if (this._switchBtn) this._switchBtn.removeFromSuperview();
       this._switchBtn = createButton(this, null, null, 'switchCam', null, createIcon('toggle', CGSizeMake(65, 50)));
       this._switchBtn.translatesAutoresizingMaskIntoConstraints = false;
-      let widthRule = this._switchBtn.widthAnchor.constraintEqualToConstant(40);
+      const widthRule = this._switchBtn.widthAnchor.constraintEqualToConstant(40);
       widthRule.active = true;
-      let heightRule = this._switchBtn.heightAnchor.constraintEqualToConstant(40);
+      const heightRule = this._switchBtn.heightAnchor.constraintEqualToConstant(40);
       heightRule.active = true;
       //Note: need to add to view first before next 2 constraints, otherwise
       //    compiler complains about invalid references
       this.view.addSubview(this._switchBtn);
-      let topRule = this._switchBtn.topAnchor.constraintEqualToAnchorConstant(this.view.topAnchor, 20);
+      const topRule = this._switchBtn.topAnchor.constraintEqualToAnchorConstant(this.view.topAnchor, 20);
       topRule.active = true;
-      let leftRule = this._switchBtn.trailingAnchor.constraintEqualToAnchorConstant(this.view.trailingAnchor, -20);
+      const leftRule = this._switchBtn.trailingAnchor.constraintEqualToAnchorConstant(this.view.trailingAnchor, -20);
       leftRule.active = true;
     }
 
@@ -473,8 +478,8 @@ export class MySwifty extends SwiftyCamViewController {
           outFilepath = path.join(knownFolders.documents().path, tempFileName);
           if (!File.exists(outFilepath)) break;
         }
-        let maxDimension = +this._snapPicOptions.maxDimension;
-        let quality = +this._snapPicOptions.quality;
+        const maxDimension = +this._snapPicOptions.maxDimension;
+        const quality = +this._snapPicOptions.quality;
         if (maxDimension && maxDimension > 0) {
           source = source.resize(maxDimension);
         }
@@ -516,14 +521,14 @@ export class MySwifty extends SwiftyCamViewController {
     }
     this._flashBtn = createButton(this, null, null, 'toggleFlash', null, this.flashEnabled ? createIcon('flash') : createIcon('flashOff'));
     this._flashBtn.translatesAutoresizingMaskIntoConstraints = false;
-    let widthRule = this._flashBtn.widthAnchor.constraintEqualToConstant(40);
+    const widthRule = this._flashBtn.widthAnchor.constraintEqualToConstant(40);
     widthRule.active = true;
-    let heightRule = this._flashBtn.heightAnchor.constraintEqualToConstant(40);
+    const heightRule = this._flashBtn.heightAnchor.constraintEqualToConstant(40);
     heightRule.active = true;
     this.view.addSubview(this._flashBtn);
-    let topRule = this._flashBtn.topAnchor.constraintEqualToAnchorConstant(this.view.topAnchor, 20);
+    const topRule = this._flashBtn.topAnchor.constraintEqualToAnchorConstant(this.view.topAnchor, 20);
     topRule.active = true;
-    let leftRule = this._flashBtn.leadingAnchor.constraintEqualToAnchorConstant(this.view.leadingAnchor, 20);
+    const leftRule = this._flashBtn.leadingAnchor.constraintEqualToAnchorConstant(this.view.leadingAnchor, 20);
     leftRule.active = true;
   }
 
@@ -610,7 +615,7 @@ export class MySwifty extends SwiftyCamViewController {
       }
 
       this.getOrientationMaskForCurrent();
-      let that = this;
+      const that = this;
       Object.defineProperty(proto, 'supportedInterfaceOrientations', {
         get: function () {
           const result = that.allowRotation ? UIInterfaceOrientationMask.AllButUpsideDown : that._currentOrientationMask;
@@ -687,16 +692,16 @@ export class MySwifty extends SwiftyCamViewController {
       viewController = viewController.presentedViewController;
     }
     viewController.setNeedsUpdateOfSupportedInterfaceOrientations();
-    let window: UIWindow = Application.ios.window;
-    let windowScene: UIWindowScene = window.windowScene;
-    let prefs = new UIWindowSceneGeometryPreferencesIOS({ interfaceOrientations: this._currentOrientationMask });
+    const window: UIWindow = Application.ios.window;
+    const windowScene: UIWindowScene = window.windowScene;
+    const prefs = new UIWindowSceneGeometryPreferencesIOS({ interfaceOrientations: this._currentOrientationMask });
     windowScene.requestGeometryUpdateWithPreferencesErrorHandler(prefs, null);
   }
 }
 
 export class NSCamera extends NSCameraBase {
   //currently we want this orientation flag disabled
-  public static useDeviceOrientation: boolean = false;
+  public static useDeviceOrientation = false;
   private _swifty: MySwifty;
   private _isIPhoneX: boolean;
   private _defaultCamera: CameraTypes = 'rear';
@@ -784,7 +789,7 @@ export class NSCamera extends NSCameraBase {
     return ['3840x2160', '1920x1080', '1280x720', '640x480', '352x288', 'High', 'Medium', 'Low'];
   }
 
-  private _pictureQuality: string = 'High';
+  private _pictureQuality = 'High';
 
   // @ts-ignore
   set pictureSize(value: string) {
@@ -916,7 +921,7 @@ export class NSCamera extends NSCameraBase {
 
   private _detectDevice() {
     if (typeof this._isIPhoneX === 'undefined') {
-      const _SYS_NAMELEN: number = 256;
+      const _SYS_NAMELEN = 256;
 
       /* tslint:disable-next-line: no-any */
       const buffer: any = interop.alloc(5 * _SYS_NAMELEN);
@@ -958,26 +963,26 @@ export class NSCamera extends NSCameraBase {
       }
 
       if (inputFiles.length == 1) {
-        let suc = NSFileManager.defaultManager.copyItemAtPathToPathError(inputFiles[0], outputPath);
+        const suc = NSFileManager.defaultManager.copyItemAtPathToPathError(inputFiles[0], outputPath);
         if (!suc) {
           return reject('Unable to copy file!');
         }
         return resolve(File.fromPath(outputPath));
       }
 
-      let composition = AVMutableComposition.new();
-      let audioTrack: AVMutableCompositionTrack = composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeAudio, kCMPersistentTrackID_Invalid);
-      let videoTrack: AVMutableCompositionTrack = composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeVideo, kCMPersistentTrackID_Invalid);
+      const composition = AVMutableComposition.new();
+      const audioTrack: AVMutableCompositionTrack = composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeAudio, kCMPersistentTrackID_Invalid);
+      const videoTrack: AVMutableCompositionTrack = composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeVideo, kCMPersistentTrackID_Invalid);
       let currentTime = kCMTimeZero;
       let size: CGSize = CGSizeZero;
       let highestFrameRate = 0;
       let haveError = false;
 
       for (let i = 0; i < inputFiles.length; i++) {
-        let options = NSDictionary.dictionaryWithObjectForKey(true, AVURLAssetPreferPreciseDurationAndTimingKey);
-        let asset = AVURLAsset.URLAssetWithURLOptions(NSURL.fileURLWithPath(inputFiles[i]), options);
-        let videoAsset = asset.tracksWithMediaType(AVMediaTypeVideo).objectAtIndex(0);
-        let audioAsset = asset.tracksWithMediaType(AVMediaTypeAudio).objectAtIndex(0);
+        const options = NSDictionary.dictionaryWithObjectForKey(true, AVURLAssetPreferPreciseDurationAndTimingKey);
+        const asset = AVURLAsset.URLAssetWithURLOptions(NSURL.fileURLWithPath(inputFiles[i]), options);
+        const videoAsset = asset.tracksWithMediaType(AVMediaTypeVideo).objectAtIndex(0);
+        const audioAsset = asset.tracksWithMediaType(AVMediaTypeAudio).objectAtIndex(0);
         if (!audioAsset || !videoAsset) {
           this.CError('Unable to find audio or video track for current asset, quitting!');
           haveError = true;
@@ -985,20 +990,20 @@ export class NSCamera extends NSCameraBase {
         }
 
         size = videoAsset.naturalSize;
-        let currentFrameRate = videoAsset.nominalFrameRate;
+        const currentFrameRate = videoAsset.nominalFrameRate;
         highestFrameRate = currentFrameRate > highestFrameRate ? currentFrameRate : highestFrameRate;
-        let trimmingTime: CMTime = CMTimeMake(lround(videoAsset.naturalTimeScale / videoAsset.nominalFrameRate), videoAsset.naturalTimeScale);
-        let timeRange: CMTimeRange = CMTimeRangeMake(trimmingTime, CMTimeSubtract(videoAsset.timeRange.duration, trimmingTime));
-        let videoResult = videoTrack.insertTimeRangeOfTrackAtTimeError(timeRange, videoAsset, currentTime);
-        let audioResult = audioTrack.insertTimeRangeOfTrackAtTimeError(timeRange, audioAsset, currentTime);
+        const trimmingTime: CMTime = CMTimeMake(lround(videoAsset.naturalTimeScale / videoAsset.nominalFrameRate), videoAsset.naturalTimeScale);
+        const timeRange: CMTimeRange = CMTimeRangeMake(trimmingTime, CMTimeSubtract(videoAsset.timeRange.duration, trimmingTime));
+        const videoResult = videoTrack.insertTimeRangeOfTrackAtTimeError(timeRange, videoAsset, currentTime);
+        const audioResult = audioTrack.insertTimeRangeOfTrackAtTimeError(timeRange, audioAsset, currentTime);
         if (!videoResult || !audioResult) {
           this.CError('Unable to insert audio or video track, quitting!');
           haveError = true;
           return;
         }
         if (i == 0) videoTrack.preferredTransform = videoAsset.preferredTransform;
-        let a = videoTrack.preferredTransform;
-        let b = videoAsset.preferredTransform;
+        const a = videoTrack.preferredTransform;
+        const b = videoAsset.preferredTransform;
         if (a.a != b.a || a.b != b.b || a.c != b.c || a.d != b.d) {
           this.CError('WARNING! Segment transforms do not match! merging without matching segment orientations requires transform/layer/composition processing');
         }
@@ -1008,11 +1013,11 @@ export class NSCamera extends NSCameraBase {
 
       if (haveError) return reject('Error during track extraction');
 
-      let videoCompositionInstruction: AVMutableVideoCompositionInstruction = AVMutableVideoCompositionInstruction.videoCompositionInstruction(); //new AVMutableVideoCompositionInstruction({ coder: null });
+      const videoCompositionInstruction: AVMutableVideoCompositionInstruction = AVMutableVideoCompositionInstruction.videoCompositionInstruction(); //new AVMutableVideoCompositionInstruction({ coder: null });
       videoCompositionInstruction.timeRange = CMTimeRangeMake(kCMTimeZero, currentTime);
 
-      let outputUrl = NSURL.fileURLWithPath(outputPath);
-      let exportSession = new AVAssetExportSession({ asset: composition, presetName: AVAssetExportPresetPassthrough });
+      const outputUrl = NSURL.fileURLWithPath(outputPath);
+      const exportSession = new AVAssetExportSession({ asset: composition, presetName: AVAssetExportPresetPassthrough });
       exportSession.outputFileType = AVFileTypeMPEG4;
       exportSession.outputURL = outputUrl;
       exportSession.shouldOptimizeForNetworkUse = true;
@@ -1022,7 +1027,7 @@ export class NSCamera extends NSCameraBase {
       const passThroughLayer = AVMutableVideoCompositionLayerInstruction.videoCompositionLayerInstructionWithAssetTrack(videoTrack);
       passThroughInstruction.layerInstructions = NSArray.arrayWithArray([passThroughLayer]);
 
-      let mutableVideoComposition: AVMutableVideoComposition = AVMutableVideoComposition.videoComposition();
+      const mutableVideoComposition: AVMutableVideoComposition = AVMutableVideoComposition.videoComposition();
       mutableVideoComposition.frameDuration = CMTimeMake(1, highestFrameRate);
       mutableVideoComposition.instructions = NSArray.arrayWithArray([passThroughInstruction]);
       mutableVideoComposition.renderSize = size;
