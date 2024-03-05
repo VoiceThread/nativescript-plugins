@@ -6,6 +6,8 @@
 
 This plugin provides video transcoding functionality for Android API 21+ and iOS 4+ and supports modifying the video's resolution, frame rate (iOS only). Other utilities such as stitching and layering multiple videos may be added in the future.
 
+For both Android and iOS, the transcoded video files will be saved as an MP4 file using h264 and AAC encoding. 
+
 ## Installation
 
 ```bash
