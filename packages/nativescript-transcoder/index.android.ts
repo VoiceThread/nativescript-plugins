@@ -37,26 +37,26 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
 
       const listener: androidx.media3.transformer.Transformer.Listener = new androidx.media3.transformer.Transformer.Listener({
         onTransformationCompleted: (inputMediaItem: androidx.media3.common.MediaItem) => {
-          // console.log('onTransformationCompleted');
+          this.log('onTransformationCompleted');
           emit(NativescriptTranscoderCommon.TRANSCODING_COMPLETE, {});
           resolve(File.fromPath(outputPath));
           clearInterval(progressUpdater);
         },
         onCompleted: (composition: androidx.media3.transformer.Composition, exportResult: androidx.media3.transformer.ExportResult) => {
-          // console.log('onCompleted');
+          this.log('onCompleted');
           emit(NativescriptTranscoderCommon.TRANSCODING_COMPLETE, {});
           resolve(File.fromPath(outputPath));
           clearInterval(progressUpdater);
         },
         //@ts-ignore
         onTransformationError: (inputMediaItem: androidx.media3.common.MediaItem, exception: androidx.media3.transformer.TransformationException) => {
-          // console.log('onTransformationError!', exception);
+          this.log('onTransformationError!', exception);
           emit(NativescriptTranscoderCommon.TRANSCODING_ERROR, {});
           reject(exception);
           clearInterval(progressUpdater);
         },
         onError: (composition: androidx.media3.transformer.Composition, exportResult: androidx.media3.transformer.ExportResult, exportException: androidx.media3.transformer.ExportException) => {
-          // console.log('onError', exportException);
+          this.log('onError', exportException);
           emit(NativescriptTranscoderCommon.TRANSCODING_ERROR, {});
           reject(exportException);
           clearInterval(progressUpdater);
@@ -67,7 +67,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
           originalTransformationRequest: androidx.media3.transformer.TransformationRequest,
           fallbackTransformationRequest: androidx.media3.transformer.TransformationRequest
         ) => {
-          // console.log('onFallbackApplied');
+          this.log('onFallbackApplied');
         },
       });
       const transformer: androidx.media3.transformer.Transformer = new androidx.media3.transformer.Transformer.Builder(this.getAndroidContext())
@@ -79,7 +79,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
       const progressHolder: androidx.media3.transformer.ProgressHolder = new androidx.media3.transformer.ProgressHolder();
       const progressUpdater = setInterval(() => {
         transformer.getProgress(progressHolder);
-        // console.log('progressHolder', progressHolder.progress / 100);
+        // this.log('progressHolder', progressHolder.progress / 100);
         emit(NativescriptTranscoderCommon.TRANSCODING_PROGRESS, { progress: progressHolder.progress / 100 });
       }, 200);
     });
