@@ -4,7 +4,7 @@
 
 [![npm](https://img.shields.io/npm/v/@voicethread/nativescript-audio-recorder?style=flat-square)](https://www.npmjs.com/package/@voicethread/nativescript-transcoder)
 
-This plugin provides video transcoding functionality for Android and iOS and supports modifying the video's resolution, frame rate (iOS only). Other utilities such as stitching and layering multiple videos may be added in the future.
+This plugin provides video transcoding functionality for Android API 21+ and iOS 4+ and supports modifying the video's resolution, frame rate (iOS only). Other utilities such as stitching and layering multiple videos may be added in the future.
 
 ## Installation
 
