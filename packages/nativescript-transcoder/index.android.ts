@@ -9,14 +9,21 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
         this.notify({ eventName: event, object: this, data });
       };
       console.log('setting up transformer pipeline');
-      // const audioProcessors = new com.google.common.collect.ImmutableList.Builder<androidx.media3.common.audio.AudioProcessor>().build();
+      // const audioProcessors = com.google.common.collect.ImmutableList.of();
+      const audioProcessors = new com.google.common.collect.ImmutableList.Builder<androidx.media3.common.audio.AudioProcessor>().build();
+      console.log('audioProcessors', audioProcessors);
       // const videoEffects = new com.google.common.collect.ImmutableList.Builder<androidx.media3.common.Effect>().build();
+      const videoEffects = com.google.common.collect.ImmutableList.of(androidx.media3.effect.Presentation.createForHeight(480));
+
       // const audioProcessorsList = new java.util.List<androidx.media3.common.audio.AudioProcessor>();
-      // const videoEffectsList = new java.util.List<androidx.media3.common.Effect>();
-      // videoEffects.add(androidx.media3.effect.Presentation.createForHeight(480));
+      // const videoEffects = new java.util.List<androidx.media3.common.Effect>();
+      console.log('videoEffects', videoEffects);
+      // videoEffects.add(androidx.media3.effect.Presentation.createForHeight(480))
+      // console.log('videoEffects added', videoEffects);
       const inputMediaItem: androidx.media3.common.MediaItem = androidx.media3.common.MediaItem.fromUri(inputPath);
       const editedMediaItem: androidx.media3.transformer.EditedMediaItem = new androidx.media3.transformer.EditedMediaItem.Builder(inputMediaItem)
-        // .setEffects(new androidx.media3.transformer.Effects(/* audioProcessors= */ audioProcessors, /* videoEffects= */ videoEffects))
+        //@ts-ignore
+        .setEffects(new androidx.media3.transformer.Effects(/* audioProcessors= */ audioProcessors, /* videoEffects= */ videoEffects))
         .build();
       const listener: androidx.media3.transformer.Transformer.Listener = new androidx.media3.transformer.Transformer.Listener({
         onTransformationCompleted: (inputMediaItem: androidx.media3.common.MediaItem) => {
