@@ -1,19 +1,38 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import { File, Utils } from '@nativescript/core';
 import { NativescriptTranscoderCommon, VideoConfig, VideoResolution } from './common';
+import { clearInterval, setInterval } from '@nativescript/core/timer';
 
 export class NativescriptTranscoder extends NativescriptTranscoderCommon {
   transcode(inputPath: string, outputPath: string, videoConfig: VideoConfig): Promise<File> {
     return new Promise((resolve, reject) => {
+      const allowedTranscodingResolution = this.getAllowedTranscodingResolution(inputPath);
+      if (!videoConfig.force && allowedTranscodingResolution.includes(videoConfig.quality)) {
+        return Promise.reject(
+          'Transcoding to a higher resolution is not allowed by default. If you want to do this intentionally, pass in { force: true } as part of the vidoeConfig object to bypass this check.'
+        );
+      }
       const emit = (event: string, data: any) => {
         this.notify({ eventName: event, object: this, data });
       };
+      let height;
+      switch (videoConfig.quality) {
+        case '480p':
+          height = 480;
+          break;
+        case '720p':
+          height = 720;
+          break;
+        case '1080p':
+          height = 1080;
+          break;
+      }
       console.log('setting up transformer pipeline');
       // const audioProcessors = com.google.common.collect.ImmutableList.of();
       const audioProcessors = new com.google.common.collect.ImmutableList.Builder<androidx.media3.common.audio.AudioProcessor>().build();
       console.log('audioProcessors', audioProcessors);
       // const videoEffects = new com.google.common.collect.ImmutableList.Builder<androidx.media3.common.Effect>().build();
-      const videoEffects = com.google.common.collect.ImmutableList.of(androidx.media3.effect.Presentation.createForHeight(480));
+      const videoEffects = com.google.common.collect.ImmutableList.of(androidx.media3.effect.Presentation.createForHeight(height));
 
       // const audioProcessorsList = new java.util.List<androidx.media3.common.audio.AudioProcessor>();
       // const videoEffects = new java.util.List<androidx.media3.common.Effect>();
@@ -25,16 +44,19 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
         //@ts-ignore
         .setEffects(new androidx.media3.transformer.Effects(/* audioProcessors= */ audioProcessors, /* videoEffects= */ videoEffects))
         .build();
+
       const listener: androidx.media3.transformer.Transformer.Listener = new androidx.media3.transformer.Transformer.Listener({
         onTransformationCompleted: (inputMediaItem: androidx.media3.common.MediaItem) => {
           console.log('completed');
           emit(NativescriptTranscoderCommon.TRANSCODING_COMPLETE, {});
           resolve(File.fromPath(outputPath));
+          clearInterval(progressUpdater);
         },
         onCompleted: (composition: androidx.media3.transformer.Composition, exportResult: androidx.media3.transformer.ExportResult) => {
           console.log('completed');
           emit(NativescriptTranscoderCommon.TRANSCODING_COMPLETE, {});
           resolve(File.fromPath(outputPath));
+          clearInterval(progressUpdater);
         },
         //@ts-ignore
         onTransformationError: (inputMediaItem: androidx.media3.common.MediaItem, exception: androidx.media3.transformer.TransformationException) => {
@@ -42,11 +64,13 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
           // return false;
           emit(NativescriptTranscoderCommon.TRANSCODING_ERROR, {});
           reject(exception);
+          clearInterval(progressUpdater);
         },
         onError: (composition: androidx.media3.transformer.Composition, exportResult: androidx.media3.transformer.ExportResult, exportException: androidx.media3.transformer.ExportException) => {
           console.log('error', exportException);
           emit(NativescriptTranscoderCommon.TRANSCODING_ERROR, {});
           reject(exportException);
+          clearInterval(progressUpdater);
         },
         //@ts-ignore
         onFallbackApplied: (
@@ -63,6 +87,12 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
         .build();
       console.log('starting transformer');
       transformer.start(editedMediaItem, outputPath);
+      const progressHolder: androidx.media3.transformer.ProgressHolder = new androidx.media3.transformer.ProgressHolder();
+      const progressUpdater = setInterval(() => {
+        transformer.getProgress(progressHolder);
+        console.log('progressHolder', progressHolder.progress / 100);
+        emit(NativescriptTranscoderCommon.TRANSCODING_PROGRESS, { progress: progressHolder.progress / 100 });
+      }, 200);
       //   const allowedTranscodingResolution = this.getAllowedTranscodingResolution(inputPath);
       //   if (!videoConfig.force && allowedTranscodingResolution.includes(videoConfig.quality)) {
       //     return Promise.reject(

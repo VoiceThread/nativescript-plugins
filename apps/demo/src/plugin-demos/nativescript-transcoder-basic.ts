@@ -115,11 +115,6 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
       console.error('No file selected to process');
       return;
     }
-    // android doesn't support 480p
-    if (isAndroid && quality === '480p') {
-      console.error('Android does not support 480p!');
-      return;
-    }
     const tempPath = knownFolders.documents().getFile(`video-copy-${this.count}.mp4`).path;
     this.count += 1;
     if (File.exists(tempPath)) {
