@@ -163,6 +163,8 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
   private _options: AudioPlayerOptions;
   private _audioFocusManager: AudioFocusManager | null;
   private _readyToPlay = false;
+  private _resolve = null;
+  private _reject = null;
 
   constructor(durationHint: AudioFocusDurationHint | AudioFocusManager = AudioFocusDurationHint.AUDIOFOCUS_GAIN) {
     super();
@@ -300,7 +302,6 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
           this._abandonAudioFocus(true);
           this._sendEvent(AudioPlayer.pausedEvent);
         }
-
         resolve(true);
       } catch (ex) {
         reject(ex);
@@ -337,16 +338,16 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
           Application.android.registerBroadcastReceiver(android.media.AudioManager.ACTION_AUDIO_BECOMING_NOISY, (context: android.content.Context, intent: android.content.Intent) => {
             this.pause();
           });
-
+          //Pitch adjustment not supported yet by plugin:
           // if (this._options?.pitch) {
           //   const playBackParams = new android.media.PlaybackParams();
           //   playBackParams.setPitch(this._options!.pitch);
           //   this._player.setPlaybackParams(playBackParams);
           // }
-
           this._player.start();
+          this._resolve = resolve;
+          this._reject = reject;
         }
-        resolve(true);
       } catch (ex) {
         reject(ex);
       }
@@ -509,6 +510,8 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
                 mp.start();
               }
               this._options.completeCallback({ player: mp });
+              if (this._resolve) this._resolve(true);
+              this._resolve = this._reject = null;
             }
 
             if (this._options && !this._options.loop) {
@@ -526,6 +529,8 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
             if (this._options && this._options.errorCallback) {
               this._options.errorCallback({ player, error, extra });
             }
+            if (this._reject) this._reject(error);
+            this._resolve = this._reject = null;
             this.dispose();
             return true;
           },

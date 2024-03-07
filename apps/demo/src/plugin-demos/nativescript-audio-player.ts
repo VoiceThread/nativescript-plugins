@@ -1,5 +1,5 @@
 /* eslint-disable @nrwl/nx/enforce-module-boundaries */
-import { EventData, Page, File, Frame, StackLayout, GridLayout, Color, Label, Button, Folder, knownFolders } from '@nativescript/core';
+import { EventData, Page, isAndroid, File, Frame, StackLayout, GridLayout, Color, Label, Button, Folder, knownFolders } from '@nativescript/core';
 import { DemoSharedNativescriptAudioPlayer } from '@demo/shared';
 import { AudioPlayer, AudioPlayerOptions } from '@voicethread/nativescript-audio-player';
 
@@ -15,19 +15,19 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
     super();
     this.player = new AudioPlayer();
     this.player.on(AudioPlayer.completeEvent, () => {
-      console.log('playback complete');
+      console.log('playback complete event');
     });
     this.player.on(AudioPlayer.seekEvent, () => {
       console.log('seek event');
     });
     this.player.on(AudioPlayer.startedEvent, () => {
-      console.log('playback started');
+      console.log('playback started event');
     });
     this.player.on(AudioPlayer.pausedEvent, () => {
-      console.log('playback paused');
+      console.log('playback paused event');
     });
     this.player.on(AudioPlayer.errorEvent, (event: AudioPlayerEventData) => {
-      console.error('Error!', event.data);
+      console.error('Error event!', event.data);
     });
   }
 
@@ -48,21 +48,32 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
     },
   };
 
-  //Doesn't load on Android, iOS only
+  //CAF files don't load on Android, iOS only
   playLocalCafAudio() {
+    if (isAndroid) {
+      console.error('This is only available on iOS!');
+      return;
+    }
     this._playOptions.audioFile = knownFolders.currentApp().path + '/audio/example.caf';
-    this.player.prepareAudio(this._playOptions).then(status => {
-      console.log('done preparing');
-      if (status) {
-        const file = File.fromPath(this._playOptions.audioFile);
-        console.log('loaded file ', file.path, ' with size', file.size);
-        this.showInfo(file);
-        this.player.play();
-        console.log('playing');
-      } else {
-        console.log('ERROR! Unable to prepare audio!');
-      }
-    });
+    this.player
+      .prepareAudio(this._playOptions)
+      .then(status => {
+        console.log('done preparing');
+        if (status) {
+          const file = File.fromPath(this._playOptions.audioFile);
+          console.log('loaded file ', file.path, ' with size', file.size);
+          this.showInfo(file);
+          this.player.play().then(() => {
+            console.log('done playing (promise complete)');
+          });
+          console.log('playing');
+        } else {
+          console.log('ERROR! Unable to prepare audio!');
+        }
+      })
+      .catch(ex => {
+        console.error('error preparing file!', ex);
+      });
   }
 
   playLocalM4aAudio() {
@@ -70,7 +81,9 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
     this.player.prepareAudio(this._playOptions).then(status => {
       console.log('done preparing');
       if (status) {
-        this.player.play();
+        this.player.play().then(() => {
+          console.log('done playing (promise complete)');
+        });
         const file = File.fromPath(this._playOptions.audioFile);
         console.log('playing file ', file.path, ' with size', file.size);
         this.showInfo(file);
@@ -85,7 +98,9 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
     this.player.prepareAudio(this._playOptions).then(status => {
       console.log('done preparing');
       if (status) {
-        this.player.play();
+        this.player.play().then(() => {
+          console.log('done playing (promise complete)');
+        });
         const file = File.fromPath(this._playOptions.audioFile);
         console.log('playing file ', file.path, ' with size', file.size);
         this.showInfo(file);
@@ -100,7 +115,9 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
     this.player.prepareAudio(this._playOptions).then(status => {
       console.log('done preparing');
       if (status) {
-        this.player.play();
+        this.player.play().then(() => {
+          console.log('done playing (promise complete)');
+        });
         const file = File.fromPath(this._playOptions.audioFile);
         console.log('playing file ', file.path, ' with size', file.size);
         this.showInfo(file);
@@ -112,17 +129,28 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
 
   playRemoteAudio() {
     this._playOptions.audioFile = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
-    // await this.player.play().then(res=>{console.log("returned ",res)}).catch(err=>{console.error("error:",err)})
-    this.player.prepareAudio(this._playOptions).then(status => {
-      console.log('done preparing');
-      if (status) {
-        this.player.play();
-        console.log('playing remote url ', this._playOptions.audioFile);
-        this.showInfo(null);
-      } else {
-        console.log('ERROR! Unable to prepare audio!');
-      }
-    });
+    this.player
+      .prepareAudio(this._playOptions)
+      .then(status => {
+        console.log('done preparing');
+        if (status) {
+          this.player
+            .play()
+            .then(() => {
+              console.log('done playing (promise complete)');
+            })
+            .catch(err => {
+              console.error('error during playback!', err);
+            });
+          console.log('playing remote url ', this._playOptions.audioFile);
+          this.showInfo(null);
+        } else {
+          console.log('ERROR! Unable to prepare audio!');
+        }
+      })
+      .catch(err => {
+        console.error('error during prepare!', err);
+      });
   }
 
   stopPlayback() {
@@ -132,9 +160,10 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
 
   showInfo(result: File): void {
     const outputStack: StackLayout = Frame.topmost().getViewById('outputStack');
+    const outputLabel: Label = Frame.topmost().getViewById('outputLabel');
     outputStack.removeChildren();
     if (!result) {
-      outputStack.visibility = 'collapsed';
+      outputLabel.visibility = outputStack.visibility = 'collapsed';
       return;
     }
     console.log('currently loaded player audio file:', result);
@@ -144,7 +173,7 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
     fileContainer['columns'] = 'auto, 8, *, auto';
     fileContainer['padding'] = 5;
     fileContainer['margin'] = '1 5';
-    fileContainer['borderBottomColor'] = new Color('black');
+    fileContainer['borderBottomColor'] = new Color('white');
     fileContainer['borderBottomWidth'] = 1;
 
     const textContainer = new StackLayout();
@@ -154,7 +183,7 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
     const fileParts = result.path.split('/');
     fileLabel.text = fileParts[fileParts.length - 1];
     fileLabel.textWrap = true;
-    fileLabel.color = new Color('black');
+    fileLabel.color = new Color('white');
     fileLabel.row = 0;
     fileLabel.col = 2;
     textContainer.addChild(fileLabel);
@@ -162,7 +191,7 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
     const pathLabel = new Label();
     pathLabel.text = `Path: ${result.path}`;
     pathLabel.textWrap = true;
-    pathLabel.color = new Color('black');
+    pathLabel.color = new Color('white');
     pathLabel.verticalAlignment = 'top';
     pathLabel.row = 1;
     pathLabel.col = 2;
@@ -172,7 +201,7 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
 
     sizeLabel.text = 'Size: ' + result.size;
     sizeLabel.textWrap = true;
-    sizeLabel.color = new Color('black');
+    sizeLabel.color = new Color('white');
     sizeLabel.row = 0;
     sizeLabel.col = 3;
     textContainer.addChild(sizeLabel);
@@ -181,7 +210,6 @@ export class DemoModel extends DemoSharedNativescriptAudioPlayer {
 
     outputStack.addChild(fileContainer);
     outputStack.visibility = 'visible';
-    const outputLabel: Label = Frame.topmost().getViewById('outputLabel');
     outputLabel.visibility = 'visible';
   }
 }
