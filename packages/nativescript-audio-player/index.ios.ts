@@ -18,6 +18,7 @@ class TNSPlayerDelegate extends NSObject implements AVAudioPlayerDelegate {
   audioPlayerDidFinishPlayingSuccessfully(player?: any, flag?: boolean) {
     const owner = this._owner.get();
     if (owner) {
+      owner._sendEvent(AudioPlayer.completeEvent);
       if (flag && owner.completeCallback) {
         owner.completeCallback({ player, flag });
       } else if (!flag && owner.errorCallback) {
@@ -29,6 +30,7 @@ class TNSPlayerDelegate extends NSObject implements AVAudioPlayerDelegate {
   audioPlayerDecodeErrorDidOccurError(player: any, error: NSError) {
     const owner = this._owner.get();
     if (owner) {
+      owner._sendEvent(AudioPlayer.errorEvent, error);
       if (owner.errorCallback) {
         owner.errorCallback({ player, error });
       }
@@ -55,6 +57,9 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
   get ios(): any {
     return this._player;
   }
+  /**
+   * This iOS property supports values ranging from 0.0 for silence to 1.0 for full volume.
+   */
 
   get volume(): number {
     return this._player ? this._player.volume : 0;
@@ -70,16 +75,24 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
     return this._readyToPlay;
   }
 
+  /*
+  iOS returns the total duration, in seconds, of the player’s audio.
+  Convert to ms to match Android
+  */
   public get duration() {
     if (this._player) {
-      return this._player.duration;
+      return this._player.duration * 1000;
     } else {
       return 0;
     }
   }
 
+  /**
+   * iOS returns the current playback time, in seconds, within the audio timeline.
+   * Convert to ms to match Android
+   */
   get currentTime(): number {
-    return this._player ? this._player.currentTime : 0;
+    return this._player ? this._player.currentTime * 1000 : 0;
   }
 
   public setAudioFocusManager(manager: any) {
@@ -259,10 +272,12 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
       try {
         if (this._player && this._player.playing) {
           this._player.pause();
+          this._sendEvent(AudioPlayer.pausedEvent);
         }
         resolve(true);
       } catch (ex) {
         if (this.errorCallback) {
+          this._sendEvent(AudioPlayer.errorEvent, ex);
           this.errorCallback({ ex });
         }
         reject(ex);
@@ -279,9 +294,11 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
         }
         if (!this.isAudioPlaying()) {
           this._player.play();
+          this._sendEvent(AudioPlayer.startedEvent);
         }
         resolve(true);
       } catch (ex) {
+        this._sendEvent(AudioPlayer.errorEvent, ex);
         if (this.errorCallback) {
           this.errorCallback({ ex });
         }
@@ -293,20 +310,32 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
   public resume(): void {
     if (this._player) {
       this._player.play();
+      this._sendEvent(AudioPlayer.startedEvent);
     }
   }
 
+  /**
+   * Plays audio asynchronously, starting at a specified point in the audio output device’s timeline, in seconds.
+   * Convert from ms to match Android
+   */
   public playAtTime(time: number): void {
     if (this._player) {
-      this._player.playAtTime(time);
+      this._player.playAtTime(time / 1000);
+      this._sendEvent(AudioPlayer.startedEvent);
     }
   }
 
+  /**
+   * for iOS, currentTime either gets the current playback time, in seconds, within the audio timeline if playing,
+   *    or if not playing, sets playback at the specified time before next play() call
+   *  Convert from ms before sending to AVAudioPlayer
+   */
   public seekTo(time: number): Promise<any> {
     return new Promise((resolve, reject) => {
       try {
         if (this._player) {
-          this._player.currentTime = time;
+          this._player.currentTime = time / 1000;
+          this._sendEvent(AudioPlayer.seekEvent);
         }
         resolve(true);
       } catch (ex) {
@@ -338,11 +367,14 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
     return this._player ? this._player.playing : false;
   }
 
-  public getAudioTrackDuration(): Promise<string> {
+  /**
+   * Get the duration of the audio file playing, in ms
+   */
+  public getAudioTrackDuration(): Promise<number> {
     return new Promise((resolve, reject) => {
       try {
-        const duration = this._player ? this._player.duration : 0;
-        resolve(duration.toString());
+        const duration = this._player ? this._player.duration * 1000 : 0;
+        resolve(duration);
       } catch (ex) {
         if (this.errorCallback) {
           this.errorCallback({ ex });
@@ -352,6 +384,10 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
     });
   }
 
+  /**
+   * @param speed
+   * speed should be a float from 0.0 - X.X, and is a scale factor
+   */
   public changePlayerSpeed(speed) {
     if (this._player && speed) {
       // make sure speed is a number/float
@@ -378,4 +414,35 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
       this._task = undefined;
     }
   }
+
+  /**
+   * Events
+   */
+
+  /**
+   * Notify events by name and optionally pass data
+   */
+  public _sendEvent(eventName: string, data?: any) {
+    this.notify(<any>{
+      eventName,
+      object: this,
+      data: data,
+    });
+  }
+  public static seekEvent = 'seekEvent';
+  public static pausedEvent = 'pausedEvent';
+  public static startedEvent = 'startedEvent';
+  public static completeEvent = 'completeEvent';
+  public static errorEvent = 'errorEvent'; //will pass the error object
+}
+
+/*
+ * Utility to find the duration in milliseconds of the mp4 file at `mp4Path`
+ */
+export function getDuration(mp4Path: string): number {
+  let totalTime = 0;
+  const filePath = NSURL.fileURLWithPath(mp4Path);
+  const avAsset = AVURLAsset.assetWithURL(filePath);
+  totalTime = CMTimeGetSeconds(avAsset.duration) * 1000;
+  return totalTime;
 }

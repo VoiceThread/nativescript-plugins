@@ -395,7 +395,7 @@ export abstract class NSCameraBase extends ContentView implements NSCameraDefini
     } else {
       const filePath = NSURL.fileURLWithPath(videoPath);
       const avAsset = AVURLAsset.assetWithURL(filePath);
-      totalTime = avAsset.duration.value;
+      totalTime = CMTimeGetSeconds(avAsset.duration) * 1000;
     }
     return totalTime;
   }

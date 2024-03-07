@@ -1,6 +1,6 @@
 import { Application, EventData, Observable, Utils } from '@nativescript/core';
 import { resolveAudioFilePath, IAudioPlayer } from './common';
-import { AudioPlayerEvents, AudioPlayerOptions } from './options';
+import { AudioPlayerOptions } from './options';
 
 export enum AudioFocusDurationHint {
   AUDIOFOCUS_GAIN = android.media.AudioManager.AUDIOFOCUS_GAIN,
@@ -156,16 +156,16 @@ function getGlobalMixingManager(): AudioFocusManager {
   return globalMixingManager;
 }
 
-export class AudioPlayer implements IAudioPlayer {
+export class AudioPlayer extends Observable implements IAudioPlayer {
   private _mediaPlayer: android.media.MediaPlayer;
   private _lastPlayerVolume; // ref to the last volume setting so we can reset after ducking
   private _wasPlaying = false;
-  private _events: Observable;
   private _options: AudioPlayerOptions;
   private _audioFocusManager: AudioFocusManager | null;
   private _readyToPlay = false;
 
   constructor(durationHint: AudioFocusDurationHint | AudioFocusManager = AudioFocusDurationHint.AUDIOFOCUS_GAIN) {
+    super();
     if (!(durationHint instanceof AudioFocusManager)) {
       this.setAudioFocusManager(
         new AudioFocusManager({
@@ -175,13 +175,6 @@ export class AudioPlayer implements IAudioPlayer {
     } else {
       this.setAudioFocusManager(durationHint);
     }
-  }
-
-  public get events() {
-    if (!this._events) {
-      this._events = new Observable();
-    }
-    return this._events;
   }
 
   get android(): any {
@@ -198,13 +191,18 @@ export class AudioPlayer implements IAudioPlayer {
     const mgr = ctx.getSystemService(android.content.Context.AUDIO_SERVICE);
     return mgr.getStreamVolume(android.media.AudioManager.STREAM_MUSIC);
   }
-
+  /**
+   * Sets the volume on this player. This API is recommended for balancing the output of audio streams within an application. Unless you are writing an application to control user settings, this API should be used in preference to AudioManager#setStreamVolume(int, int, int) which sets the volume of ALL streams of a particular type. Note that the passed volume values are raw scalars in range 0.0 to 1.0. UI controls should be scaled logarithmically.
+   */
   set volume(value: number) {
     if (this._player && value >= 0) {
-      this._player.setVolume(value, value);
+      this._player.setVolume(value, value); // (left,right) volumes
     }
   }
 
+  /*
+  the duration in milliseconds, if no duration is available (for example, if streaming live content), -1 is returned.
+  */
   public get duration(): number {
     if (this._player) {
       return this._player.getDuration();
@@ -213,6 +211,9 @@ export class AudioPlayer implements IAudioPlayer {
     }
   }
 
+  /**
+   * Gets the current playback position in ms
+   */
   get currentTime(): number {
     return this._player ? this._player.getCurrentPosition() : 0;
   }
@@ -297,7 +298,7 @@ export class AudioPlayer implements IAudioPlayer {
           // We abandon the audio focus but we still preserve
           // the MediaPlayer so we can resume it in the future
           this._abandonAudioFocus(true);
-          this._sendEvent(AudioPlayerEvents.paused);
+          this._sendEvent(AudioPlayer.pausedEvent);
         }
 
         resolve(true);
@@ -327,7 +328,7 @@ export class AudioPlayer implements IAudioPlayer {
             throw new Error('Could not request audio focus');
           }
 
-          this._sendEvent(AudioPlayerEvents.started);
+          this._sendEvent(AudioPlayer.startedEvent);
           // set volume controls
           // https://developer.android.com/reference/android/app/Activity.html#setVolumeControlStream(int)
           Application.android.foregroundActivity.setVolumeControlStream(android.media.AudioManager.STREAM_MUSIC);
@@ -356,17 +357,20 @@ export class AudioPlayer implements IAudioPlayer {
     if (this._player) {
       // We call play so it can request audio focus
       this.play();
-      this._sendEvent(AudioPlayerEvents.started);
+      this._sendEvent(AudioPlayer.startedEvent);
     }
   }
 
+  /*
+    Seeks to specified time position, 'time' is the offset in milliseconds from the start to seek to
+  */
   public seekTo(time: number): Promise<any> {
     return new Promise((resolve, reject) => {
       try {
         if (this._player) {
-          time = time * 1000;
+          // time = time * 1000;
           this._player.seekTo(time);
-          this._sendEvent(AudioPlayerEvents.seek);
+          this._sendEvent(AudioPlayer.seekEvent);
         }
         resolve(true);
       } catch (ex) {
@@ -379,9 +383,12 @@ export class AudioPlayer implements IAudioPlayer {
     await this.seekTo(time);
     this.play();
   }
-
+  /**
+   *  @param speed Sets playback rate using PlaybackParams. The object sets its internal PlaybackParams to the input, except that the object remembers previous speed when input speed is zero. This allows the object to resume at previous speed when start() is called. Calling it before the object is prepared does not change the object state. After the object is prepared, calling it with zero speed is equivalent to calling pause(). After the object is prepared, calling it with non-zero speed is equivalent to calling start().
+   *  speed should be a float from 0.0 - X.X, and is a scale factor
+   */
   public changePlayerSpeed(speed) {
-    // this checks on API 23 and up
+    // this is only supported on API 23+
     if (android.os.Build.VERSION.SDK_INT >= 23 && this.play) {
       if (this._player?.isPlaying()) {
         (this._player as any).setPlaybackParams((this._player as any).getPlaybackParams().setSpeed(speed));
@@ -424,11 +431,14 @@ export class AudioPlayer implements IAudioPlayer {
     }
   }
 
-  public getAudioTrackDuration(): Promise<string> {
+  /**
+   * Get the duration of the audio file playing, in ms
+   */
+  public getAudioTrackDuration(): Promise<number> {
     return new Promise((resolve, reject) => {
       try {
         const duration = this._player ? this._player.getDuration() : 0;
-        resolve(duration.toString());
+        resolve(duration);
       } catch (ex) {
         reject(ex);
       }
@@ -439,13 +449,11 @@ export class AudioPlayer implements IAudioPlayer {
    * Notify events by name and optionally pass data
    */
   private _sendEvent(eventName: string, data?: any) {
-    if (this.events) {
-      this.events.notify(<any>{
-        eventName,
-        object: this,
-        data: data,
-      });
-    }
+    this.notify(<any>{
+      eventName,
+      object: this,
+      data: data,
+    });
   }
 
   /**
@@ -494,6 +502,7 @@ export class AudioPlayer implements IAudioPlayer {
       this._mediaPlayer.setOnCompletionListener(
         new android.media.MediaPlayer.OnCompletionListener({
           onCompletion: mp => {
+            this._sendEvent(AudioPlayer.completeEvent);
             if (this._options && this._options.completeCallback) {
               if (this._options.loop === true) {
                 mp.seekTo(5);
@@ -513,6 +522,7 @@ export class AudioPlayer implements IAudioPlayer {
       this._mediaPlayer.setOnErrorListener(
         new android.media.MediaPlayer.OnErrorListener({
           onError: (player: any, error: number, extra: number) => {
+            this._sendEvent(AudioPlayer.errorEvent, error);
             if (this._options && this._options.errorCallback) {
               this._options.errorCallback({ player, error, extra });
             }
@@ -561,4 +571,24 @@ export class AudioPlayer implements IAudioPlayer {
         break;
     }
   }
+
+  /**
+   * Events
+   */
+  public static seekEvent = 'seekEvent';
+  public static pausedEvent = 'pausedEvent';
+  public static startedEvent = 'startedEvent';
+  public static completeEvent = 'completeEvent';
+  public static errorEvent = 'errorEvent'; //will pass the error object
+}
+
+/*
+ * Utility to find the duration in milliseconds of the mp4 file at `mp4Path`
+ */
+export function getDuration(mp4Path: string): number {
+  let totalTime = 0;
+  const mediadata = new android.media.MediaMetadataRetriever();
+  mediadata.setDataSource(mp4Path);
+  totalTime = +mediadata.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION);
+  return totalTime;
 }

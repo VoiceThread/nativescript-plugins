@@ -45,12 +45,18 @@ import { AudioRecorder, AudioRecorderOptions } from '@voicethread/nativescript-a
 2. Record an audio file.
 ```javascript
 this.recorder = new AudioRecorder();
-//you can tie into these events to update control UI state
-this.recorder.on('RecorderFinished', () => {
-  console.log('RecorderFinished');
+//you can tie into events for updating control states
+this.recorder.on(AudioRecorder.stoppedEvent, () => {
+  console.log('audio recording stopped');
 });
-this.recorder.on('RecorderFinishedSuccessfully', () => {
-  console.log('RecorderFinishedSuccessfully');
+this.recorder.on(AudioRecorder.completeEvent, (event: AudioRecorderEventData) => {
+  console.log('audio recording completed, file: ', event.data);
+});
+this.recorder.on(AudioRecorder.startedEvent, () => {
+  console.log('audio recording started');
+});
+this.recorder.on(AudioRecorder.errorEvent, (event: AudioRecorderEventData) => {
+  console.log('audio recording error!', event.data);
 });
 let recOptions: AudioRecorderOptions = {
     filename: path.join(knownFolders.documents().path, 'audiorecording-1.mp4');,
@@ -203,8 +209,23 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
    * Merges all files with file paths specified in audioFiles into a new file at outputPath. This only supports MP4/AAC audio files currently
    * Note: For Android, API 26+ is required.
    */
-  mergeAudioFiles(audioFiles: string[], outputPath: string): Promise<File>;
+  mergeAudioFiles(audioFiles: string[], outputPath: string): Promise<File>;  
+  /**
+   * Events
+   */
+  public static startedEvent = 'startedEvent';
+  public static stoppedEvent = 'stoppedEvent';
+  public static completeEvent = 'completeEvent'; //will pass the recording filename
+  public static errorEvent = 'errorEvent'; //will pass the error object or string
 }
+```
+
+## Helper Utils
+``` javascript
+  /*
+  * Utility to find the duration in milliseconds of the mp4 file at `mp4Path`
+  */
+  export function getDuration(mp4Path: string): number;
 ```
 
 Tested and working on Android API 25-33.

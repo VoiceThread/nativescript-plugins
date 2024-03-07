@@ -8,10 +8,27 @@ export function navigatingTo(args: EventData) {
   page.bindingContext = new DemoModel();
 }
 
+type AudioPlayerEventData = EventData & { data: any };
+
 export class DemoModel extends DemoSharedNativescriptAudioPlayer {
   constructor() {
     super();
     this.player = new AudioPlayer();
+    this.player.on(AudioPlayer.completeEvent, () => {
+      console.log('playback complete');
+    });
+    this.player.on(AudioPlayer.seekEvent, () => {
+      console.log('seek event');
+    });
+    this.player.on(AudioPlayer.startedEvent, () => {
+      console.log('playback started');
+    });
+    this.player.on(AudioPlayer.pausedEvent, () => {
+      console.log('playback paused');
+    });
+    this.player.on(AudioPlayer.errorEvent, (event: AudioPlayerEventData) => {
+      console.error('Error!', event.data);
+    });
   }
 
   protected player: AudioPlayer;

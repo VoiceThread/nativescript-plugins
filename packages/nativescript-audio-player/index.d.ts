@@ -39,12 +39,14 @@ export interface IAudioPlayer {
   readonly android?: any;
 
   /**
-   * Volume getter/setter
+   * Volume supports values ranging from 0.0 for silence to 1.0 for full volume
    */
-  volume: any;
+  volume: number;
 
   /**
-   * Duration getter
+   * Duration getter in milliseconds
+   *    Returns 0 if there is no audio file loaded
+   *    Returns -1 if there is an issue getting duration (Android)
    */
   duration: number;
 
@@ -68,7 +70,7 @@ export interface IAudioPlayer {
   resume(): void;
 
   /**
-   * Seeks to specific time.
+   * Seeks to specified time position, 'time' is the offset in milliseconds from the start to seek to
    */
   seekTo(time: number): Promise<any>;
 
@@ -83,24 +85,25 @@ export interface IAudioPlayer {
   isAudioPlaying(): boolean;
 
   /**
-   * Get the duration of the audio file playing.
+   * Get the duration of the audio file playing, in ms
    */
-  getAudioTrackDuration(): Promise<string>;
+  getAudioTrackDuration(): Promise<number>;
 
   /**
    * Sets the player playback speed rate. On Android this works on API 23+.
    * @param speed [number] - The speed of the playback.
+   * speed should be a float from 0.0 - X.X, and is a scale factor
    */
   changePlayerSpeed(speed: number): void;
 
   /**
    * ** iOS ONLY ** - Begins playback at a certain delay, relative to the current playback time.
-   * @param time [number] - The time to start playing the audio track at.
+   * @param time [number] - The time to start playing the audio track at, in milliseconds
    */
   playAtTime(time: number);
 }
 
-export declare class AudioPlayer {
+export declare class AudioPlayer extends Observable {
   static ObjCProtocols: any[];
   readonly ios: any;
   readonly android: any;
@@ -112,12 +115,12 @@ export declare class AudioPlayer {
   volume: any;
 
   /**
-   * duration
+   * The duration in milliseconds of the current audio file
    */
   duration: number;
 
   /**
-   * current time
+   * Gets the current playback position in ms
    */
   readonly currentTime: number;
 
@@ -185,15 +188,16 @@ export declare class AudioPlayer {
   changePlayerSpeed(speed: number): void;
 
   audioPlayerDidFinishPlayingSuccessfully(player?: any, flag?: boolean): void;
-}
 
-export interface IAudioPlayerEvents {
-  seek: 'seek';
-  paused: 'paused';
-  started: 'started';
+  /**
+   * Events
+   */
+  public static seekEvent = 'seekEvent';
+  public static pausedEvent = 'pausedEvent';
+  public static startedEvent = 'startedEvent';
+  public static completeEvent = 'completeEvent';
+  public static errorEvent = 'errorEvent'; //will pass the error object
 }
-
-export const AudioPlayerEvents: IAudioPlayerEvents = {};
 
 export enum AudioFocusDurationHint {
   /**
@@ -242,3 +246,5 @@ export class AudioFocusManager extends Observable {
   constructor(options?: AudioFocusManagerOptions);
   on(event: 'audioFocusChange', callback: (data: AudioFocusChangeEventData) => void, thisArg?: any);
 }
+
+export function getDuration(mp4Path: string): number;
