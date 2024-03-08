@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-this-alias */
 import { knownFolders, Observable, path as nsFilePath, Utils, File } from '@nativescript/core';
 import { IAudioPlayer, resolveAudioFilePath } from './common';
 import { AudioPlayerOptions } from './options';
@@ -21,9 +22,12 @@ class TNSPlayerDelegate extends NSObject implements AVAudioPlayerDelegate {
       owner._sendEvent(AudioPlayer.completeEvent);
       if (flag && owner.completeCallback) {
         owner.completeCallback({ player, flag });
+        if (owner._resolve) owner._resolve(true);
       } else if (!flag && owner.errorCallback) {
         owner.errorCallback({ player, flag });
+        if (owner._reject) owner._reject(flag);
       }
+      owner._reject = owner._resolve = null;
     }
   }
 
@@ -34,6 +38,8 @@ class TNSPlayerDelegate extends NSObject implements AVAudioPlayerDelegate {
       if (owner.errorCallback) {
         owner.errorCallback({ player, error });
       }
+      if (owner._reject) owner._reject(error);
+      owner._reject = owner._resolve = null;
     }
   }
 }
@@ -53,6 +59,8 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
   private delegate: TNSPlayerDelegate;
   private _options: AudioPlayerOptions;
   private _readyToPlay = false;
+  _resolve = null;
+  _reject = null;
 
   get ios(): any {
     return this._player;
@@ -60,7 +68,6 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
   /**
    * This iOS property supports values ranging from 0.0 for silence to 1.0 for full volume.
    */
-
   get volume(): number {
     return this._player ? this._player.volume : 0;
   }
@@ -99,28 +106,31 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
     return true;
   }
 
+  /**
+   * This function will prepare the iOS audio player for playback using the specified AudioPlayerOptions.
+   * If the audio file name specified is a remote URL, it will attempt ot download the file and cache it future playback.
+   * @param options
+   * @returns Promise<boolean
+   */
   public prepareAudio(options: AudioPlayerOptions): Promise<boolean> {
     return new Promise((resolve, reject) => {
       try {
         this._options = options;
         const audioPath = resolveAudioFilePath(options.audioFile);
-
-        if (Utils.isFileOrResourcePath(audioPath)) {
-          //if it's a local file, prepare should be almost instant
-          if (!File.exists(audioPath)) {
-            console.error("Audio file doesn't exist on device file system");
-            reject('File not found! ' + audioPath);
-            return;
-          }
+        const that = this;
+        /**
+         * Handler function once we have a file ready to load into the iOS audio player
+         */
+        const handleFileReady = function () {
           try {
             let fileName = Utils.isString(options.audioFile) ? options.audioFile.trim() : '';
             if (fileName.indexOf('~/') === 0) {
               fileName = nsFilePath.join(knownFolders.currentApp().path, fileName.replace('~/', ''));
             }
 
-            this.completeCallback = options.completeCallback;
-            this.errorCallback = options.errorCallback;
-            this.infoCallback = options.infoCallback;
+            that.completeCallback = options.completeCallback;
+            that.errorCallback = options.errorCallback;
+            that.infoCallback = options.infoCallback;
 
             const audioSession = AVAudioSession.sharedInstance();
             if (options.audioMixing) {
@@ -143,7 +153,6 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
             }
 
             const output = audioSession.currentRoute.outputs.lastObject.portType;
-
             if (output.match(/Receiver/)) {
               try {
                 audioSession.setCategoryError(AVAudioSessionCategoryPlayAndRecord);
@@ -155,47 +164,58 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
             }
 
             const errorRef = new interop.Reference();
-            this._player = AVAudioPlayer.alloc().initWithContentsOfURLError(NSURL.fileURLWithPath(fileName), errorRef);
+            that._player = AVAudioPlayer.alloc().initWithContentsOfURLError(NSURL.fileURLWithPath(fileName), errorRef);
             if (errorRef && errorRef.value) {
-              this._readyToPlay = false;
+              that._readyToPlay = false;
               reject(errorRef.value);
               return;
-            } else if (this._player) {
-              if (this.delegate === undefined) this.delegate = TNSPlayerDelegate.initWithOwner(this);
-              this._player.delegate = this.delegate;
-              // enableRate to change playback speed
-              this._player.enableRate = true;
+            } else if (that._player) {
+              if (that.delegate === undefined) that.delegate = TNSPlayerDelegate.initWithOwner(that);
+              that._player.delegate = that.delegate;
+              // enableRate to allow change of playback speed
+              that._player.enableRate = true;
 
               if (options.loop) {
-                this._player.numberOfLoops = -1;
+                that._player.numberOfLoops = -1;
               }
 
-              this._readyToPlay = true;
+              that._readyToPlay = true; //audio player is ready to play the file
               resolve(true);
             } else {
               reject(false);
             }
           } catch (ex) {
-            if (this.errorCallback) {
-              this.errorCallback({ ex });
+            if (that.errorCallback) {
+              that.errorCallback({ ex });
             }
-            this._readyToPlay = false;
+            that._readyToPlay = false;
             reject(ex);
           }
+        };
+        if (Utils.isFileOrResourcePath(audioPath)) {
+          //if it's a local file, prepare should be almost instant
+          if (!File.exists(audioPath)) {
+            console.error("Audio file doesn't exist on device file system");
+            reject('File not found! ' + audioPath);
+            return;
+          }
+          handleFileReady();
         } else {
+          //check if we've already downloaded the file from this url and use that if so
           let cachefilename: string = audioPath.replaceAll('://', '_').replaceAll('.', '_').replaceAll('/', '-');
           cachefilename =
             knownFolders.temp().path + '/' + cachefilename.substring(0, cachefilename.lastIndexOf('_')) + '.' + cachefilename.substring(cachefilename.lastIndexOf('_') + 1, cachefilename.length);
+          console.log('remote url used for playback', audioPath);
+          console.log('downloading to local file if not cached already', cachefilename);
           const localFile = File.fromPath(cachefilename);
           if (File.exists(cachefilename) && localFile.size > 100) {
-            this._data = localFile.readSync();
-            resolve(true);
+            console.log('found a cached file, using that to prepare audio player');
+            this._options.audioFile = cachefilename;
+
+            handleFileReady();
           } else {
-            //for url, need to wait for urlsession to load and return
+            //otherwise for a url, need to wait for urlsession to load and return the file
             try {
-              this.completeCallback = options.completeCallback;
-              this.errorCallback = options.errorCallback;
-              this.infoCallback = options.infoCallback;
               this._task = NSURLSession.sharedSession.dataTaskWithURLCompletionHandler(NSURL.URLWithString(options.audioFile), (data, response, error) => {
                 if (error !== null) {
                   if (this.errorCallback) {
@@ -209,44 +229,18 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
                 const f = File.fromPath(cachefilename);
                 f.writeSync(NSData.dataWithData(data), (e: any) => {
                   console.error('Failed to write data: ' + e.toString());
-                  reject('Failed to write data: ' + e.toString());
+                  reject('Failed to write data during download: ' + e.toString());
                 });
+                console.log('finished downloading file from url', f.path, f.size);
                 const cacheFile = File.fromPath(cachefilename);
                 if (cacheFile.size < 100) {
                   console.error('Downloaded file too small, failed?', cacheFile.size);
                   reject('Remote url file invalid! ' + audioPath);
                   return;
                 }
-                const audioSession = AVAudioSession.sharedInstance();
-                if (options.audioMixing) {
-                  audioSession.setCategoryWithOptionsError(AVAudioSessionCategoryAmbient, AVAudioSessionCategoryOptions.MixWithOthers);
-                } else {
-                  audioSession.setCategoryWithOptionsError(AVAudioSessionCategoryAmbient, AVAudioSessionCategoryOptions.DuckOthers);
-                }
-                const output = audioSession.currentRoute.outputs.lastObject.portType;
-                if (output.match(/Receiver/)) {
-                  try {
-                    audioSession.setCategoryError(AVAudioSessionCategoryPlayAndRecord);
-                    audioSession.overrideOutputAudioPortError(AVAudioSessionPortOverride.Speaker);
-                    audioSession.setActiveError(true);
-                  } catch (err) {
-                    console.error('Setting audioSession category failed.', err);
-                  }
-                }
-                const errorRef = new interop.Reference();
-                this._player = AVAudioPlayer.alloc().initWithDataError(data, errorRef);
-                if (errorRef && errorRef.value) {
-                  reject(errorRef.value);
-                  return;
-                } else if (this._player) {
-                  this._player.delegate = TNSPlayerDelegate.initWithOwner(this);
-                  // enableRate to change playback speed
-                  this._player.enableRate = true;
-                  this._player.numberOfLoops = options.loop ? -1 : 0;
-                  resolve(true);
-                } else {
-                  reject();
-                }
+
+                this._options.audioFile = cachefilename;
+                handleFileReady();
               });
 
               this._task.resume();
@@ -259,8 +253,6 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
             }
           }
         }
-
-        // resolve(true);
       } catch (ex) {
         reject(ex);
       }
@@ -295,8 +287,9 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
         if (!this.isAudioPlaying()) {
           this._player.play();
           this._sendEvent(AudioPlayer.startedEvent);
+          this._resolve = resolve;
+          this._reject = reject;
         }
-        resolve(true);
       } catch (ex) {
         this._sendEvent(AudioPlayer.errorEvent, ex);
         if (this.errorCallback) {
@@ -353,7 +346,7 @@ export class AudioPlayer extends Observable implements IAudioPlayer {
         const audioSession = AVAudioSession.sharedInstance();
         audioSession.setActiveError(false);
         this._reset();
-        resolve(null);
+        resolve(true);
       } catch (ex) {
         if (this.errorCallback) {
           this.errorCallback({ ex });
