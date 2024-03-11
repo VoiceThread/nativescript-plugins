@@ -30,6 +30,19 @@ export class MainViewModel extends Observable {
       moduleName: 'plugin-demos/nativescript-audio-recorder',
     });
   }
+
+  viewBasicTranscoder() {
+    Frame.topmost().navigate({
+      moduleName: 'plugin-demos/nativescript-transcoder-basic',
+    });
+  }
+
+  viewTranscoder() {
+    Frame.topmost().navigate({
+      moduleName: 'plugin-demos/nativescript-transcoder',
+    });
+  }
+
   async viewCamera() {
     let permsok = true;
     //check for permissions first before routing

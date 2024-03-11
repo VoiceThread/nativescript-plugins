@@ -96,6 +96,13 @@ module.exports = {
           description: '@voicethread/nativescript-audio-recorder: Build',
         },
       },
+      // @voicethread/nativescript-transcoder
+      'nativescript-transcoder': {
+        build: {
+          script: 'nx run nativescript-transcoder:build.all',
+          description: '@voicethread/nativescript-transcoder: Build',
+        },
+      },
       // @voicethread/nativescript-camera
       'nativescript-camera': {
         build: {
@@ -132,6 +139,10 @@ module.exports = {
       'nativescript-audio-recorder': {
         script: 'nx run nativescript-audio-recorder:focus',
         description: 'Focus on @voicethread/nativescript-audio-recorder',
+      },
+      'nativescript-transcoder': {
+        script: 'nx run nativescript-transcoder:focus',
+        description: 'Focus on @voicethread/nativescript-transcoder',
       },
       'nativescript-camera': {
         script: 'nx run nativescript-camera:focus',
