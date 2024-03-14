@@ -31,12 +31,6 @@ export class MainViewModel extends Observable {
     });
   }
 
-  viewBasicTranscoder() {
-    Frame.topmost().navigate({
-      moduleName: 'plugin-demos/nativescript-transcoder-basic',
-    });
-  }
-
   viewTranscoder() {
     Frame.topmost().navigate({
       moduleName: 'plugin-demos/nativescript-transcoder',

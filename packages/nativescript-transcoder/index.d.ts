@@ -1,19 +1,62 @@
 import { File } from '@nativescript/core';
-import { LogLevel, NativescriptTranscoderCommon, VideoConfig } from './common';
+import { LogLevel, NativescriptTranscoderCommon, VideoConfig, VideoResolution } from './common';
 export { Asset, Segment, Track, VideoConfig, MessageData } from './common';
 
 export declare class NativescriptTranscoder extends NativescriptTranscoderCommon {
+  /**
+   * Enables or diables console logging for debug purposes.
+   * @param logLevel LogLevel
+   * @returns void
+   */
   setLogLevel(logLevel: LogLevel): void;
-  reset(): void;
+
+  /**
+   * Transcodes video from inputPath to outoutPath using videoConfig options
+   * @param inputPath string
+   * @param outputPath string
+   * @param videoConfig VideoConfig
+   * @returns Promise<File>
+   *
+   */
   transcode(inputPath: string, outputPath: string, videoConfig?: VideoConfig): Promise<File>;
 
-  // for more advanced use cases (iOS only for now, Android is still WIP)
-  addAsset(asset: Asset): void;
-  addSegment(segment: Segment): void;
-  process(outputPath: string, videoConfig?: VideoConfig): Promise<void>;
-
-  // utilties
+  /***********************
+   Utility Functions:
+   **********************/
+  /**
+   * Looks for the video resolution metadata and returns a VideoResolution object with width and height
+   * @param videoPath string
+   * @returns VideoResolution
+   */
   getVideoResolution(videoPath: string): VideoResolution;
+  /**
+   * Returns the video file size in bytes
+   * @param videoPath string
+   * @returns number (bytes)
+   */
   getVideoSize(videoPath: string): number; // in bytes
-  getVideoSizeString(videoPath: string): number; // string for display purposes
+  /**
+   * Returns the video file size as a displayable format string (kb, mb, gb, etc)
+   * @param videoPath string
+   * @returns string
+   */
+  getVideoSizeString(videoPath: string): number;
+  /**
+   * Looks for the video codec used by the video file at `videoPath`
+   * @param videoPath string
+   * @returns string
+   */
+  getVideoCodec(videoPath: string): string;
+  /**
+   * Looks for the audio codec used by the video file at `videoPath`
+   * @param videoPath string
+   * @returns string
+   */
+  getAudioCodec(videoPath: string): string;
+  /**
+   * Utility to find the duration in milliseconds of the video file at `videoPath`
+   * @param videoPath string
+   * @returns number (ms)
+   */
+  getVideoDuration(videoPath: string): number;
 }

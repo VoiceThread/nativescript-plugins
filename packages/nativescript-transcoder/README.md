@@ -4,7 +4,7 @@
 
 [![npm](https://img.shields.io/npm/v/@voicethread/nativescript-audio-recorder?style=flat-square)](https://www.npmjs.com/package/@voicethread/nativescript-transcoder)
 
-This plugin provides video transcoding functionality for Android API 21+ and iOS 4+ and supports modifying the video's resolution, frame rate (iOS only). Other utilities such as stitching and layering multiple videos may be added in the future.
+This plugin provides video transcoding functionality for Android API 21+ and iOS 4+ and supports modifying the video's resolution, frame rate (iOS only).
 
 For both Android and iOS, the transcoded video files will be saved as an MP4 file using h264 and AAC encoding. 
 
@@ -22,7 +22,7 @@ ns plugin add @voicethread/nativescript-transcoder
 
 ## Basic Usage
 
-The best way to understand how to use the plugin is to study the demo app included in this repo. You can see how the plugin is used in a TypeScript application by looking at `apps/demo/src/plugin-demos/nativescript-transcoder-basic.ts`.
+The best way to understand how to use the plugin is to study the demo app included in this repo. You can see how the plugin is used in a TypeScript application by looking at `apps/demo/src/plugin-demos/nativescript-transcoder.ts`.
 
 1. Import the plugin.
 
@@ -52,7 +52,7 @@ selectAndTranscodeVideo(): void {
         outputPath,
           {
               quality: '720p'  // or '1080p' or '480p'
-          }
+          }//VideoConfig options
       ).then(transcodedFile => {
         // do something with the transcoded file
       })
@@ -96,14 +96,16 @@ export interface VideoConfig {
 
 ## Utilities
 
-The transcoder plugin also contains some utilities to help you when interacting with videos:
+The transcoder plugin also contains some utilities to help you when working with videos:
 
 | Function    | Description | Return Type | iOS | Android |
 | ----------- | ----------- | ----------- | ----------- | ----------- |
 | getVideoResolution(videoPath: string)      | Returns the video resolution (e.g. `1920x1080`) | `{ width: string, height: string }` | ✅ | ✅ |
 | getVideoSize(videoPath: string)      | Returns the video size in bytes | number | ✅ | ✅ |
 | getVideoSizeString(videoPath: string)      | Returns the video size in human readable format (e.g. `5.5 mb`) | string | ✅ | ✅ |
-
+| getVideoCodec(videoPath: string)      | Returns the video codec if found | string | ✅ | ✅ |
+| getAudioCodec(videoPath: string)      | Returns the audio codec if found | string | ✅ | ✅ |
+| getVideoDuration(videoPath: string)      | Returns the duration of the video in milliseconds | number | ✅ | ✅ |
 ## Troubleshooting
 
 Logs are turned off by default. If you want to view the logs as the video is being processed, you can turn them on by setting the log level to `verbose` before starting the transcode process.

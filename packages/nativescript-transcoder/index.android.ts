@@ -4,8 +4,20 @@ import { NativescriptTranscoderCommon, VideoConfig, VideoResolution } from './co
 import { clearInterval, setInterval } from '@nativescript/core/timer';
 
 export class NativescriptTranscoder extends NativescriptTranscoderCommon {
+  /**
+   * Transcodes video from inputPath to outoutPath using videoConfig options
+   * @param inputPath string
+   * @param outputPath string
+   * @param videoConfig VideoConfig
+   * @returns Promise<File>
+   *
+   */
   transcode(inputPath: string, outputPath: string, videoConfig: VideoConfig): Promise<File> {
     return new Promise((resolve, reject) => {
+      if (File.exists(outputPath)) {
+        const file = File.fromPath(outputPath);
+        file.removeSync();
+      }
       const allowedTranscodingResolution = this.getAllowedTranscodingResolution(inputPath);
       if (!videoConfig.force && !allowedTranscodingResolution.includes(videoConfig.quality)) {
         return reject(
@@ -35,29 +47,31 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
         .setEffects(new androidx.media3.transformer.Effects(/* audioProcessors= */ audioProcessors, /* videoEffects= */ videoEffects))
         .build();
 
+      // eslint-disable-next-line @typescript-eslint/no-this-alias
+      const that = this;
       const listener: androidx.media3.transformer.Transformer.Listener = new androidx.media3.transformer.Transformer.Listener({
         onTransformationCompleted: (inputMediaItem: androidx.media3.common.MediaItem) => {
-          this.log('onTransformationCompleted');
+          that.log('onTransformationCompleted');
           emit(NativescriptTranscoderCommon.TRANSCODING_COMPLETE, {});
           resolve(File.fromPath(outputPath));
           clearInterval(progressUpdater);
         },
         onCompleted: (composition: androidx.media3.transformer.Composition, exportResult: androidx.media3.transformer.ExportResult) => {
-          this.log('onCompleted');
-          emit(NativescriptTranscoderCommon.TRANSCODING_COMPLETE, {});
+          that.log('onCompleted');
+          emit(NativescriptTranscoderCommon.TRANSCODING_COMPLETE, { output: outputPath });
           resolve(File.fromPath(outputPath));
           clearInterval(progressUpdater);
         },
         //@ts-ignore
         onTransformationError: (inputMediaItem: androidx.media3.common.MediaItem, exception: androidx.media3.transformer.TransformationException) => {
-          this.log('onTransformationError!', exception);
-          emit(NativescriptTranscoderCommon.TRANSCODING_ERROR, {});
+          that.log('onTransformationError!', exception);
+          emit(NativescriptTranscoderCommon.TRANSCODING_ERROR, { error: exception });
           reject(exception);
           clearInterval(progressUpdater);
         },
         onError: (composition: androidx.media3.transformer.Composition, exportResult: androidx.media3.transformer.ExportResult, exportException: androidx.media3.transformer.ExportException) => {
-          this.log('onError', exportException);
-          emit(NativescriptTranscoderCommon.TRANSCODING_ERROR, {});
+          that.log('onError', exportException);
+          emit(NativescriptTranscoderCommon.TRANSCODING_ERROR, { error: exportException });
           reject(exportException);
           clearInterval(progressUpdater);
         },
@@ -79,7 +93,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
       const progressHolder: androidx.media3.transformer.ProgressHolder = new androidx.media3.transformer.ProgressHolder();
       const progressUpdater = setInterval(() => {
         transformer.getProgress(progressHolder);
-        // this.log('progressHolder', progressHolder.progress / 100);
+        this.log('Progress: ' + progressHolder.progress / 100);
         emit(NativescriptTranscoderCommon.TRANSCODING_PROGRESS, { progress: progressHolder.progress / 100 });
       }, 200);
     });
@@ -94,6 +108,11 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
   }
 
   // utilities
+  /**
+   * Looks for the video resolution metadata and returns a VideoResolution object with width and height
+   * @param videoPath string
+   * @returns VideoResolution
+   */
   getVideoResolution(videoPath: string): VideoResolution {
     const metaRetriever = new android.media.MediaMetadataRetriever();
     metaRetriever.setDataSource(videoPath);

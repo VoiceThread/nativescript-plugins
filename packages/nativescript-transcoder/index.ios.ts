@@ -17,67 +17,33 @@ const DefaultVideoConfig: VideoConfig = {
 };
 
 export class NativescriptTranscoder extends NativescriptTranscoderCommon {
-  assets: Record<string, AssetInternal> = {};
-  segments: Segment[] = [];
+  // assets: Record<string, AssetInternal> = {};
+  // segments: Segment[] = [];
   private _videoConfig: VideoConfig;
 
+  /**
+   * Transcodes video from inputPath to outoutPath using videoConfig options
+   * @param inputPath string
+   * @param outputPath string
+   * @param videoConfig VideoConfig
+   * @returns Promise<File>
+   *
+   */
   transcode(inputPath: string, outputPath: string, videoConfig: VideoConfig): Promise<File> {
-    this.reset();
-    const assetInputName = 'input';
+    return new Promise((resolve, reject) => {
+      if (!inputPath) return reject('inputPath empty!');
+      const inFile = File.fromPath(inputPath);
+      if (!inFile.size) return reject('no file found at inputPath: ' + inputPath);
+      if (!outputPath) return reject('outputPath should be a valid path string');
 
-    const allowedTranscodingResolution = this.getAllowedTranscodingResolution(inputPath);
+      const allowedTranscodingResolution = this.getAllowedTranscodingResolution(inputPath);
 
-    if (!videoConfig.force && !allowedTranscodingResolution.includes(videoConfig.quality)) {
-      return Promise.reject(
-        'Transcoding to a higher resolution is not allowed by default. If you want to do this intentionally, pass in { force: true } as part of the vidoeConfig object to bypass this check.'
-      );
-    }
+      if (!videoConfig.force && !allowedTranscodingResolution.includes(videoConfig.quality)) {
+        return Promise.reject(
+          'Transcoding to a higher resolution is not allowed by default. If you want to do this intentionally, pass in { force: true } as part of the vidoeConfig object to bypass this check.'
+        );
+      }
 
-    this.addAsset({
-      name: assetInputName,
-      path: inputPath,
-      type: 'videoAudio',
-    });
-    this.addSegment({
-      tracks: [{ asset: assetInputName }],
-    });
-    return this.process(outputPath, videoConfig).then(() => {
-      return File.fromPath(outputPath);
-    });
-  }
-
-  addAsset(asset: Asset) {
-    if (this.assets[asset.name]) {
-      // TODO: maybe error out here?
-      return;
-    }
-
-    const filePath = NSURL.fileURLWithPath(asset.path);
-    const avAsset = AVURLAsset.assetWithURL(filePath);
-    const audioTracks = avAsset.tracksWithMediaType(AVMediaTypeAudio);
-    const videoTracks = avAsset.tracksWithMediaType(AVMediaTypeVideo);
-
-    this.assets[asset.name] = {
-      ...asset,
-      avAsset: avAsset,
-      audioTrack: audioTracks.count > 0 ? audioTracks.objectAtIndex(0) : undefined,
-      videoTrack: videoTracks.count > 0 ? videoTracks.objectAtIndex(0) : undefined,
-    };
-  }
-
-  addSegment(segment: Segment) {
-    const tracks = segment.tracks;
-    this.segments.push({ ...segment, tracks: tracks });
-  }
-
-  reset() {
-    this.assets = {};
-    this.segments = [];
-  }
-
-  private _composition: AVMutableComposition;
-  process(outputPath: string, videoConfig?: VideoConfig): Promise<void> {
-    return new Promise(resolve => {
       if (videoConfig) {
         this._videoConfig = {
           ...DefaultVideoConfig,
@@ -95,178 +61,28 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
 
       emit(NativescriptTranscoderCommon.TRANSCODING_STARTED, {});
 
-      if (!this._composition) {
-        this._composition = new AVMutableComposition();
-      } else {
-        for (let trackIndex = 0; trackIndex < this._composition.tracks.count; trackIndex++) {
-          const track = this._composition.tracks[trackIndex] as AVCompositionTrack;
-          this._composition.removeTrack(track);
-        }
-      }
-      const compositionTrack = this._composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeVideo, kCMPersistentTrackID_Invalid);
+      const composition = AVMutableComposition.new();
+      const audioTrack: AVMutableCompositionTrack = composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeAudio, kCMPersistentTrackID_Invalid);
+      const videoTrack: AVMutableCompositionTrack = composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeVideo, kCMPersistentTrackID_Invalid);
+      let currentTime = kCMTimeZero;
+      // let size: CGSize = CGSizeZero;
+      let highestFrameRate = 0;
+      let haveError = false;
 
-      const mix = new AVMutableAudioMix();
-      const audioParams = new AVMutableAudioMixInputParameters();
-
-      let outputPosition = CMTimeMake(0, 1000);
-
-      const audioTracks = NSMutableArray.new<AVMutableCompositionTrack>();
-      const videoTracks = NSMutableArray.new<AVMutableCompositionTrack>();
-      const instructionSegments = NSMutableArray.new<Segment & { fadeOutTrackID?: number; start?: number }>();
-
-      videoTracks.addObject(compositionTrack);
-
-      let firstAssetTrack: AVAssetTrack | undefined = undefined;
-      let videoTrackIndex = 0;
-      let audioTrackIndex = 0;
-
-      for (let segmentIndex = 0; segmentIndex < this.segments.length; segmentIndex++) {
-        this.log(`[process] Adding Segment: ${segmentIndex}`);
-        const currentSegment: Segment & { fadeOutTrackID?: number; start?: number } = this.segments[segmentIndex];
-        let segmentDuration = CMTimeMake(currentSegment.duration, 1000);
-        let trackDuration: CMTime | undefined = undefined; // will be calaculated for each track
-
-        videoTrackIndex = 0;
-        audioTrackIndex = 0;
-        const segmentTracks = currentSegment.tracks;
-        this.log(`[process] Adding Segment Tracks: ${JSON.stringify(segmentTracks)}`);
-
-        // Loop through the tracks in the segment and add each track to the composition
-        for (let trackIndex = 0; trackIndex < currentSegment.tracks.length; trackIndex++) {
-          this.log(`[process] Adding Tracks: ${trackIndex}`);
-          const currentTrack: Track & { trackID?: number } = currentSegment.tracks[trackIndex];
-          const filter = currentTrack.filter;
-          const asset = this.assets[currentTrack.asset];
-          if (asset) {
-            // check for tracklevel type first and fallback to asset type
-            // 'videoAudio' (default) process both video and audio
-            // 'video' will only process the video (no audio)
-            // 'audio' will only process the audio (black screen)
-            const trackType = currentTrack.type || asset.type;
-            const avAsset = asset.avAsset;
-            const assetTrack = asset.videoTrack;
-
-            if (!firstAssetTrack) {
-              firstAssetTrack = assetTrack;
-            }
-
-            this.log('[process] Processing Asset');
-            // Start time is the seek requested plus the current position in the track
-            const trackStartTime = CMTimeMake((currentTrack.seek || 0) + (asset.position || 0), 1000);
-
-            // The duration of the track (input) will be either what is specified for the track,
-            // what is specified for the segement or if nothing else the remaingin time according to
-            // the legnth of the track.
-            let scaleTime = false;
-            if (currentTrack.duration != null) {
-              scaleTime = true;
-              trackDuration = CMTimeMake(currentTrack.duration, 1000);
-            } else {
-              trackDuration = CMTimeMake(currentSegment.duration, 1000);
-            }
-
-            if (trackDuration.value === 0) {
-              trackDuration = CMTimeSubtract(avAsset.duration, trackStartTime);
-            }
-            const trackTimeRange = CMTimeRangeMake(trackStartTime, trackDuration);
-
-            // Segment duration may also be the length of the track remaining if not specified
-            if (segmentDuration.value === 0) {
-              segmentDuration = CMTimeSubtract(avAsset.duration, trackStartTime);
-            }
-
-            // Update the position in the track based on the duration
-            asset.position = trackStartTime.value + trackDuration.value;
-            this.log('------------------------');
-            this.log('| Track Details');
-            this.log('| Track Duration:', trackDuration.value);
-            this.log('| Track Start Time:', trackStartTime.value);
-            this.log('| Segment Duration:', segmentDuration.value);
-            this.log('------------------------');
-            // Insert video track segment
-            if (segmentDuration.value > 0 && (trackType === 'video' || trackType === 'videoAudio')) {
-              // Determine video track to use.  We only need multiple tracks to create multiple layers for transition effects
-              // however we need to force separate instructions and the composition login in IOS will consolidate adjacant
-              // segments on the same track so we try to put each consectutive segment on a new track
-              let videoTrack: AVMutableCompositionTrack | undefined;
-              this.log('[process] Inserting Video Track');
-              if (videoTrackIndex >= videoTracks.count) {
-                videoTrack = this._composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeVideo, kCMPersistentTrackID_Invalid);
-                videoTracks.addObject(videoTrack);
-                const transform = assetTrack.preferredTransform;
-                videoTrack.preferredTransform = transform;
-              } else {
-                videoTrack = videoTracks[videoTrackIndex];
-              }
-              // Add the input asset to the video track
-              const audioVideoSuccess = videoTrack.insertTimeRangeOfTrackAtTimeError(trackTimeRange, asset.videoTrack, outputPosition);
-              this.log(`[process] Adding Track: ${videoTrack.trackID}`);
-              if (!audioVideoSuccess) {
-                console.error('[process] Ran into an error while inserting video track');
-                return;
-              }
-
-              if (scaleTime) {
-                this.log('[process] Updating Video Scale');
-                const outputRange = CMTimeRangeMake(outputPosition, trackTimeRange.duration);
-                videoTrack.scaleTimeRangeToDuration(outputRange, segmentDuration);
-              }
-              currentTrack.trackID = videoTrack.trackID;
-              // Record the filter so we can match up later when we get the layer instructions
-              if (filter === 'FadeOut') {
-                this.log('[process] Setting FadeOut Filter');
-                currentSegment.fadeOutTrackID = videoTrack.trackID;
-              }
-              ++videoTrackIndex;
-            }
-            // Insert audio track segment
-            if (segmentDuration.value > 0 && filter !== 'Mute' && !scaleTime && (trackType === 'audio' || trackType === 'videoAudio') && audioTracks.count > 0) {
-              // Same approach as video for audio tracks
-              let audioTrack: AVMutableCompositionTrack;
-              if (audioTrackIndex >= audioTracks.count) {
-                audioTrack = this._composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeAudio, kCMPersistentTrackID_Invalid);
-              } else {
-                audioTrack = audioTracks[audioTrackIndex];
-              }
-
-              // Add audio asset to the track
-              const audioVideoSuccess = audioTrack.insertTimeRangeOfTrackAtTimeError(trackTimeRange, asset.audioTrack, outputPosition);
-
-              if (!audioVideoSuccess) {
-                console.error('[process] Ran into an error while inserting audio track');
-                return;
-              }
-              ++audioTrackIndex;
-            }
-          }
-        }
-
-        // Calculate the time range for the segment and use to record duration in segment itself and increment outputPosition
-        const outputTimeRange = CMTimeRangeMake(outputPosition, segmentDuration);
-        const duration = outputTimeRange.duration.value;
-        const start = outputTimeRange.start.value;
-        currentSegment.duration = duration;
-        currentSegment.start = start;
-        outputPosition = CMTimeAdd(outputPosition, outputTimeRange.duration);
-        // Keep cross reference of segments to instructions for later processing
-        instructionSegments.addObject(currentSegment);
+      // for (let i = 0; i < inputFiles.length; i++) {
+      const options = NSDictionary.dictionaryWithObjectForKey(true, AVURLAssetPreferPreciseDurationAndTimingKey);
+      const asset = AVURLAsset.URLAssetWithURLOptions(NSURL.fileURLWithPath(inputPath), options);
+      const videoAsset = asset.tracksWithMediaType(AVMediaTypeVideo).objectAtIndex(0);
+      const audioAsset = asset.tracksWithMediaType(AVMediaTypeAudio).objectAtIndex(0);
+      if (!audioAsset || !videoAsset) {
+        this.log('Unable to find audio or video track for current asset, quitting!');
+        haveError = true;
+        return;
       }
 
-      // Creating the videoComposition from the composition ensures that we have default intructions and layerInstructions
-      const videoComposition: AVMutableVideoComposition = AVMutableVideoComposition.videoCompositionWithPropertiesOfAsset(this._composition);
-
-      let trackFrameRate = firstAssetTrack.nominalFrameRate;
-      if (trackFrameRate === 0) {
-        trackFrameRate = 30;
-      }
-
-      if (this._videoConfig.frameRate) {
-        trackFrameRate = this._videoConfig.frameRate;
-      }
-
-      videoComposition.frameDuration = CMTimeMake(1, trackFrameRate);
-
-      // default to 720p
+      const originalSize = videoAsset.naturalSize;
+      console.log('originalSize', originalSize);
+      //we'll modify the width based on the ratio of the requested transcode with respect to the original height
       let targetSize = CGSizeMake(1280.0, 720.0);
       switch (this._videoConfig.quality) {
         case '1080p': {
@@ -282,136 +98,78 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
           break;
         }
       }
-      // const targetSize = this._videoConfig.quality === 'high' ? CGSizeMake(1920.0, 1080.0) : CGSizeMake(1280.0, 720.0);
-      const transform = firstAssetTrack.preferredTransform;
-      // TODO: make this configurable as orientation - horizontal vs vertical
-      const targetVideoAngle = (atan2(transform.b, transform.a) * 180) / Math.PI;
-      if (targetVideoAngle === 90 || targetVideoAngle === -90) {
-        // flipping the video
-        const width = targetSize.width;
-        targetSize.width = targetSize.height;
-        targetSize.height = width;
+      // switch (this._videoConfig.quality) {
+      //   case '1080p': {
+      //     const ratio = 1080 / originalSize.height;
+      //     console.log('ratio:', ratio);
+      //     const twidth = Math.round(originalSize.width * ratio);
+      //     console.log('h:1080, twidth:', twidth);
+      //     targetSize = CGSizeMake(twidth, 1080.0);
+      //     break;
+      //   }
+      //   case '720p': {
+      //     const ratio = 720 / originalSize.height;
+      //     console.log('ratio:', ratio);
+      //     const twidth = Math.round(originalSize.width * ratio);
+      //     console.log('h:720, twidth:', twidth);
+      //     targetSize = CGSizeMake(twidth, 720.0);
+      //     break;
+      //   }
+      //   case '480p': {
+      //     const ratio = 480 / originalSize.height;
+      //     console.log('ratio:', ratio);
+      //     const twidth = Math.round(originalSize.width * ratio);
+      //     console.log('h:480, twidth:', twidth);
+      //     targetSize = CGSizeMake(twidth, 480.0);
+      //     break;
+      //   }
+      // }
+      console.log('targetSize', targetSize);
+      // size = videoAsset.naturalSize;
+      const currentFrameRate = videoAsset.nominalFrameRate;
+      highestFrameRate = currentFrameRate > highestFrameRate ? currentFrameRate : highestFrameRate;
+      const trimmingTime: CMTime = CMTimeMake(lround(videoAsset.naturalTimeScale / videoAsset.nominalFrameRate), videoAsset.naturalTimeScale);
+      const timeRange: CMTimeRange = CMTimeRangeMake(trimmingTime, CMTimeSubtract(videoAsset.timeRange.duration, trimmingTime));
+      const videoResult = videoTrack.insertTimeRangeOfTrackAtTimeError(timeRange, videoAsset, currentTime);
+      const audioResult = audioTrack.insertTimeRangeOfTrackAtTimeError(timeRange, audioAsset, currentTime);
+      if (!videoResult || !audioResult) {
+        this.log('Unable to insert audio or video track, quitting!');
+        haveError = true;
+        return;
       }
-      videoComposition.renderSize = targetSize;
+      videoTrack.preferredTransform = videoAsset.preferredTransform;
+      // const a = videoTrack.preferredTransform;
+      // const b = videoAsset.preferredTransform;
+      // if (a.a != b.a || a.b != b.b || a.c != b.c || a.d != b.d) {
+      //   this.log('WARNING! Segment transforms do not match! merging without matching segment orientations requires transform/layer/composition processing');
+      // }
 
-      let layeredSegementsIndex = 0;
-      for (let instructionIndex = 0; instructionIndex < videoComposition.instructions.count; instructionIndex++) {
-        this.log('[process] Looping through composition instruction');
-        if (layeredSegementsIndex >= instructionSegments.count) {
-          this.log('[process] Composition has extra instructions that are being ignored');
-          continue;
-        }
-        const compositionInstruction = videoComposition.instructions[instructionIndex] as AVMutableVideoCompositionInstruction;
-        // Retrieve segment
-        const segment = instructionSegments[layeredSegementsIndex];
+      currentTime = CMTimeAdd(currentTime, timeRange.duration);
+      // }
 
-        const start = segment.start;
-        const duration = segment.duration;
-        const transitionRange = CMTimeRangeMake(CMTimeMake(start, 1000), CMTimeMake(duration, 1000));
+      if (haveError) return reject('Error during track extraction');
 
-        // Those that have two layersInstructions relate to overlapping segments in the two tracks
-        if (compositionInstruction.layerInstructions.count > 0) {
-          const layerInstruction1 = compositionInstruction.layerInstructions[0] as AVMutableVideoCompositionLayerInstruction;
-          // If we have multiple we need to fade out one of the layers
-          if (compositionInstruction.layerInstructions.count === 2) {
-            // Determine which layerInstruction to be used for fadeout
-            const layerInstruction2 = compositionInstruction.layerInstructions[1] as AVMutableVideoCompositionLayerInstruction;
-            if (segment.fadeOutTrackID != null) {
-              const fadeOutTrackID = segment.fadeOutTrackID;
-              const transitionLayerInstruction = layerInstruction1.trackID === fadeOutTrackID ? layerInstruction1 : layerInstruction2;
+      const videoCompositionInstruction: AVMutableVideoCompositionInstruction = AVMutableVideoCompositionInstruction.videoCompositionInstruction(); //new AVMutableVideoCompositionInstruction({ coder: null });
+      videoCompositionInstruction.timeRange = CMTimeRangeMake(kCMTimeZero, currentTime);
 
-              this.log(`[process] Setting FadeOut TrackId ${fadeOutTrackID}`);
+      const outputUrl = NSURL.fileURLWithPath(outputPath);
+      const exportSession = new AVAssetExportSession({ asset: composition, presetName: AVAssetExportPresetPassthrough });
+      exportSession.outputFileType = AVFileTypeMPEG4;
+      exportSession.outputURL = outputUrl;
+      exportSession.shouldOptimizeForNetworkUse = true;
 
-              // Add the opacity ramp for the entire time range of the segment
-              transitionLayerInstruction.setOpacityRampFromStartOpacityToEndOpacityTimeRange(1.0, 0.0, transitionRange);
-            }
-          }
-          ++layeredSegementsIndex;
-        }
+      const passThroughInstruction = AVMutableVideoCompositionInstruction.videoCompositionInstruction();
+      passThroughInstruction.timeRange = CMTimeRangeMake(kCMTimeZero, currentTime);
+      const passThroughLayer = AVMutableVideoCompositionLayerInstruction.videoCompositionLayerInstructionWithAssetTrack(videoTrack);
+      passThroughInstruction.layerInstructions = NSArray.arrayWithArray([passThroughLayer]);
 
-        for (let layerInstructionIndex = 0; layerInstructionIndex < compositionInstruction.layerInstructions.count; layerInstructionIndex++) {
-          const layerInstruction = compositionInstruction.layerInstructions[0] as AVMutableVideoCompositionLayerInstruction;
-          const trackID = layerInstruction.trackID;
+      const mutableVideoComposition: AVMutableVideoComposition = AVMutableVideoComposition.videoComposition();
+      mutableVideoComposition.frameDuration = CMTimeMake(1, highestFrameRate);
+      mutableVideoComposition.instructions = NSArray.arrayWithArray([passThroughInstruction]);
+      mutableVideoComposition.renderSize = targetSize;
+      mutableVideoComposition.frameDuration = CMTimeMake(1, 30);
 
-          let ir: CMTimeRange;
-          layerInstruction.getTransformRampForTimeStartTransformEndTransformTimeRange(transitionRange.start, null, null, null);
-
-          const segmentTracks = segment.tracks;
-          const currentTrack = segmentTracks.find(track => track.id === trackID);
-
-          if (currentTrack == null) {
-            this.log('[process] Cannot find segment track for instruction - layered ignored');
-            continue;
-          }
-          const assetName = currentTrack.asset;
-          const asset = this.assets[assetName];
-          const assetTrack = asset.videoTrack;
-          const transform = assetTrack.preferredTransform;
-          let orientation = UIInterfaceOrientation.LandscapeLeft;
-
-          // Determine orientation
-          // Portrait
-          if (transform.a == 0 && transform.b == 1.0 && transform.c == -1.0 && transform.d == 0) {
-            orientation = UIInterfaceOrientation.Portrait;
-          }
-          // PortraitUpsideDown
-          if (transform.a == 0 && transform.b == -1.0 && transform.c == 1.0 && transform.d == 0) {
-            orientation = UIInterfaceOrientation.PortraitUpsideDown;
-          }
-          // LandscapeRight
-          if (transform.a == 1.0 && transform.b == 0 && transform.c == 0 && transform.d == 1.0) {
-            orientation = UIInterfaceOrientation.LandscapeRight;
-          }
-          // LandscapeLeft
-          if (transform.a == -1.0 && transform.b == 0 && transform.c == 0 && transform.d == -1.0) {
-            orientation = UIInterfaceOrientation.LandscapeLeft;
-          }
-
-          // Create a preferred transform
-          const originalSize = assetTrack.naturalSize;
-          let finalTransform: CGAffineTransform;
-          switch (orientation) {
-            case UIInterfaceOrientation.LandscapeLeft:
-              finalTransform = CGAffineTransformMake(-1, 0, 0, -1, originalSize.width, originalSize.height);
-              break;
-            case UIInterfaceOrientation.LandscapeRight:
-              finalTransform = CGAffineTransformMake(1, 0, 0, 1, 0, 0);
-              break;
-            case UIInterfaceOrientation.Portrait:
-              finalTransform = CGAffineTransformMake(0, 1, -1, 0, originalSize.height, 0);
-              break;
-            case UIInterfaceOrientation.PortraitUpsideDown:
-              finalTransform = CGAffineTransformMake(0, -1, 1, 0, 0, originalSize.width);
-              break;
-            default:
-              break;
-          }
-
-          // TODO: this moves the video into a corner. still needs some working on
-          if (orientation === UIInterfaceOrientation.Portrait || orientation === UIInterfaceOrientation.PortraitUpsideDown) {
-            // flipping time :)
-            const width = originalSize.width;
-            originalSize.width = originalSize.height;
-            originalSize.height = width;
-          }
-
-          // center oiriginal inside target
-          const ratio = Math.min(targetSize.width / originalSize.width, targetSize.height / originalSize.height);
-          const transX = (targetSize.width - originalSize.width * ratio) / 2;
-          const transY = (targetSize.height - originalSize.height * ratio) / 2;
-          let matrix = CGAffineTransformMakeTranslation(transX, transY);
-          matrix = CGAffineTransformScale(matrix, ratio, ratio);
-          finalTransform = CGAffineTransformConcat(finalTransform, matrix);
-          this.log('[process] Setting transform layer instruction');
-          layerInstruction.setTransformAtTime(finalTransform, transitionRange.start);
-        }
-      }
-
-      videoComposition.frameDuration = CMTimeMake(1, this._videoConfig.frameRate);
-      const audioChannels = this._videoConfig.audioChannels;
-      const audioSampleRate = this._videoConfig.audioSampleRate;
-      const audioBitrate = this._videoConfig.audioBitRate;
-      const assetExportSession = new NSAVAssetExportSession().initWithAsset(this._composition);
+      const assetExportSession = new NSAVAssetExportSession().initWithAsset(composition, new WeakRef(this));
       assetExportSession.outputFileType = AVFileTypeMPEG4;
       assetExportSession.outputURL = this.getURLFromFilePath(outputPath);
       assetExportSession.shouldOptimizeForNetworkUse = false;
@@ -424,6 +182,10 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
       assetExportSession.videoSettings = videoSettings as NSDictionary<string, any>;
       assetExportSession.frameRate = this._videoConfig.frameRate;
 
+      const audioChannels = this._videoConfig.audioChannels;
+      const audioSampleRate = this._videoConfig.audioSampleRate;
+      const audioBitrate = this._videoConfig.audioBitRate;
+
       this.log('[process] Setting Audio Settings');
       const audioSettings: any = {
         'AVFormatIDKey': kAudioFormatMPEG4AAC,
@@ -432,8 +194,8 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
         'AVEncoderBitRateKey': audioBitrate,
       };
       assetExportSession.audioSettings = audioSettings as NSDictionary<string, any>;
-      assetExportSession.timeRange = CMTimeRangeMake(CMTimeMake(0, 1000), outputPosition);
-      assetExportSession.videoComposition = videoComposition;
+      assetExportSession.timeRange = CMTimeRangeMake(CMTimeMake(0, 1000), videoAsset.timeRange.duration);
+      assetExportSession.videoComposition = mutableVideoComposition;
       assetExportSession.log = this.log;
       assetExportSession.emit = emit;
 
@@ -443,13 +205,419 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
       dispatch_async(dispatch_get_global_queue(qos_class_t.QOS_CLASS_BACKGROUND, 0), () => {
         assetExportSession.exportAsynchronouslyWithCompletionHandler(() => {
           this.log('[process] Completion Handler');
-          this.reset();
-          resolve();
+          // this.reset();
+          resolve(File.fromPath(outputPath));
         });
       });
-      // https://github.com/selsamman/react-native-transcode/blob/master/ios/Transcode/Transcode.m
+
+      exportSession.videoComposition = mutableVideoComposition;
     });
   }
+
+  // addAsset(asset: Asset) {
+  //   if (this.assets[asset.name]) {
+  //     // TODO: maybe error out here?
+  //     return;
+  //   }
+
+  //   const filePath = NSURL.fileURLWithPath(asset.path);
+  //   const avAsset = AVURLAsset.assetWithURL(filePath);
+  //   const audioTracks = avAsset.tracksWithMediaType(AVMediaTypeAudio);
+  //   const videoTracks = avAsset.tracksWithMediaType(AVMediaTypeVideo);
+
+  //   this.assets[asset.name] = {
+  //     ...asset,
+  //     avAsset: avAsset,
+  //     audioTrack: audioTracks.count > 0 ? audioTracks.objectAtIndex(0) : undefined,
+  //     videoTrack: videoTracks.count > 0 ? videoTracks.objectAtIndex(0) : undefined,
+  //   };
+  // }
+
+  // addSegment(segment: Segment) {
+  //   const tracks = segment.tracks;
+  //   this.segments.push({ ...segment, tracks: tracks });
+  // }
+
+  // reset() {
+  //   this.assets = {};
+  //   this.segments = [];
+  // }
+
+  // private _composition: AVMutableComposition;
+  // process(outputPath: string, videoConfig?: VideoConfig): Promise<void> {
+  //   return new Promise(resolve => {
+  //     if (videoConfig) {
+  //       this._videoConfig = {
+  //         ...DefaultVideoConfig,
+  //         ...videoConfig,
+  //       };
+  //     } else {
+  //       this._videoConfig = DefaultVideoConfig;
+  //     }
+
+  //     this.log('[process] Start');
+
+  //     const emit = (event: string, data: any) => {
+  //       this.notify({ eventName: event, object: this, data });
+  //     };
+
+  //     emit(NativescriptTranscoderCommon.TRANSCODING_STARTED, {});
+
+  //     if (!composition) {
+  //       composition = AVMutableComposition.new();
+  //     } else {
+  //       for (let trackIndex = 0; trackIndex < composition.tracks.count; trackIndex++) {
+  //         const track = composition.tracks[trackIndex] as AVCompositionTrack;
+  //         composition.removeTrack(track);
+  //       }
+  //     }
+  //     const compositionTrack = composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeVideo, kCMPersistentTrackID_Invalid);
+
+  //     const mix = new AVMutableAudioMix();
+  //     const audioParams = new AVMutableAudioMixInputParameters();
+
+  //     let outputPosition = CMTimeMake(0, 1000);
+
+  //     const audioTracks = NSMutableArray.new<AVMutableCompositionTrack>();
+  //     const videoTracks = NSMutableArray.new<AVMutableCompositionTrack>();
+  //     const instructionSegments = NSMutableArray.new<Segment & { fadeOutTrackID?: number; start?: number }>();
+
+  //     videoTracks.addObject(compositionTrack);
+
+  //     let firstAssetTrack: AVAssetTrack | undefined = undefined;
+  //     let videoTrackIndex = 0;
+  //     let audioTrackIndex = 0;
+
+  //     for (let segmentIndex = 0; segmentIndex < this.segments.length; segmentIndex++) {
+  //       this.log(`[process] Adding Segment: ${segmentIndex}`);
+  //       const currentSegment: Segment & { fadeOutTrackID?: number; start?: number } = this.segments[segmentIndex];
+  //       let segmentDuration = CMTimeMake(currentSegment.duration, 1000);
+  //       let trackDuration: CMTime | undefined = undefined; // will be calaculated for each track
+
+  //       videoTrackIndex = 0;
+  //       audioTrackIndex = 0;
+  //       const segmentTracks = currentSegment.tracks;
+  //       this.log(`[process] Adding Segment Tracks: ${JSON.stringify(segmentTracks)}`);
+
+  //       // Loop through the tracks in the segment and add each track to the composition
+  //       for (let trackIndex = 0; trackIndex < currentSegment.tracks.length; trackIndex++) {
+  //         this.log(`[process] Adding Tracks: ${trackIndex}`);
+  //         const currentTrack: Track & { trackID?: number } = currentSegment.tracks[trackIndex];
+  //         const filter = currentTrack.filter;
+  //         const asset = this.assets[currentTrack.asset];
+  //         if (asset) {
+  //           // check for tracklevel type first and fallback to asset type
+  //           // 'videoAudio' (default) process both video and audio
+  //           // 'video' will only process the video (no audio)
+  //           // 'audio' will only process the audio (black screen)
+  //           const trackType = currentTrack.type || asset.type;
+  //           const avAsset = asset.avAsset;
+  //           const assetTrack = asset.videoTrack;
+
+  //           if (!firstAssetTrack) {
+  //             firstAssetTrack = assetTrack;
+  //           }
+
+  //           this.log('[process] Processing Asset');
+  //           // Start time is the seek requested plus the current position in the track
+  //           const trackStartTime = CMTimeMake((currentTrack.seek || 0) + (asset.position || 0), 1000);
+
+  //           // The duration of the track (input) will be either what is specified for the track,
+  //           // what is specified for the segement or if nothing else the remaingin time according to
+  //           // the legnth of the track.
+  //           let scaleTime = false;
+  //           if (currentTrack.duration != null) {
+  //             scaleTime = true;
+  //             trackDuration = CMTimeMake(currentTrack.duration, 1000);
+  //           } else {
+  //             trackDuration = CMTimeMake(currentSegment.duration, 1000);
+  //           }
+
+  //           if (trackDuration.value === 0) {
+  //             trackDuration = CMTimeSubtract(avAsset.duration, trackStartTime);
+  //           }
+  //           const trackTimeRange = CMTimeRangeMake(trackStartTime, trackDuration);
+
+  //           // Segment duration may also be the length of the track remaining if not specified
+  //           if (segmentDuration.value === 0) {
+  //             segmentDuration = CMTimeSubtract(avAsset.duration, trackStartTime);
+  //           }
+
+  //           // Update the position in the track based on the duration
+  //           asset.position = trackStartTime.value + trackDuration.value;
+  //           this.log('------------------------');
+  //           this.log('| Track Details');
+  //           this.log('| Track Duration:', trackDuration.value);
+  //           this.log('| Track Start Time:', trackStartTime.value);
+  //           this.log('| Segment Duration:', segmentDuration.value);
+  //           this.log('------------------------');
+  //           // Insert video track segment
+  //           if (segmentDuration.value > 0 && (trackType === 'video' || trackType === 'videoAudio')) {
+  //             // Determine video track to use.  We only need multiple tracks to create multiple layers for transition effects
+  //             // however we need to force separate instructions and the composition login in IOS will consolidate adjacant
+  //             // segments on the same track so we try to put each consectutive segment on a new track
+  //             let videoTrack: AVMutableCompositionTrack | undefined;
+  //             this.log('[process] Inserting Video Track');
+  //             if (videoTrackIndex >= videoTracks.count) {
+  //               videoTrack = composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeVideo, kCMPersistentTrackID_Invalid);
+  //               videoTracks.addObject(videoTrack);
+  //               const transform = assetTrack.preferredTransform;
+  //               videoTrack.preferredTransform = transform;
+  //             } else {
+  //               videoTrack = videoTracks[videoTrackIndex];
+  //             }
+  //             // Add the input asset to the video track
+  //             const audioVideoSuccess = videoTrack.insertTimeRangeOfTrackAtTimeError(trackTimeRange, asset.videoTrack, outputPosition);
+  //             this.log(`[process] Adding Track: ${videoTrack.trackID}`);
+  //             if (!audioVideoSuccess) {
+  //               console.error('[process] Ran into an error while inserting video track');
+  //               return;
+  //             }
+
+  //             if (scaleTime) {
+  //               this.log('[process] Updating Video Scale');
+  //               const outputRange = CMTimeRangeMake(outputPosition, trackTimeRange.duration);
+  //               videoTrack.scaleTimeRangeToDuration(outputRange, segmentDuration);
+  //             }
+  //             currentTrack.trackID = videoTrack.trackID;
+  //             // Record the filter so we can match up later when we get the layer instructions
+  //             if (filter === 'FadeOut') {
+  //               this.log('[process] Setting FadeOut Filter');
+  //               currentSegment.fadeOutTrackID = videoTrack.trackID;
+  //             }
+  //             ++videoTrackIndex;
+  //           }
+  //           // Insert audio track segment
+  //           if (segmentDuration.value > 0 && filter !== 'Mute' && !scaleTime && (trackType === 'audio' || trackType === 'videoAudio') && audioTracks.count > 0) {
+  //             // Same approach as video for audio tracks
+  //             let audioTrack: AVMutableCompositionTrack;
+  //             if (audioTrackIndex >= audioTracks.count) {
+  //               audioTrack = composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeAudio, kCMPersistentTrackID_Invalid);
+  //             } else {
+  //               audioTrack = audioTracks[audioTrackIndex];
+  //             }
+
+  //             // Add audio asset to the track
+  //             const audioVideoSuccess = audioTrack.insertTimeRangeOfTrackAtTimeError(trackTimeRange, asset.audioTrack, outputPosition);
+
+  //             if (!audioVideoSuccess) {
+  //               console.error('[process] Ran into an error while inserting audio track');
+  //               return;
+  //             }
+  //             ++audioTrackIndex;
+  //           }
+  //         }
+  //       }
+
+  //       // Calculate the time range for the segment and use to record duration in segment itself and increment outputPosition
+  //       const outputTimeRange = CMTimeRangeMake(outputPosition, segmentDuration);
+  //       const duration = outputTimeRange.duration.value;
+  //       const start = outputTimeRange.start.value;
+  //       currentSegment.duration = duration;
+  //       currentSegment.start = start;
+  //       outputPosition = CMTimeAdd(outputPosition, outputTimeRange.duration);
+  //       // Keep cross reference of segments to instructions for later processing
+  //       instructionSegments.addObject(currentSegment);
+  //     }
+
+  //     // Creating the videoComposition from the composition ensures that we have default intructions and layerInstructions
+  //     const videoComposition: AVMutableVideoComposition = AVMutableVideoComposition.videoCompositionWithPropertiesOfAsset(composition);
+
+  //     let trackFrameRate = firstAssetTrack.nominalFrameRate;
+  //     if (trackFrameRate === 0) {
+  //       trackFrameRate = 30;
+  //     }
+
+  //     if (this._videoConfig.frameRate) {
+  //       trackFrameRate = this._videoConfig.frameRate;
+  //     }
+
+  //     videoComposition.frameDuration = CMTimeMake(1, trackFrameRate);
+
+  //     // default to 720p
+  //     let targetSize = CGSizeMake(1280.0, 720.0);
+  //     switch (this._videoConfig.quality) {
+  //       case '1080p': {
+  //         targetSize = CGSizeMake(1920.0, 1080.0);
+  //         break;
+  //       }
+  //       case '720p': {
+  //         targetSize = CGSizeMake(1280.0, 720.0);
+  //         break;
+  //       }
+  //       case '480p': {
+  //         targetSize = CGSizeMake(640.0, 480.0);
+  //         break;
+  //       }
+  //     }
+  //     // const targetSize = this._videoConfig.quality === 'high' ? CGSizeMake(1920.0, 1080.0) : CGSizeMake(1280.0, 720.0);
+  //     const transform = firstAssetTrack.preferredTransform;
+  //     // TODO: make this configurable as orientation - horizontal vs vertical
+  //     const targetVideoAngle = (atan2(transform.b, transform.a) * 180) / Math.PI;
+  //     if (targetVideoAngle === 90 || targetVideoAngle === -90) {
+  //       // flipping the video
+  //       const width = targetSize.width;
+  //       targetSize.width = targetSize.height;
+  //       targetSize.height = width;
+  //     }
+  //     videoComposition.renderSize = targetSize;
+
+  //     let layeredSegementsIndex = 0;
+  //     for (let instructionIndex = 0; instructionIndex < videoComposition.instructions.count; instructionIndex++) {
+  //       this.log('[process] Looping through composition instruction');
+  //       if (layeredSegementsIndex >= instructionSegments.count) {
+  //         this.log('[process] Composition has extra instructions that are being ignored');
+  //         continue;
+  //       }
+  //       const compositionInstruction = videoComposition.instructions[instructionIndex] as AVMutableVideoCompositionInstruction;
+  //       // Retrieve segment
+  //       const segment = instructionSegments[layeredSegementsIndex];
+
+  //       const start = segment.start;
+  //       const duration = segment.duration;
+  //       const transitionRange = CMTimeRangeMake(CMTimeMake(start, 1000), CMTimeMake(duration, 1000));
+
+  //       // Those that have two layersInstructions relate to overlapping segments in the two tracks
+  //       if (compositionInstruction.layerInstructions.count > 0) {
+  //         const layerInstruction1 = compositionInstruction.layerInstructions[0] as AVMutableVideoCompositionLayerInstruction;
+  //         // If we have multiple we need to fade out one of the layers
+  //         if (compositionInstruction.layerInstructions.count === 2) {
+  //           // Determine which layerInstruction to be used for fadeout
+  //           const layerInstruction2 = compositionInstruction.layerInstructions[1] as AVMutableVideoCompositionLayerInstruction;
+  //           if (segment.fadeOutTrackID != null) {
+  //             const fadeOutTrackID = segment.fadeOutTrackID;
+  //             const transitionLayerInstruction = layerInstruction1.trackID === fadeOutTrackID ? layerInstruction1 : layerInstruction2;
+
+  //             this.log(`[process] Setting FadeOut TrackId ${fadeOutTrackID}`);
+
+  //             // Add the opacity ramp for the entire time range of the segment
+  //             transitionLayerInstruction.setOpacityRampFromStartOpacityToEndOpacityTimeRange(1.0, 0.0, transitionRange);
+  //           }
+  //         }
+  //         ++layeredSegementsIndex;
+  //       }
+
+  //       for (let layerInstructionIndex = 0; layerInstructionIndex < compositionInstruction.layerInstructions.count; layerInstructionIndex++) {
+  //         const layerInstruction = compositionInstruction.layerInstructions[0] as AVMutableVideoCompositionLayerInstruction;
+  //         const trackID = layerInstruction.trackID;
+
+  //         let ir: CMTimeRange;
+  //         layerInstruction.getTransformRampForTimeStartTransformEndTransformTimeRange(transitionRange.start, null, null, null);
+
+  //         const segmentTracks = segment.tracks;
+  //         const currentTrack = segmentTracks.find(track => track.id === trackID);
+
+  //         if (currentTrack == null) {
+  //           this.log('[process] Cannot find segment track for instruction - layered ignored');
+  //           continue;
+  //         }
+  //         const assetName = currentTrack.asset;
+  //         const asset = this.assets[assetName];
+  //         const assetTrack = asset.videoTrack;
+  //         const transform = assetTrack.preferredTransform;
+  //         let orientation = UIInterfaceOrientation.LandscapeLeft;
+
+  //         // Determine orientation
+  //         // Portrait
+  //         if (transform.a == 0 && transform.b == 1.0 && transform.c == -1.0 && transform.d == 0) {
+  //           orientation = UIInterfaceOrientation.Portrait;
+  //         }
+  //         // PortraitUpsideDown
+  //         if (transform.a == 0 && transform.b == -1.0 && transform.c == 1.0 && transform.d == 0) {
+  //           orientation = UIInterfaceOrientation.PortraitUpsideDown;
+  //         }
+  //         // LandscapeRight
+  //         if (transform.a == 1.0 && transform.b == 0 && transform.c == 0 && transform.d == 1.0) {
+  //           orientation = UIInterfaceOrientation.LandscapeRight;
+  //         }
+  //         // LandscapeLeft
+  //         if (transform.a == -1.0 && transform.b == 0 && transform.c == 0 && transform.d == -1.0) {
+  //           orientation = UIInterfaceOrientation.LandscapeLeft;
+  //         }
+
+  //         // Create a preferred transform
+  //         const originalSize = assetTrack.naturalSize;
+  //         let finalTransform: CGAffineTransform;
+  //         switch (orientation) {
+  //           case UIInterfaceOrientation.LandscapeLeft:
+  //             finalTransform = CGAffineTransformMake(-1, 0, 0, -1, originalSize.width, originalSize.height);
+  //             break;
+  //           case UIInterfaceOrientation.LandscapeRight:
+  //             finalTransform = CGAffineTransformMake(1, 0, 0, 1, 0, 0);
+  //             break;
+  //           case UIInterfaceOrientation.Portrait:
+  //             finalTransform = CGAffineTransformMake(0, 1, -1, 0, originalSize.height, 0);
+  //             break;
+  //           case UIInterfaceOrientation.PortraitUpsideDown:
+  //             finalTransform = CGAffineTransformMake(0, -1, 1, 0, 0, originalSize.width);
+  //             break;
+  //           default:
+  //             break;
+  //         }
+
+  //         // TODO: this moves the video into a corner. still needs some working on
+  //         if (orientation === UIInterfaceOrientation.Portrait || orientation === UIInterfaceOrientation.PortraitUpsideDown) {
+  //           // flipping time :)
+  //           const width = originalSize.width;
+  //           originalSize.width = originalSize.height;
+  //           originalSize.height = width;
+  //         }
+
+  //         // center oiriginal inside target
+  //         const ratio = Math.min(targetSize.width / originalSize.width, targetSize.height / originalSize.height);
+  //         const transX = (targetSize.width - originalSize.width * ratio) / 2;
+  //         const transY = (targetSize.height - originalSize.height * ratio) / 2;
+  //         let matrix = CGAffineTransformMakeTranslation(transX, transY);
+  //         matrix = CGAffineTransformScale(matrix, ratio, ratio);
+  //         finalTransform = CGAffineTransformConcat(finalTransform, matrix);
+  //         this.log('[process] Setting transform layer instruction');
+  //         layerInstruction.setTransformAtTime(finalTransform, transitionRange.start);
+  //       }
+  //     }
+
+  //     videoComposition.frameDuration = CMTimeMake(1, this._videoConfig.frameRate);
+  //     const audioChannels = this._videoConfig.audioChannels;
+  //     const audioSampleRate = this._videoConfig.audioSampleRate;
+  //     const audioBitrate = this._videoConfig.audioBitRate;
+  //     const assetExportSession = new NSAVAssetExportSession().initWithAsset(composition);
+  //     assetExportSession.outputFileType = AVFileTypeMPEG4;
+  //     assetExportSession.outputURL = this.getURLFromFilePath(outputPath);
+  //     assetExportSession.shouldOptimizeForNetworkUse = false;
+  //     this.log('[process] Setting Video Settings');
+  //     const videoSettings: any = {
+  //       'AVVideoCodecKey': AVVideoCodecH264,
+  //       'AVVideoWidthKey': targetSize.width,
+  //       'AVVideoHeightKey': targetSize.height,
+  //     };
+  //     assetExportSession.videoSettings = videoSettings as NSDictionary<string, any>;
+  //     assetExportSession.frameRate = this._videoConfig.frameRate;
+
+  //     this.log('[process] Setting Audio Settings');
+  //     const audioSettings: any = {
+  //       'AVFormatIDKey': kAudioFormatMPEG4AAC,
+  //       'AVNumberOfChannelsKey': audioChannels,
+  //       'AVSampleRateKey': audioSampleRate,
+  //       'AVEncoderBitRateKey': audioBitrate,
+  //     };
+  //     assetExportSession.audioSettings = audioSettings as NSDictionary<string, any>;
+  //     assetExportSession.timeRange = CMTimeRangeMake(CMTimeMake(0, 1000), outputPosition);
+  //     assetExportSession.videoComposition = videoComposition;
+  //     assetExportSession.log = this.log;
+  //     assetExportSession.emit = emit;
+
+  //     this.log('[process] Starting Encoding');
+
+  //     // Start encoding
+  //     dispatch_async(dispatch_get_global_queue(qos_class_t.QOS_CLASS_BACKGROUND, 0), () => {
+  //       assetExportSession.exportAsynchronouslyWithCompletionHandler(() => {
+  //         this.log('[process] Completion Handler');
+  //         this.reset();
+  //         resolve();
+  //       });
+  //     });
+  //     // https://github.com/selsamman/react-native-transcode/blob/master/ios/Transcode/Transcode.m
+  //   });
+  // }
 
   getURLFromFilePath(filePath: string): NSURL {
     if (filePath.includes('assets-library://')) {
@@ -461,6 +629,11 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
   }
 
   // utilities
+  /**
+   * Looks for the video resolution metadata and returns a VideoResolution object with width and height
+   * @param videoPath string
+   * @returns VideoResolution
+   */
   getVideoResolution(videoPath: string): VideoResolution {
     const filePath = NSURL.fileURLWithPath(videoPath);
     const avAsset = AVURLAsset.assetWithURL(filePath);
@@ -481,6 +654,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
 
 class NSAVAssetExportSession {
   private _asset: AVAsset;
+  private _owner: WeakRef<NativescriptTranscoder>;
   timeRange: CMTimeRange;
   private _reader: AVAssetReader;
   private _writer: AVAssetWriter;
@@ -513,8 +687,9 @@ class NSAVAssetExportSession {
   private _error: NSError;
   private _completionHandler: () => void;
 
-  initWithAsset(asset: AVAsset) {
+  initWithAsset(asset: AVAsset, owner: WeakRef<NativescriptTranscoder>) {
     this._asset = asset;
+    this._owner = owner;
     this.timeRange = CMTimeRangeMake(kCMTimeZero, kCMTimePositiveInfinity);
     return this;
   }
@@ -791,7 +966,7 @@ class NSAVAssetExportSession {
         this._writer.cancelWriting();
         this._reader.cancelReading();
         this.complete(this._completionHandler);
-        this.reset();
+        // this.reset();
       });
     }
   }
@@ -809,7 +984,7 @@ class NSAVAssetExportSession {
     } else {
       // ----------------------------------------------------------------
       // this should be invoked automatically
-      if (this._lastSamplePresentationTime.value) {
+      if (this._lastSamplePresentationTime?.value) {
         this._writer.endSessionAtSourceTime(this._lastSamplePresentationTime);
       }
       this._writer.finishWritingWithCompletionHandler(() => {
@@ -817,7 +992,7 @@ class NSAVAssetExportSession {
         this.complete(completionHandler);
       });
     }
-    this.reset();
+    // this.reset();
   }
 
   complete(completionHandler: () => void): void {
@@ -841,49 +1016,49 @@ class NSAVAssetExportSession {
     }
   }
 
-  reset(): void {
-    this.log('------ RESET ------');
-    this._error = null;
-    this._progress = 0;
-    this._reader = null;
-    this._videoOutput = null;
-    this._audioOutput = null;
-    this._writer = null;
-    this._videoInput = null;
-    this._videoPixelBufferAdaptor = null;
-    this._audioInput = null;
-    this._inputQueue = null;
-    this._metadata = null;
-    this.shouldOptimizeForNetworkUse = null;
-    this._completionHandler = null;
+  // reset(): void {
+  //   this.log('------ RESET ------');
+  //   this._error = null;
+  //   this._progress = 0;
+  //   this._reader = null;
+  //   this._videoOutput = null;
+  //   this._audioOutput = null;
+  //   this._writer = null;
+  //   this._videoInput = null;
+  //   this._videoPixelBufferAdaptor = null;
+  //   this._audioInput = null;
+  //   this._inputQueue = null;
+  //   this._metadata = null;
+  //   this.shouldOptimizeForNetworkUse = null;
+  //   this._completionHandler = null;
 
-    this._asset = null;
-    this.timeRange = null;
-    this._videoInputSettings = null;
-    this.videoComposition = null;
-    this.videoSettings = null;
-    this.outputURL = null;
-    this.outputFileType = null;
-    this._audioMix = null;
-    this.audioSettings = null;
-    this._lastSamplePresentationTime = null;
-    this._duration = null;
-    this.frameRate = null;
-  }
+  //   this._asset = null;
+  //   this.timeRange = null;
+  //   this._videoInputSettings = null;
+  //   this.videoComposition = null;
+  //   this.videoSettings = null;
+  //   this.outputURL = null;
+  //   this.outputFileType = null;
+  //   this._audioMix = null;
+  //   this.audioSettings = null;
+  //   this._lastSamplePresentationTime = null;
+  //   this._duration = null;
+  //   this.frameRate = null;
+  // }
 
-  status(): AVAssetExportSessionStatus {
-    switch (this._writer.status) {
-      default:
-      case AVAssetWriterStatus.Unknown:
-        return AVAssetExportSessionStatus.Unknown;
-      case AVAssetWriterStatus.Writing:
-        return AVAssetExportSessionStatus.Exporting;
-      case AVAssetWriterStatus.Failed:
-        return AVAssetExportSessionStatus.Failed;
-      case AVAssetWriterStatus.Completed:
-        return AVAssetExportSessionStatus.Completed;
-      case AVAssetWriterStatus.Cancelled:
-        return AVAssetExportSessionStatus.Cancelled;
-    }
-  }
+  // status(): AVAssetExportSessionStatus {
+  //   switch (this._writer.status) {
+  //     default:
+  //     case AVAssetWriterStatus.Unknown:
+  //       return AVAssetExportSessionStatus.Unknown;
+  //     case AVAssetWriterStatus.Writing:
+  //       return AVAssetExportSessionStatus.Exporting;
+  //     case AVAssetWriterStatus.Failed:
+  //       return AVAssetExportSessionStatus.Failed;
+  //     case AVAssetWriterStatus.Completed:
+  //       return AVAssetExportSessionStatus.Completed;
+  //     case AVAssetWriterStatus.Cancelled:
+  //       return AVAssetExportSessionStatus.Cancelled;
+  //   }
+  // }
 }
