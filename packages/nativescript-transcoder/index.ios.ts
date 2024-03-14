@@ -23,7 +23,6 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
 
   transcode(inputPath: string, outputPath: string, videoConfig: VideoConfig): Promise<File> {
     this.reset();
-    const assetInputName = 'input';
 
     const allowedTranscodingResolution = this.getAllowedTranscodingResolution(inputPath);
 
@@ -32,14 +31,15 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
         'Transcoding to a higher resolution is not allowed by default. If you want to do this intentionally, pass in { force: true } as part of the vidoeConfig object to bypass this check.'
       );
     }
+    const fileName = inputPath.split('/')[inputPath.split('/').length - 1];
 
     this.addAsset({
-      name: assetInputName,
+      name: fileName,
       path: inputPath,
       type: 'videoAudio',
     });
     this.addSegment({
-      tracks: [{ asset: assetInputName }],
+      tracks: [{ asset: fileName }],
     });
     return this.process(outputPath, videoConfig).then(() => {
       return File.fromPath(outputPath);
@@ -47,13 +47,8 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
   }
 
   addAsset(asset: Asset) {
-    if (this.assets[asset.name]) {
-      // TODO: maybe error out here?
-      return;
-    }
-
-    const filePath = NSURL.fileURLWithPath(asset.path);
-    const avAsset = AVURLAsset.assetWithURL(filePath);
+    const fileURL = NSURL.fileURLWithPath(asset.path);
+    const avAsset = AVURLAsset.assetWithURL(fileURL);
     const audioTracks = avAsset.tracksWithMediaType(AVMediaTypeAudio);
     const videoTracks = avAsset.tracksWithMediaType(AVMediaTypeVideo);
 
@@ -95,14 +90,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
 
       emit(NativescriptTranscoderCommon.TRANSCODING_STARTED, {});
 
-      // if (!this._composition) {
       this._composition = new AVMutableComposition();
-      // } else {
-      //   for (let trackIndex = 0; trackIndex < this._composition.tracks.count; trackIndex++) {
-      //     const track = this._composition.tracks[trackIndex] as AVCompositionTrack;
-      //     this._composition.removeTrack(track);
-      //   }
-      // }
       const compositionTrack = this._composition.addMutableTrackWithMediaTypePreferredTrackID(AVMediaTypeVideo, kCMPersistentTrackID_Invalid);
 
       const mix = new AVMutableAudioMix();
@@ -220,7 +208,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
               ++videoTrackIndex;
             }
             // Insert audio track segment
-            if (segmentDuration.value > 0 && filter !== 'Mute' && !scaleTime && (trackType === 'audio' || trackType === 'videoAudio') && audioTracks.count > 0) {
+            if (segmentDuration.value > 0 && filter !== 'Mute' && !scaleTime && (trackType === 'audio' || trackType === 'videoAudio')) {
               // Same approach as video for audio tracks
               let audioTrack: AVMutableCompositionTrack;
               if (audioTrackIndex >= audioTracks.count) {
@@ -462,8 +450,8 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
 
   // utilities
   getVideoResolution(videoPath: string): VideoResolution {
-    const filePath = NSURL.fileURLWithPath(videoPath);
-    const avAsset = AVURLAsset.assetWithURL(filePath);
+    const fileURL = NSURL.fileURLWithPath(videoPath);
+    const avAsset = AVURLAsset.assetWithURL(fileURL);
     const track = avAsset.tracksWithMediaType(AVMediaTypeVideo).firstObject;
     if (!track) {
       return {
