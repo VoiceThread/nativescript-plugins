@@ -254,22 +254,56 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
 
       videoComposition.frameDuration = CMTimeMake(1, trackFrameRate);
 
-      // default to 720p
+      // default to 720p, assuming the video is in a standard SD/HD/UHD dimension format
       let targetSize = CGSizeMake(1280.0, 720.0);
+      // switch (this._videoConfig.quality) {
+      //   case '1080p': {
+      //     targetSize = CGSizeMake(1920.0, 1080.0);
+      //     break;
+      //   }
+      //   case '720p': {
+      //     targetSize = CGSizeMake(1280.0, 720.0);
+      //     break;
+      //   }
+      //   case '480p': {
+      //     targetSize = CGSizeMake(640.0, 480.0);
+      //     break;
+      //   }
+      // }
+      //instead of just hoping it's in a standard dimension format, check the height and width and scale
+      const currentSegment: Segment & { fadeOutTrackID?: number; start?: number } = this.segments[0];
+      const currentTrack: Track & { trackID?: number } = currentSegment.tracks[0];
+      const filter = currentTrack.filter;
+      const asset = this.assets[currentTrack.asset];
+      const assetTrack = asset.videoTrack;
+      const originalSize = assetTrack.naturalSize;
       switch (this._videoConfig.quality) {
         case '1080p': {
-          targetSize = CGSizeMake(1920.0, 1080.0);
+          const ratio = 1080 / originalSize.height;
+          // console.log('ratio:', ratio);
+          const twidth = Math.round(originalSize.width * ratio);
+          // console.log('h:1080, twidth:', twidth);
+          targetSize = CGSizeMake(twidth, 1080.0);
           break;
         }
         case '720p': {
-          targetSize = CGSizeMake(1280.0, 720.0);
+          const ratio = 720 / originalSize.height;
+          // console.log('ratio:', ratio);
+          const twidth = Math.round(originalSize.width * ratio);
+          // console.log('h:720, twidth:', twidth);
+          targetSize = CGSizeMake(twidth, 720.0);
           break;
         }
         case '480p': {
-          targetSize = CGSizeMake(640.0, 480.0);
+          const ratio = 480 / originalSize.height;
+          // console.log('ratio:', ratio);
+          const twidth = Math.round(originalSize.width * ratio);
+          // console.log('h:480, twidth:', twidth);
+          targetSize = CGSizeMake(twidth, 480.0);
           break;
         }
       }
+      this.log('setting output targetSize (WxH):' + targetSize.width + 'x' + targetSize.height);
       // const targetSize = this._videoConfig.quality === 'high' ? CGSizeMake(1920.0, 1080.0) : CGSizeMake(1280.0, 720.0);
       const transform = firstAssetTrack.preferredTransform;
       // TODO: make this configurable as orientation - horizontal vs vertical
@@ -404,12 +438,21 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
       assetExportSession.outputURL = this.getURLFromFilePath(outputPath);
       assetExportSession.shouldOptimizeForNetworkUse = false;
       this.log('[process] Setting Video Settings');
+      const compresionSettings: any = {
+        'AVVideoAverageBitRateKey': 6000000,
+        'AVVideoProfileLevelKey': AVVideoProfileLevelH264Baseline30,
+      };
       const videoSettings: any = {
         'AVVideoCodecKey': AVVideoCodecH264,
         'AVVideoWidthKey': targetSize.width,
         'AVVideoHeightKey': targetSize.height,
+        'AVVideoScalingModeKey': AVVideoScalingModeResizeAspectFill,
+        // 'AVVideoCompressionPropertiesKey': compresionSettings,
       };
+      //AVVideoScalingModeKey: AVVideoScalingModeResizeAspectFill,
+      // AVVideoCompressionPropertiesKey: compressionDict
       assetExportSession.videoSettings = videoSettings as NSDictionary<string, any>;
+      // assetExportSession.videoSettings['AVVideoCompressionPropertiesKey'] = compresionSettings as NSDictionary<string, any>;
       assetExportSession.frameRate = this._videoConfig.frameRate;
 
       this.log('[process] Setting Audio Settings');

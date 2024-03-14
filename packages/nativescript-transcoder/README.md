@@ -5,6 +5,10 @@
 [![npm](https://img.shields.io/npm/v/@voicethread/nativescript-audio-recorder?style=flat-square)](https://www.npmjs.com/package/@voicethread/nativescript-transcoder)
 
 This plugin provides video transcoding functionality for Android API 21+ and iOS 4+ and supports modifying the video's resolution, frame rate (iOS only).
+The plugin is currently able to transcode a video to a height of 480, 720 or 1080, with the width scaled in the same ratio (based on the original video dimensions). 
+
+Note: Not all video/audio codecs/formats are supported, so the transcode may fail. This is particularly true on Android, where the device and OS version dictate what is actually supported when using the plugin. 
+
 
 For both Android and iOS, the transcoded video files will be saved as an MP4 file using h264 and AAC encoding. 
 
@@ -30,7 +34,7 @@ The best way to understand how to use the plugin is to study the demo app includ
 import { NativescriptTranscoder } from '@voicethread/nativescript-transcoder';
 ```
 
-2. Transcode a video to 480p, 720p or 1080p (the example below uses a filepicker, but you can use a video recoding from the camera or another source)
+2. Transcode a video to a height of 480, 720 or 1080, with the width scaled in the same ratio (based on the original video dimensions). (the example below uses a filepicker, but you can use a video recoding from the camera or another source)
 
 ```typescript
 
@@ -119,7 +123,6 @@ startTranscoding(): void {
 }
 ```
 
-Note: not all video/audio codecs/formats are supported, so the transcode may fail. This is particularly true on Android, where the device and OS version dictate what is actually supported. 
   
 ## Acknowledgements
 
