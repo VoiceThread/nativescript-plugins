@@ -167,12 +167,12 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
         const resolution = this.transcoder.getVideoResolution(tempPath);
         console.log('[Transcoded Resolution]', `${resolution.width}x${resolution.height}`);
         console.log('[Time Taken]', `${timeTaken} seconds`);
-        // video.visibility = 'visible';
-        // video.opacity = 1;
-        // video.src = tempPath;
-        // video.loop = true;
-        // video.controls = true;
-        // video.play();
+        video.visibility = 'visible';
+        video.opacity = 1;
+        video.src = tempPath;
+        video.loop = true;
+        video.controls = true;
+        video.play();
         outputDetailsLabel.visibility = 'visible';
         outputDetailsLabel.text = `Output Size: ${this.transcoder.getVideoSizeString(transcodedFile.path)}`;
         outputDetailsLabel.textWrap = true;
