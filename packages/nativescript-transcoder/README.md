@@ -71,7 +71,7 @@ The following events are emitted during the transcoding process:
 - `TRANSCODING_STARTED` - emitted at the beginning of the transcoding process
 - `TRANSCODING_PROGRESS` - emitted over time with the percentage (0 to 1) completed
 - `TRANSCODING_COMPLETE` - emitted after a successful transcoding process (the `transcode` function will return the transcoded file)
-- `TRANSCODING_ERROR` - emitted when the transcoding process emits an error (the `transcode` function will return a rejected promise at this point)
+- `TRANSCODING_ERROR` - emitted when the transcoding process emits an error (in event data payload as `error`, and the `transcode` function will return a rejected promise at this point)
 - `TRANSCODING_CANCELLED` - emitted when the transcoding process is cancelled (the `transcode` function will return a rejected promise at this point) (iOS only(
 
 You can listen to these events by attaching the `on` listener to the `transcoder`
