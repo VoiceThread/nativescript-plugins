@@ -11,7 +11,7 @@ export declare class NativescriptTranscoder extends NativescriptTranscoderCommon
   setLogLevel(logLevel: LogLevel): void;
 
   /**
-   * Transcodes video from inputPath to outoutPath using videoConfig options
+   * Transcodes video from inputPath to outputPath using videoConfig options
    * @param inputPath string
    * @param outputPath string
    * @param videoConfig VideoConfig
@@ -40,7 +40,7 @@ export declare class NativescriptTranscoder extends NativescriptTranscoderCommon
    * @param videoPath string
    * @returns string
    */
-  getVideoSizeString(videoPath: string): number;
+  getVideoSizeString(videoPath: string): string;
   /**
    * Looks for the video codec used by the video file at `videoPath`
    * @param videoPath string

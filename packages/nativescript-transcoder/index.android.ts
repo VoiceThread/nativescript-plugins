@@ -5,7 +5,7 @@ import { clearInterval, setInterval } from '@nativescript/core/timer';
 
 export class NativescriptTranscoder extends NativescriptTranscoderCommon {
   /**
-   * Transcodes video from inputPath to outoutPath using videoConfig options
+   * Transcodes video from inputPath to outputPath using videoConfig options
    * @param inputPath string
    * @param outputPath string
    * @param videoConfig VideoConfig

@@ -156,16 +156,22 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
             }
       )
       .then(transcodedFile => {
+        if (!transcodedFile) {
+          console.error('transcode did not return a file, error occurred!');
+          return;
+        }
         const timeTaken = (new Date().getTime() - timeStarted) / 1000;
         progressBar.value = 100;
-        console.log('[PROCCESSING COMPLETED]');
+        console.log('[PROCCESSING COMPLETED]', transcodedFile.path);
         console.log('[Original Size]', this.transcoder.getVideoSizeString(this.pickedFile.path));
         const originalResolution = this.transcoder.getVideoResolution(this.pickedFile.path);
         console.log('[Original Resolution]', `${originalResolution.width}x${originalResolution.height}`);
+        console.log('[Original Duration]', this.transcoder.getVideoDuration(this.pickedFile.path));
         console.log('[Transcoded Size]', this.transcoder.getVideoSizeString(transcodedFile.path));
         console.log('[Percentage Reduced]', `${(((this.pickedFile.size - transcodedFile.size) / this.pickedFile.size) * 100).toFixed(2)}%`);
         const resolution = this.transcoder.getVideoResolution(tempPath);
         console.log('[Transcoded Resolution]', `${resolution.width}x${resolution.height}`);
+        console.log('[Transcoded Duration]', this.transcoder.getVideoDuration(tempPath));
         console.log('[Time Taken]', `${timeTaken} seconds`);
         video.visibility = 'visible';
         video.opacity = 1;

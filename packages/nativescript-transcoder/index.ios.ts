@@ -21,6 +21,14 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
   segments: Segment[] = [];
   private _videoConfig: VideoConfig;
 
+  /**
+   * Transcodes video from inputPath to outputPath using videoConfig options
+   * @param inputPath string
+   * @param outputPath string
+   * @param videoConfig VideoConfig
+   * @returns Promise<File>
+   *
+   */
   transcode(inputPath: string, outputPath: string, videoConfig: VideoConfig): Promise<File> {
     this.reset();
 
@@ -41,9 +49,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
     this.addSegment({
       tracks: [{ asset: fileName }],
     });
-    return this.process(outputPath, videoConfig).then(() => {
-      return File.fromPath(outputPath);
-    });
+    return this.process(outputPath, videoConfig);
   }
 
   addAsset(asset: Asset) {
@@ -71,8 +77,8 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
   }
 
   private _composition: AVMutableComposition;
-  process(outputPath: string, videoConfig?: VideoConfig): Promise<void> {
-    return new Promise(resolve => {
+  process(outputPath: string, videoConfig?: VideoConfig): Promise<File> {
+    return new Promise((resolve, reject) => {
       if (videoConfig) {
         this._videoConfig = {
           ...DefaultVideoConfig,
@@ -118,7 +124,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
         audioTrackIndex = 0;
         const segmentTracks = currentSegment.tracks;
         this.log(`[process] Adding Segment Tracks: ${JSON.stringify(segmentTracks)}`);
-
+        let sawError = false;
         // Loop through the tracks in the segment and add each track to the composition
         for (let trackIndex = 0; trackIndex < currentSegment.tracks.length; trackIndex++) {
           this.log(`[process] Adding Tracks: ${trackIndex}`);
@@ -191,6 +197,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
               this.log(`[process] Adding Track: ${videoTrack.trackID}`);
               if (!audioVideoSuccess) {
                 console.error('[process] Ran into an error while inserting video track');
+                sawError = true;
                 return;
               }
 
@@ -222,13 +229,17 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
 
               if (!audioVideoSuccess) {
                 console.error('[process] Ran into an error while inserting audio track');
+                sawError = true;
                 return;
               }
               ++audioTrackIndex;
             }
           }
         }
-
+        if (sawError) {
+          console.error('Error during audio/video preparation');
+          return reject('Error during audio/video preparation');
+        }
         // Calculate the time range for the segment and use to record duration in segment itself and increment outputPosition
         const outputTimeRange = CMTimeRangeMake(outputPosition, segmentDuration);
         const duration = outputTimeRange.duration.value;
@@ -256,6 +267,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
 
       // default to 720p, assuming the video is in a standard SD/HD/UHD dimension format
       let targetSize = CGSizeMake(1280.0, 720.0);
+      //this code will hardcode dimensions to SD/HD/FHD
       // switch (this._videoConfig.quality) {
       //   case '1080p': {
       //     targetSize = CGSizeMake(1920.0, 1080.0);
@@ -270,7 +282,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
       //     break;
       //   }
       // }
-      //instead of just hoping it's in a standard dimension format, check the height and width and scale
+      //instead of assuming it's in a standard SD/HD/FHD dimension format, check the height and width and scale appropriately based on desired height
       const currentSegment: Segment & { fadeOutTrackID?: number; start?: number } = this.segments[0];
       const currentTrack: Track & { trackID?: number } = currentSegment.tracks[0];
       const filter = currentTrack.filter;
@@ -280,25 +292,19 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
       switch (this._videoConfig.quality) {
         case '1080p': {
           const ratio = 1080 / originalSize.height;
-          // console.log('ratio:', ratio);
           const twidth = Math.round(originalSize.width * ratio);
-          // console.log('h:1080, twidth:', twidth);
           targetSize = CGSizeMake(twidth, 1080.0);
           break;
         }
         case '720p': {
           const ratio = 720 / originalSize.height;
-          // console.log('ratio:', ratio);
           const twidth = Math.round(originalSize.width * ratio);
-          // console.log('h:720, twidth:', twidth);
           targetSize = CGSizeMake(twidth, 720.0);
           break;
         }
         case '480p': {
           const ratio = 480 / originalSize.height;
-          // console.log('ratio:', ratio);
           const twidth = Math.round(originalSize.width * ratio);
-          // console.log('h:480, twidth:', twidth);
           targetSize = CGSizeMake(twidth, 480.0);
           break;
         }
@@ -433,15 +439,15 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
       const audioChannels = this._videoConfig.audioChannels;
       const audioSampleRate = this._videoConfig.audioSampleRate;
       const audioBitrate = this._videoConfig.audioBitRate;
-      const assetExportSession = new NSAVAssetExportSession().initWithAsset(this._composition, new WeakRef<NativescriptTranscoder>(this));
+      const assetExportSession = new NSAVAssetExportSession().initWithAsset(this._composition, new WeakRef<NativescriptTranscoder>(this), resolve, reject);
       assetExportSession.outputFileType = AVFileTypeMPEG4;
       assetExportSession.outputURL = this.getURLFromFilePath(outputPath);
       assetExportSession.shouldOptimizeForNetworkUse = false;
       this.log('[process] Setting Video Settings');
-      const compresionSettings: any = {
-        'AVVideoAverageBitRateKey': 6000000,
-        'AVVideoProfileLevelKey': AVVideoProfileLevelH264Baseline30,
-      };
+      // const compresionSettings: any = {
+      //   'AVVideoAverageBitRateKey': 6000000,
+      //   'AVVideoProfileLevelKey': AVVideoProfileLevelH264Baseline30,
+      // };
       const videoSettings: any = {
         'AVVideoCodecKey': AVVideoCodecH264,
         'AVVideoWidthKey': targetSize.width,
@@ -449,8 +455,6 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
         'AVVideoScalingModeKey': AVVideoScalingModeResizeAspectFill,
         // 'AVVideoCompressionPropertiesKey': compresionSettings,
       };
-      //AVVideoScalingModeKey: AVVideoScalingModeResizeAspectFill,
-      // AVVideoCompressionPropertiesKey: compressionDict
       assetExportSession.videoSettings = videoSettings as NSDictionary<string, any>;
       // assetExportSession.videoSettings['AVVideoCompressionPropertiesKey'] = compresionSettings as NSDictionary<string, any>;
       assetExportSession.frameRate = this._videoConfig.frameRate;
@@ -475,7 +479,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
         assetExportSession.exportAsynchronouslyWithCompletionHandler(() => {
           this.log('[process] Completion Handler');
           this.reset();
-          resolve();
+          // resolve();
         });
       });
       // https://github.com/selsamman/react-native-transcode/blob/master/ios/Transcode/Transcode.m
@@ -543,9 +547,15 @@ class NSAVAssetExportSession {
   private _duration;
   private _error: NSError;
   private _completionHandler: () => void;
+  private _resolve: any;
+  private _reject: any;
+  private _owner;
 
-  initWithAsset(asset: AVAsset, owner: WeakRef<NativescriptTranscoder>) {
+  initWithAsset(asset: AVAsset, owner: WeakRef<NativescriptTranscoder>, resolve, reject) {
     this._asset = asset;
+    this._resolve = resolve;
+    this._reject = reject;
+    this._owner = owner;
     this.timeRange = CMTimeRangeMake(kCMTimeZero, kCMTimePositiveInfinity);
     return this;
   }
@@ -558,14 +568,15 @@ class NSAVAssetExportSession {
       this._error = NSError.errorWithDomainCodeUserInfo(AVFoundationErrorDomain, AVError.ExportFailed, {
         NSLocalizedDescriptionKey: 'Output URL not set',
       } as any);
-      completionHandler();
+      // completionHandler();
+      this.error();
       return;
     }
     this.log('[exportAsynchronouslyWithCompletionHandler] Asset', this._asset);
     this._reader = AVAssetReader.alloc().initWithAssetError(this._asset);
     if (this._reader.error) {
       this._error = this._reader.error;
-      completionHandler();
+      this.error();
       return;
     }
     this.log('[exportAsynchronouslyWithCompletionHandler] outputURL', this.outputURL);
@@ -573,7 +584,7 @@ class NSAVAssetExportSession {
     this._writer = AVAssetWriter.assetWriterWithURLFileTypeError(this.outputURL, this.outputFileType);
     if (this._writer.error) {
       this._error = this._writer.error;
-      completionHandler();
+      this.error();
       return;
     }
     this._reader.timeRange = this.timeRange;
@@ -589,7 +600,7 @@ class NSAVAssetExportSession {
     }
     this.log('[exportAsynchronouslyWithCompletionHandler] duration', this._duration);
     // Video output
-    this.log('[exportAsynchronouslyWithCompletionHandler] videoTracks', videoTracks);
+    this.log('[exportAsynchronouslyWithCompletionHandler] ' + videoTracks.count + ' videoTracks', videoTracks);
     if (videoTracks.count > 0) {
       this.log('[exportAsynchronouslyWithCompletionHandler] Setting Video Output');
       this._videoOutput = AVAssetReaderVideoCompositionOutput.assetReaderVideoCompositionOutputWithVideoTracksVideoSettings(videoTracks, this._videoInputSettings);
@@ -633,6 +644,7 @@ class NSAVAssetExportSession {
 
     // Audio output
     const audioTracks = this._asset.tracksWithMediaType(AVMediaTypeAudio);
+    this.log('[exportAsynchronouslyWithCompletionHandler] ' + audioTracks.count + ' audioTracks', audioTracks);
     if (audioTracks.count > 0) {
       this._audioOutput = AVAssetReaderAudioMixOutput.assetReaderAudioMixOutputWithAudioTracksAudioSettings(audioTracks, null);
       this._audioOutput.alwaysCopiesSampleData = false;
@@ -713,6 +725,8 @@ class NSAVAssetExportSession {
           this.log('| Writer error', this._writer.error);
         }
         if (this._reader.status != AVAssetReaderStatus.Reading || this._writer.status != AVAssetWriterStatus.Writing) {
+          // this.log('_reader.status', this._reader.status);
+          // this.log('_writer.status', this._writer.status);
           handled = true;
           error = true;
         }
@@ -721,7 +735,7 @@ class NSAVAssetExportSession {
           this._lastSamplePresentationTime = CMTimeSubtract(this._lastSamplePresentationTime, this.timeRange.start);
 
           const progress = this._duration == 0 ? 1 : CMTimeGetSeconds(this._lastSamplePresentationTime) / this._duration;
-          this.log('| Progress', progress);
+          // this.log('| Progress', progress);
           this.emit(NativescriptTranscoderCommon.TRANSCODING_PROGRESS, { progress });
         }
 
@@ -738,9 +752,11 @@ class NSAVAssetExportSession {
         // cleaned up by NativeScript
         // CFRelease(sampleBuffer);
         if (error) {
+          this.error();
           return false;
         }
       } else {
+        // this.log("sampleBuffer",sampleBuffer);
         input.markAsFinished();
         this.log('[encodeReadySamplesFromOutputToInput] Done');
         return false;
@@ -835,8 +851,19 @@ class NSAVAssetExportSession {
     }
 
     const completionHandler = this._completionHandler;
+    this.log('Transcoded duration:', this._duration * 1000);
+    this.log('Original duration:', this._asset.duration.value);
+    // this._owner.get().resolve()
     if (this._writer?.status == AVAssetWriterStatus.Failed) {
       this.complete(completionHandler);
+    }
+    //Verify the transcoded duration is within 95% of the original duration
+    else if ((this._duration * 1000) / this._asset.duration.value > 1.05 || this._asset.duration.value / (this._duration * 1000) < 0.95) {
+      this._error = NSError.errorWithDomainCodeUserInfo(AVFoundationErrorDomain, AVError.ExportFailed, {
+        NSLocalizedDescriptionKey: 'Output duration is not within 95% of input, transcoding failed',
+      } as any);
+      this.error();
+      return;
     } else {
       // ----------------------------------------------------------------
       // this should be invoked automatically
@@ -848,26 +875,35 @@ class NSAVAssetExportSession {
         this.complete(completionHandler);
       });
     }
-    this.reset();
   }
 
   complete(completionHandler: () => void): void {
     this.log('----- COMPLETE -------');
+
     this.emit(NativescriptTranscoderCommon.TRANSCODING_COMPLETE, {});
     if (this._writer?.status == AVAssetWriterStatus.Failed || this._writer?.status == AVAssetWriterStatus.Cancelled) {
       NSFileManager.defaultManager.removeItemAtURLError(this.outputURL);
     }
 
     if (completionHandler) {
+      this._resolve(File.fromPath(this.outputURL.path));
       completionHandler();
     }
+    this.reset();
   }
 
   error(): NSError {
-    this.emit(NativescriptTranscoderCommon.TRANSCODING_ERROR, {});
     if (this._error) {
+      console.error(this._error);
+      this.emit(NativescriptTranscoderCommon.TRANSCODING_ERROR, { error: this._error });
+      this._reject(this._error);
+      this.reset();
       return this._error;
     } else {
+      console.error(this._writer.error || this._reader.error);
+      this.emit(NativescriptTranscoderCommon.TRANSCODING_ERROR, { error: this._writer.error || this._reader.error });
+      this._reject(this._writer.error || this._reader.error);
+      this.reset();
       return this._writer.error || this._reader.error;
     }
   }
