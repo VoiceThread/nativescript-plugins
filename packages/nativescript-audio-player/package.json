@@ -1,6 +1,6 @@
 {
   "name": "@voicethread/nativescript-audio-player",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Audio player plugin for Nativescript applications.",
   "main": "index",
   "typings": "index.d.ts",
