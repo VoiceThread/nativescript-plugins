@@ -70,6 +70,12 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
     });
   }
 
+  /**
+   * Starts the native audio recording control.
+   * @method record
+   * @param options AudioRecorderOptions to use when recording audio
+   * @returns Promise that resolves once recording is complete, or rejects if fails
+   */
   record(options: AudioRecorderOptions): Promise<any> {
     this._recorderOptions = options;
     return new Promise((resolve, reject) => {
@@ -77,10 +83,6 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
       try {
         this._recordingSession = AVAudioSession.sharedInstance();
         let errorRef = new interop.Reference();
-        this._recordingSession.setCategoryError(AVAudioSessionCategoryPlayAndRecord, errorRef);
-        if (errorRef) {
-          console.error(`setCategoryError: ${errorRef.value}, ${errorRef}`);
-        }
 
         this._recordingSession.setActiveError(true, null);
         this._recordingSession.requestRecordPermission((allowed: boolean) => {
@@ -166,6 +168,11 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
     });
   }
 
+  /**
+   * Stops the native audio recording control.
+   * @method stop
+   * @returns Promise that resolves once recording is complete and file has been written, or rejects if fails
+   */
   stop(): Promise<any> {
     return new Promise((resolve, reject) => {
       try {
@@ -188,6 +195,11 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
     });
   }
 
+  /**
+   * Releases resources from the recorder.
+   * @method dispose
+   * @returns Promise that resolves once recorder has been released and disposed, or rejects if fails
+   */
   dispose(): Promise<any> {
     return new Promise((resolve, reject) => {
       try {
@@ -206,10 +218,20 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
     });
   }
 
+  /**
+   * Returns true if the audio recorder is currently recording, false if not
+   * @method isRecording
+   */
   isRecording() {
     return this._recorder && this._recorder.recording;
   }
 
+  /**
+   *@function getMeters()
+   * @returns Returns the average power, in decibels full-scale (dBFS), for an audio channel.
+   * Before asking the player for its average power value, you must call updateMeters() to generate the latest data. The returned value ranges from –160 dBFS, indicating minimum power, to 0 dBFS, indicating maximum power.
+   * https://developer.apple.com/documentation/avfaudio/avaudiorecorder/1387176-averagepower
+   */
   getMeters(channel?: number) {
     if (this._recorder) {
       if (!this._recorder.meteringEnabled) {
@@ -220,6 +242,14 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
     }
   }
 
+  /**
+   * Merges the mp4 files specified by audioFileUrls (array of file paths) into an mp4 audio file
+   *      at the outputPath.
+   * NOTE: inputs must all be AAC encoded MP4 audio files!
+   * @method mergeAudioFiles
+   * @param audioFileUrls
+   * @param outputPath
+   **/
   public mergeAudioFiles(audioFiles: string[], outputPath: string): Promise<File> {
     return new Promise((resolve, reject) => {
       if (!audioFiles || audioFiles.length <= 0) return reject('audioFiles is empty!');
@@ -292,14 +322,28 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   /**
    * Events
    */
+  /**
+   * @event startedEvent emitted when recording has started
+   */
   public static startedEvent = 'startedEvent';
+  /**
+   * @event stoppedEvent emitted when recording has stopped
+   */
   public static stoppedEvent = 'stoppedEvent';
-  public static completeEvent = 'completeEvent'; //will pass the recording filename
+  /**
+   * @event completeEvent eemitted when recording has completed and file is ready, will pass the recording file path
+   */
+  public static completeEvent = 'completeEvent'; //will pass the recording file path
+  /**
+   * @event errorEvent emitted when recording has errored, will pass an error object
+   */
   public static errorEvent = 'errorEvent'; //will pass the error object
 }
 
-/*
+/**
  * Utility to find the duration in milliseconds of the mp4 file at `mp4Path`
+ * @function getDuration
+ * @param mp4Path string with the path of the audio file to examine
  */
 export function getDuration(mp4Path: string): number {
   let totalTime = 0;
