@@ -59,44 +59,73 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   readonly android: any;
 
   /**
-   * Starts a recording session with the provided options.
-   * @param options [AudioRecorderOptions]
+   * Starts the native audio recording control.
+   * @method record
+   * @param options AudioRecorderOptions to use when recording audio
+   * @returns Promise that resolves once recording is complete, or rejects if fails
    */
   record(options: AudioRecorderOptions): Promise<any>;
 
   /**
-   * Stops the recording
+   * Stops the native audio recording control.
+   * @method stop
+   * @returns Promise that resolves once recording is complete and file has been written, or rejects if fails
    */
   stop(): Promise<File>;
 
   /**
-   * Disposes of the recorder session
+   * Releases resources from the recorder.
+   * @method dispose
+   * @returns Promise that resolves once recorder has been released and disposed, or rejects if fails
    */
   dispose(): Promise<any>;
 
   /**
-   * Returns the maximum absolute amplitude that was sampled since the last call to this method.
-   * @param channel [number]
+   * For Android, returns the maximum absolute amplitude (unsigned 16-bit integer values from 0-32767 ) that was sampled since the last call to this method. Call this only after the setAudioSource().
+   * For iOS, returns the average power, in decibels full-scale (dBFS), for an audio channel.
+   * @param channel [number] iOS-only
    */
   getMeters(channel?: number): any;
 
   /**
-   * Returns value indicating the recorder is currently recording.
+   * Returns true if the audio recorder is currently recording, false if not
+   * @method isRecording
    */
   isRecording(): boolean;
 
   /**
-   * Merges all files with file paths specified in audioFiles into a new file at outputPath
-   * Note: this only supports MP4 audio files
-   */
+   * Merges the mp4 files specified by audioFileUrls (array of file paths) into an mp4 audio file
+   *      at the outputPath.
+   * NOTE: inputs must all be AAC encoded MP4 audio files!
+   * @method mergeAudioFiles
+   * @param audioFileUrls
+   * @param outputPath
+   **/
   mergeAudioFiles(audioFiles: string[], outputPath: string): Promise<File>;
   /**
    * Events
    */
+  /**
+   * @event startedEvent emitted when recording has started
+   */
   public static startedEvent = 'startedEvent';
+  /**
+   * @event stoppedEvent emitted when recording has stopped
+   */
   public static stoppedEvent = 'stoppedEvent';
-  public static completeEvent = 'completeEvent'; //will pass the recording filename
+  /**
+   * @event completeEvent eemitted when recording has completed and file is ready, will pass the recording file path
+   */
+  public static completeEvent = 'completeEvent'; //will pass the recording file path
+  /**
+   * @event errorEvent emitted when recording has errored, will pass an error object
+   */
   public static errorEvent = 'errorEvent'; //will pass the error object
 }
 
+/**
+ * Utility to find the duration in milliseconds of the mp4 file at `mp4Path`
+ * @function getDuration
+ * @param mp4Path string with the path of the audio file to examine
+ */
 export function getDuration(mp4Path: string): number;
