@@ -12,6 +12,12 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
     return this._recorder;
   }
 
+  /**
+   * Starts the native audio recording control.
+   * @method record
+   * @param options AudioRecorderOptions to use when recording audio
+   * @returns Promise that resolves once recording is complete, or rejects if fails
+   */
   public record(options: AudioRecorderOptions): Promise<any> {
     this._recorderOptions = options;
     return new Promise(async (resolve, reject) => {
@@ -81,11 +87,21 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
     });
   }
 
+  /**
+   *@function getMeters()
+   * @returns the maximum absolute amplitude (unsigned 16-bit integer values from 0-32767 ) that was sampled since the last call to this method. Call this only after the setAudioSource().
+   * https://developer.android.com/reference/android/media/MediaRecorder#getMaxAmplitude()
+   */
   public getMeters(): number {
     if (this._recorder != null) return this._recorder.getMaxAmplitude();
     else return 0;
   }
 
+  /**
+   * Stops the native audio recording control.
+   * @method stop
+   * @returns Promise that resolves once recording is complete and file has been written, or rejects if fails
+   */
   public stop(): Promise<any> {
     return new Promise((resolve, reject) => {
       try {
@@ -104,10 +120,19 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
     });
   }
 
+  /**
+   * Returns true if the audio recorder is currently recording, false if not
+   * @method isRecording
+   */
   public isRecording() {
     return this._recorder && this._isRecording;
   }
 
+  /**
+   * Releases resources from the recorder.
+   * @method dispose
+   * @returns Promise that resolves once recorder has been released and disposed, or rejects if fails
+   */
   public dispose(): Promise<any> {
     return new Promise((resolve, reject) => {
       try {
@@ -124,6 +149,14 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
     });
   }
 
+  /**
+   * Merges the mp4 files specified by audioFileUrls (array of file paths) into an mp4 audio file
+   *      at the outputPath.
+   * NOTE: inputs must all be AAC encoded MP4 audio files!
+   * @method mergeAudioFiles
+   * @param audioFileUrls
+   * @param outputPath
+   **/
   public mergeAudioFiles(audioFiles: string[], outputPath: string): Promise<File> {
     return new Promise((resolve, reject) => {
       //Note: This will only merge audio tracks from  mp4 files, and only succeed if all input have same format/encoding
@@ -238,14 +271,28 @@ export class AudioRecorder extends Observable implements IAudioRecorder {
   /**
    * Events
    */
+  /**
+   * @event startedEvent emitted when recording has started
+   */
   public static startedEvent = 'startedEvent';
+  /**
+   * @event stoppedEvent emitted when recording has stopped
+   */
   public static stoppedEvent = 'stoppedEvent';
-  public static completeEvent = 'completeEvent'; //will pass the recording filename
+  /**
+   * @event completeEvent emitted when recording has completed and file is ready, will pass the recording file path
+   */
+  public static completeEvent = 'completeEvent'; //will pass the recording file path
+  /**
+   * @event errorEvent emitted when recording has errored, will pass an error object
+   */
   public static errorEvent = 'errorEvent'; //will pass the error object
 }
 
-/*
+/**
  * Utility to find the duration in milliseconds of the mp4 file at `mp4Path`
+ * @function getDuration
+ * @param mp4Path string with the path of the audio file to examine
  */
 export function getDuration(mp4Path: string): number {
   let totalTime = 0;
