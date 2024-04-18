@@ -36,7 +36,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
 
     if (!videoConfig.force && !allowedTranscodingResolution.includes(videoConfig.quality)) {
       return Promise.reject(
-        'Transcoding to a higher resolution is not allowed by default. If you want to do this intentionally, pass in { force: true } as part of the vidoeConfig object to bypass this check.'
+        'Transcoding to the same or higher resolution is not allowed by default. If you want to do this intentionally, pass in { force: true } as part of the vidoeConfig object to bypass this check.'
       );
     }
     const fileName = inputPath.split('/')[inputPath.split('/').length - 1];

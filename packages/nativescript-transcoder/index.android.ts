@@ -21,7 +21,7 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
       const allowedTranscodingResolution = this.getAllowedTranscodingResolution(inputPath);
       if (!videoConfig.force && !allowedTranscodingResolution.includes(videoConfig.quality)) {
         return reject(
-          'Transcoding to a higher resolution is not allowed by default. If you want to do this intentionally, pass in { force: true } as part of the vidoeConfig object to bypass this check.'
+          'Transcoding to the same or higher resolution is not allowed by default. If you want to do this intentionally, pass in { force: true } as part of the vidoeConfig object to bypass this check.'
         );
       }
       const emit = (event: string, data: any) => {
