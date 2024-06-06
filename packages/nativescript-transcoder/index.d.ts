@@ -6,10 +6,6 @@ export declare class NativescriptTranscoder extends NativescriptTranscoderCommon
   setLogLevel(logLevel: LogLevel): void;
   transcode(inputPath: string, outputPath: string, videoConfig?: VideoConfig): Promise<File>;
   convertAudioToMp4(inputPath: string, outputPath: string): Promise<File>;
-  // for more advanced use cases (iOS only for now, Android is still WIP)
-  addAsset(asset: Asset): void;
-  addSegment(segment: Segment): void;
-  process(outputPath: string, videoConfig?: VideoConfig): Promise<void>;
 
   // utilties
   getVideoResolution(videoPath: string): VideoResolution;
