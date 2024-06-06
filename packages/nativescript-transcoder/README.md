@@ -30,7 +30,7 @@ The best way to understand how to use the plugin is to study the demo app includ
 import { NativescriptTranscoder } from '@voicethread/nativescript-transcoder';
 ```
 
-2. Transcode a video to 480p, 720p or 1080p (the example below uses a filepicker, but you can use a video recoding from the camera or another source)
+2.  Transcode a video to a specific height and/or width (the example below uses a filepicker, but you can use a video recording file from the camera or another source)
 
 ```typescript
 
@@ -51,7 +51,8 @@ selectAndTranscodeVideo(): void {
         inputFile.path,
         outputPath,
           {
-              quality: '720p'  // or '1080p' or '480p'
+               height: 720,                
+              //width: 1080,  //you can also set specific width, both or neither
           }
       ).then(transcodedFile => {
         // do something with the transcoded file
@@ -68,14 +69,13 @@ The following events are emitted during the transcoding process:
 - `TRANSCODING_PROGRESS` - emitted over time with the percentage (0 to 1) completed
 - `TRANSCODING_COMPLETE` - emitted after a successful transcoding process (the `transcode` function will return the transcoded file)
 - `TRANSCODING_ERROR` - emitted when the transcoding process emits an error (the `transcode` function will return a rejected promise at this point)
-- `TRANSCODING_CANCELLED` - emitted when the transcoding process is cancelled (the `transcode` function will return a rejected promise at this point) (iOS only(
 
 You can listen to these events by attaching the `on` listener to the `transcoder`
 
 ```typescript
   const transcoder = new NativescriptTranscoder()
   transcoder.on(NativescriptTranscoder.TRANSCODING_PROGRESS, (payload: MessageData) => {
-      // you'll have to wrap any UI updates in `executeOnMainThread` for iOS as the events are emitted from a different thread
+      // for iOS  you'll have to wrap any UI updates in `executeOnMainThread` as the events are emitted from a different thread
       executeOnMainThread(() => {
         progressBar.value = payload.data.progress * 100;
       });
@@ -84,13 +84,14 @@ You can listen to these events by attaching the `on` listener to the `transcoder
 
 ## Options 
 ```typescript
-export interface VideoConfig {
-  quality?: '480p' | '720p' | '1080p'; 
+export interface VideoConfig {  
+  height?: number;
+  width?: number;
+  force?: boolean; // force transcoding to allow transcoding to the same or higher quality
   frameRate?: number; // iOS only
   audioChannels?: number; // iOS only
   audioSampleRate?: number; // iOS only
   audioBitRate?: number; // iOS only
-  force?: boolean; // force transcoding to allow transcoding to the same or higher quality
 }
 ```
 
@@ -103,6 +104,9 @@ The transcoder plugin also contains some utilities to help you when interacting 
 | getVideoResolution(videoPath: string)      | Returns the video resolution (e.g. `1920x1080`) | `{ width: string, height: string }` | ✅ | ✅ |
 | getVideoSize(videoPath: string)      | Returns the video size in bytes | number | ✅ | ✅ |
 | getVideoSizeString(videoPath: string)      | Returns the video size in human readable format (e.g. `5.5 mb`) | string | ✅ | ✅ |
+| getVideoCodec(videoPath: string)      | Returns the video codec if found | string | ✅ | ✅ |
+| getAudioCodec(videoPath: string)      | Returns the audio codec if found | string | ✅ | ✅ |
+| getVideoDuration(videoPath: string)      | Returns the duration of the video in milliseconds | number | ✅ | ✅ |
 
 ## Troubleshooting
 

@@ -4,9 +4,8 @@ export { Asset, Segment, Track, VideoConfig, MessageData } from './common';
 
 export declare class NativescriptTranscoder extends NativescriptTranscoderCommon {
   setLogLevel(logLevel: LogLevel): void;
-  reset(): void;
   transcode(inputPath: string, outputPath: string, videoConfig?: VideoConfig): Promise<File>;
-
+  convertAudioToMp4(inputPath: string, outputPath: string): Promise<File>;
   // for more advanced use cases (iOS only for now, Android is still WIP)
   addAsset(asset: Asset): void;
   addSegment(segment: Segment): void;
@@ -16,4 +15,7 @@ export declare class NativescriptTranscoder extends NativescriptTranscoderCommon
   getVideoResolution(videoPath: string): VideoResolution;
   getVideoSize(videoPath: string): number; // in bytes
   getVideoSizeString(videoPath: string): number; // string for display purposes
+  getVideoCodec(videoPath: string): string;
+  getAudioCodec(videoPath: string): string;
+  getVideoDuration(videoPath: string): number;
 }
