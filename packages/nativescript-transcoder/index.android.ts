@@ -18,11 +18,15 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
         const file = File.fromPath(outputPath);
         file.removeSync();
       }
-      const allowedTranscodingResolution = this.getAllowedTranscodingResolution(inputPath);
+
+      const originalResolution = this.getVideoResolution(inputPath);
+      if (!videoConfig.height && !videoConfig.width) {
+        videoConfig.height = 720; //default to a height of 720 and scaled width if nothing set
+      }
 
       // If the input resolution is lower or the same as the target resolution, transcoding will just eat up time and create a bigger file, which is not usual purpose.
       //    If the user wants to do it anyway, pass the force flag.
-      if (!videoConfig.force && !allowedTranscodingResolution.includes(videoConfig.height + '')) {
+      if (!videoConfig.force && videoConfig.height >= originalResolution.height) {
         return reject(
           'Transcoding to the same or higher resolution is not allowed by default. If you want to do this intentionally, pass in { force: true } as part of the vidoeConfig object to bypass this check.'
         );
@@ -31,35 +35,26 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
         this.notify({ eventName: event, object: this, data });
       };
 
-      let height: number, width: number;
-      const originalResolution = this.getVideoResolution(inputPath);
-      if (!videoConfig.height && !videoConfig.width) {
-        height = 720; //default to a height of 720 and scaled width if nothing set
-      }
       if (videoConfig.width && !videoConfig.height) {
         //calculate the width based on desired height
         const targetWidth: number = videoConfig.width;
         const ratio = targetWidth / originalResolution.width;
         const targetHeight = Math.round(originalResolution.height * ratio);
-        width = targetWidth;
-        height = targetHeight;
+        videoConfig.width = targetWidth;
+        videoConfig.height = targetHeight;
       } else if (videoConfig.height && !videoConfig.width) {
         //calculate the width based on desired height
         const targetHeight: number = videoConfig.height;
         const ratio = targetHeight / originalResolution.height;
         const targetWidth = Math.round(originalResolution.width * ratio);
-        width = targetWidth;
-        height = targetHeight;
+        videoConfig.width = targetWidth;
+        videoConfig.height = targetHeight;
       }
-      //both set
-      else {
-        width = videoConfig.width;
-        height = videoConfig.height;
-      }
-      this.log(`Transcoding to height: ${height} width: ${width}`);
+
+      this.log(`Transcoding to height: ${videoConfig.height} width: ${videoConfig.width}`);
 
       const audioProcessors = new com.google.common.collect.ImmutableList.Builder<androidx.media3.common.audio.AudioProcessor>().build();
-      const videoEffects = com.google.common.collect.ImmutableList.of(androidx.media3.effect.Presentation.createForWidthAndHeight(width, height, 1));
+      const videoEffects = com.google.common.collect.ImmutableList.of(androidx.media3.effect.Presentation.createForWidthAndHeight(videoConfig.width, videoConfig.height, 1));
       //if you only want to select a height and have media3 handle the width, use the following instead
       // const videoEffects = com.google.common.collect.ImmutableList.of(androidx.media3.effect.Presentation.createForHeight(height));
       const inputMediaItem: androidx.media3.common.MediaItem = androidx.media3.common.MediaItem.fromUri(inputPath);

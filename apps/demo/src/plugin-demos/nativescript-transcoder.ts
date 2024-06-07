@@ -1,5 +1,5 @@
 /* eslint-disable @nrwl/nx/enforce-module-boundaries */
-import { EventData, Page, File, Frame, knownFolders, Button, Label, Color, isAndroid, Device, Progress, isIOS } from '@nativescript/core';
+import { EventData, Page, File, Frame, knownFolders, Button, Label, Color, Device, Progress } from '@nativescript/core';
 import { DemoSharedNativescriptTranscoder } from '@demo/shared';
 import { filePicker, galleryPicker, MediaType } from '@voicethread/nativescript-filepicker';
 import { MessageData, NativescriptTranscoder } from '@voicethread/nativescript-transcoder';
@@ -11,7 +11,7 @@ import { AudioPlayer, AudioPlayerOptions } from '@voicethread/nativescript-audio
 export function navigatingTo(args: EventData) {
   const page = <Page>args.object;
   page.bindingContext = new DemoModel();
-  if (isIOS) {
+  if (__IOS__) {
     (page.getViewById('ios-gallery-button') as Button).visibility = 'visible';
     (page.getViewById('audio-convert-button') as Button).visibility = 'collapsed';
     (page.getViewById('audio-picker-button') as Button).visibility = 'collapsed';
@@ -117,7 +117,7 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
   async pickAudio() {
     this.pickedFile = undefined;
     let canPick = true;
-    if (isAndroid && +Device.sdkVersion > 32) {
+    if (__ANDROID__ && +Device.sdkVersion > 32) {
       const result = await checkMultiple({ audio: {} });
       if (result['audio'] != 'authorized') {
         console.log('No audio permission, requesting...');
@@ -127,7 +127,7 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
         });
       }
       console.log('canPick?:', canPick);
-    } else if (isAndroid) {
+    } else if (__ANDROID__) {
       //just request external_storage perms otherwise
       const result = await checkPermission('storage');
       if (result['storage'] != 'authorized') console.log('No storage permission, requesting...');
@@ -150,7 +150,7 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
   async pickVideo() {
     this.pickedFile = undefined;
     let canPick = true;
-    if (isAndroid && +Device.sdkVersion > 32) {
+    if (__ANDROID__ && +Device.sdkVersion > 32) {
       const result = await checkMultiple({ photo: {}, audio: {}, video: {} });
       if (result['photo'] != 'authorized') {
         console.log('No photo permission, requesting...');
@@ -174,7 +174,7 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
         });
       }
       console.log('canPick?:', canPick);
-    } else if (isAndroid) {
+    } else if (__ANDROID__) {
       //just request external_storage perms otherwise
       const result = await checkPermission('storage');
       if (result['storage'] != 'authorized') console.log('No storage permission, requesting...');
@@ -339,7 +339,7 @@ export class DemoModel extends DemoSharedNativescriptTranscoder {
       .transcode(this.pickedFile.path, tempPath, {
         height, //allow the plugin to resize to the appropriate width to keep input video aspect ratio
         //width:1280, // you can also set your own width though but distortions will occur if aspect ratio is not maintained
-        force: true, //set this to allow transcoding to higher resolutions
+        force: false, //set this to allow transcoding to higher resolutions
       })
       .then(transcodedFile => {
         if (!transcodedFile) {

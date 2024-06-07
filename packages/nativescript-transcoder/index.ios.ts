@@ -33,13 +33,17 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
         this._videoConfig = DefaultVideoConfig;
       }
 
+      const originalResolution = this.getVideoResolution(inputPath);
+      if (!videoConfig.height && !videoConfig.width) {
+        videoConfig.height = 720; //default to a height of 720 and scaled width if nothing set
+      }
+
       const outputFile = File.fromPath(outputPath);
       outputFile.removeSync();
 
-      const allowedTranscodingResolution = this.getAllowedTranscodingResolution(inputPath);
       // If the input resolution is lower or the same as the target resolution, transcoding will just eat up time and create a bigger file, which is not usual purpose.
       //    If the user wants to do it anyway, pass the force flag.
-      if (!videoConfig.force && !allowedTranscodingResolution.includes(videoConfig.height + '')) {
+      if (!videoConfig.force && videoConfig.height >= originalResolution.height) {
         return reject(
           'Transcoding to the same or higher resolution is not allowed by default. If you want to do this intentionally, pass in { force: true } as part of the vidoeConfig object to bypass this check.'
         );
@@ -52,11 +56,6 @@ export class NativescriptTranscoder extends NativescriptTranscoderCommon {
       transcoder.asset = avAsset;
       transcoder.outputURL = this.getURLFromFilePath(outputPath);
       transcoder.outputFileType = AVFileTypeMPEG4;
-
-      //check for dimension flags and adjust height and width
-      if (!videoConfig.height && !videoConfig.width) {
-        videoConfig.height = 720; //default to a height of 720 and scaled width if nothing set
-      }
 
       if (videoConfig.width && !videoConfig.height) {
         //calculate the width based on desired height
