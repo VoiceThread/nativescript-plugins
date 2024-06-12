@@ -2,6 +2,11 @@ import { EventData, File, Observable } from '@nativescript/core';
 
 export class NativescriptTranscoderCommon extends Observable {
   private _logLevel: LogLevel = 'none';
+  /**
+   * Enable/disable debug logging for this plugin
+   * @method setLogLevel
+   * @param logLevel LogLevel
+   **/
   setLogLevel(logLevel: LogLevel): void {
     this._logLevel = logLevel;
   }

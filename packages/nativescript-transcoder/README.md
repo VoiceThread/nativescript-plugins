@@ -4,9 +4,16 @@
 
 [![npm](https://img.shields.io/npm/v/@voicethread/nativescript-audio-recorder?style=flat-square)](https://www.npmjs.com/package/@voicethread/nativescript-transcoder)
 
-This plugin provides video transcoding functionality for Android API 21+ and iOS 4+ and supports modifying the video's resolution, frame rate (iOS only). Other utilities such as stitching and layering multiple videos may be added in the future.
+This plugin provides a few audio/video transcoding functions for Android API 21+ and iOS 4+. 
 
-For both Android and iOS, the transcoded video files will be saved as an MP4 file using h264 and AAC encoding. 
+*transcode* allows you to transcode an input video/audio file to a specified height/width and produces an Mp4 file with H264 video and AAC audio encoding.  iOS also supports modifying the video frame rate along with some audio settings.
+
+*mergeMp4Files* will merge a series of Mp4 files to produce a single Mp4 file from all input Mp4 files provided. For iOS, this function currently requires that all mp4 input files have audio and video tracks. 
+
+For Android, *convertAudioToMp4* will convert natively supported audio files to produce an Mp4 with AAC audio encoding. 
+
+For both Android and iOS, all function outputs will be saved as an Mp4 file using h264 and AAC encoding. 
+
 
 ## Installation
 
@@ -97,10 +104,13 @@ export interface VideoConfig {
 
 ## Utilities
 
-The transcoder plugin also contains some utilities to help you when interacting with videos:
+The transcoder plugin provides the following functions for working with Mp4 files:
 
 | Function    | Description | Return Type | iOS | Android |
 | ----------- | ----------- | ----------- | ----------- | ----------- |
+| transcode(inputPath: string, outputPath: string, videoConfig?: VideoConfig)      | Returns the transcoded video file| Promise\<File\> | ✅ | ✅ |
+| convertAudioToMp4(inputPath: string, outputPath: string)      | Returns the transcoded audio file| Promise\<File\> | ✅ | ✅ |
+| mergeMp4Files(inputFiles: string[], outputPath: string)      | Returns the merged video file| Promise\<File\> | ✅ | ✅ |
 | getVideoResolution(videoPath: string)      | Returns the video resolution (e.g. `1920x1080`) | `{ width: string, height: string }` | ✅ | ✅ |
 | getVideoSize(videoPath: string)      | Returns the video size in bytes | number | ✅ | ✅ |
 | getVideoSizeString(videoPath: string)      | Returns the video size in human readable format (e.g. `5.5 mb`) | string | ✅ | ✅ |
